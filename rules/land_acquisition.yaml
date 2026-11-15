@@ -7,7 +7,9 @@ confidence_threshold: 0.85
 #   expiry_field: field holding an ISO expiry date (invalid after that date)
 #   date_field + max_age_days: issue date must be within N days of the case reference date
 # The `application` document is the form typed in by the clerk (confidence 1.0).
-# `fields` maps what extraction must read to its type: text | number | date | unit.
+# `fields` maps what extraction must read to its type: text | number | percent | date | unit.
+# number accepts plain digits or valid Indian/Western grouping (1,00,000 or 100,000);
+# percent also accepts a trailing % ("80%" -> 80).
 # Extracted strings are coerced once before any rule sees them; a value that cannot be
 # coerced ("80%", "eighty", "15/11/2026", "bigha") goes to human review with its reason.
 required_documents:

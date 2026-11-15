@@ -19,7 +19,7 @@ required_documents:
       date_field: issue_date
       max_age_days: 365            # VERIFY: how recent the residence proof must be
   - id: damage_assessment          # issued by the revenue / panchayat officer after the event
-    fields: {house_number: text, village: text, damage_percent: number, notified_area: text, assessment_date: date}
+    fields: {house_number: text, village: text, damage_percent: percent, notified_area: text, assessment_date: date}
     validity:
       date_field: assessment_date
       max_age_days: 90             # VERIFY: how long after assessment a claim may be filed

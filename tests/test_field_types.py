@@ -33,7 +33,7 @@ def test_number_accepts_plain_numbers(raw, value):
 
 @pytest.mark.parametrize("raw, reason", [
     ("80%", "not a plain number"), ("eighty", "not a plain number"), ("", "empty"), ("   ", "empty"),
-    (None, "empty"), ("1,000", "not a plain number"), ("nan", "not a plain number"), ("inf", "not a plain number"),
+    (None, "empty"), ("1,0,00", "not a plain number"), ("nan", "not a plain number"), ("inf", "not a plain number"),
     (True, "not a plain number"),
 ])
 def test_number_rejects_anything_else_with_a_reason(raw, reason):
@@ -75,14 +75,14 @@ def _dr01(damage):
     return case
 
 
-@pytest.mark.parametrize("damage", ["80", "80.0", " 80 "])
+@pytest.mark.parametrize("damage", ["80", "80.0", " 80 ", "80%", " 80 % "])
 def test_numeric_strings_give_the_same_outcome_as_numbers(damage):
     result = assess_case(DR, _dr01(damage), [])
     assert result.eligibility.overall == "eligible" and result.compensation.total == 105000
     assert not [f for f in result.verification.flags if f.kind == "invalid_value"]
 
 
-@pytest.mark.parametrize("damage, reason", [("80%", "not a plain number"), ("eighty", "not a plain number"),
+@pytest.mark.parametrize("damage, reason", [("eighty", "not a percentage"), ("80%%", "not a percentage"),
                                             ("", "empty")])
 def test_uncoercible_values_go_to_review_with_a_reason(damage, reason):
     result = assess_case(DR, _dr01(damage), [])                 # must not raise
@@ -125,7 +125,8 @@ def test_bad_unit_on_land_record_is_flagged_with_its_reason():
 
 # --- end to end: extracted strings stored in the DB, then assessed ---------------------------
 
-@pytest.mark.parametrize("damage, overall", [("80", "eligible"), ("80%", "needs_review"), ("", "needs_review")])
+@pytest.mark.parametrize("damage, overall", [("80", "eligible"), ("80%", "eligible"), ("eighty", "needs_review"),
+                                             ("", "needs_review")])
 def test_extracted_strings_through_the_database(tmp_path, damage, overall):
     case = _dr01(80)
     del case.documents["damage_assessment"]
@@ -157,13 +158,13 @@ def test_both_schemes_declare_types_for_every_field():
         scheme = load_scheme_by_name(name)
         for doc in scheme.required_documents:
             assert set(doc.types) == set(doc.fields), (name, doc.id)
-    assert load_scheme_by_name("disaster_relief").required_documents[3].types["damage_percent"] == "number"
+    assert load_scheme_by_name("disaster_relief").required_documents[3].types["damage_percent"] == "percent"
 
 
 def test_unknown_type_is_rejected():
     data = _yaml("disaster_relief")
-    data["required_documents"][3]["fields"]["damage_percent"] = "percent"
-    with pytest.raises(RulesError, match="percent"):
+    data["required_documents"][3]["fields"]["damage_percent"] = "percentage"
+    with pytest.raises(RulesError, match="percentage"):
         parse_scheme(data)
 
 
@@ -178,3 +179,39 @@ def test_plain_field_list_still_loads_as_text():
     data = _yaml("disaster_relief")
     data["required_documents"][0]["fields"] = ["name"]
     assert parse_scheme(data).required_documents[0].types == {"name": "text"}
+
+
+# --- digit grouping (Indian and Western) and the percent type ---------------------------------
+
+@pytest.mark.parametrize("raw, value", [
+    ("1,00,000", 100000.0), ("12,34,567.50", 1234567.5), ("100,000", 100000.0), ("1,234,567", 1234567.0),
+    ("1,000", 1000.0), ("-1,00,000", -100000.0), (" 10,000 ", 10000.0),
+])
+def test_number_accepts_valid_indian_or_western_grouping(raw, value):
+    assert coerce("number", raw) == (value, None)
+
+
+@pytest.mark.parametrize("raw", ["1,0,00", "10,00", "1,00,00", "100,00,000", "1,000,00", ",100", "100,", "1,,000",
+                                 "1,000.5,0", "1 000"])
+def test_number_rejects_malformed_grouping(raw):
+    value, error = coerce("number", raw)
+    assert value is None and "not a plain number" in error
+
+
+@pytest.mark.parametrize("raw, value", [("80%", 80.0), ("80", 80.0), (" 80 % ", 80.0), ("74.9%", 74.9), (15, 15.0)])
+def test_percent_accepts_a_trailing_percent_sign(raw, value):
+    assert coerce("percent", raw) == (value, None)
+
+
+@pytest.mark.parametrize("raw", ["%80", "80%%", "eighty%", "", "8 0%", "80 percent"])
+def test_percent_rejects_anything_else(raw):
+    value, error = coerce("percent", raw)
+    assert value is None and error
+
+
+def test_number_still_rejects_a_percent_sign():
+    assert coerce("number", "80%")[0] is None
+
+
+def test_damage_percent_is_declared_as_percent():
+    assert DR.required_documents[3].types["damage_percent"] == "percent"

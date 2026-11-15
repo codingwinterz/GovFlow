@@ -9,10 +9,13 @@ from typing import Any, Literal, Optional
 
 from app.units import UnknownUnit, to_sqm
 
-FieldType = Literal["text", "number", "date", "unit"]
-FIELD_TYPES: tuple[str, ...] = ("text", "number", "date", "unit")
+FieldType = Literal["text", "number", "percent", "date", "unit"]
+FIELD_TYPES: tuple[str, ...] = ("text", "number", "percent", "date", "unit")
 
+_FRACTION = r"(\.\d+)?"
 _PLAIN_NUMBER = re.compile(r"[+-]?(\d+(\.\d*)?|\.\d+)")
+_WESTERN_GROUPED = re.compile(r"[+-]?\d{1,3}(,\d{3})+" + _FRACTION)          # 100,000  1,234,567
+_INDIAN_GROUPED = re.compile(r"[+-]?\d{1,2}(,\d{2})*,\d{3}" + _FRACTION)    # 1,00,000  12,34,567
 _ISO_DATE = re.compile(r"\d{4}-\d{2}-\d{2}")
 
 Coerced = tuple[Optional[Any], Optional[str]]   # (value, None) or (None, reason)
@@ -30,7 +33,20 @@ def _number(value: Any) -> Coerced:
     text = str(value).strip()
     if _PLAIN_NUMBER.fullmatch(text):
         return float(text), None
-    return None, f"{value!r} is not a plain number (digits and an optional decimal point only)"
+    if _WESTERN_GROUPED.fullmatch(text) or _INDIAN_GROUPED.fullmatch(text):
+        return float(text.replace(",", "")), None
+    return None, (f"{value!r} is not a plain number (digits, an optional decimal point, and only "
+                  "valid Indian or Western digit grouping)")
+
+
+def _percent(value: Any) -> Coerced:
+    text = str(value).strip() if isinstance(value, str) else value
+    if isinstance(text, str) and text.endswith("%"):
+        text = text[:-1].rstrip()
+    number, error = _number(text) if text != "" else (None, "empty")
+    if error:
+        return None, f"{value!r} is not a percentage (a number with an optional trailing %)"
+    return number, None
 
 
 def _date(value: Any) -> Coerced:
@@ -61,6 +77,8 @@ def coerce(field_type: str, value: Any) -> Coerced:
         return None, "empty value"
     if field_type == "number":
         return _number(value)
+    if field_type == "percent":
+        return _percent(value)
     if field_type == "date":
         return _date(value)
     if field_type == "unit":
