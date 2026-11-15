@@ -11,6 +11,7 @@ import StatusLookup from "./pages/StatusLookup.jsx";
 import Track from "./pages/Track.jsx";
 import SelfCheck from "./pages/SelfCheck.jsx";
 import Simulator from "./pages/Simulator.jsx";
+import Award from "./pages/Award.jsx";
 
 function useRoute() {
   const [route, setRoute] = useState(parseRoute(window.location.hash));
@@ -29,6 +30,7 @@ function Page({ route, login }) {
     case "queue": return <Queue />;
     case "case": return <CasePage id={route.id} login={login} />;
     case "audit": return login.role === "officer" ? <Audit id={route.id} /> : <p>Only officers can view the audit trail.</p>;
+    case "award": return login.role === "officer" ? <Award id={route.id} /> : <p>Only officers can view award letters.</p>;
     case "analytics": return <Analytics />;
     case "intake": return <Intake />;
     case "status": return <StatusLookup />;
@@ -44,7 +46,7 @@ export default function App() {
 
   return (
     <div className="app">
-      <header className="topbar">
+      <header className="topbar no-print">
         <a className="brand" href={href("queue")}>GovFlow</a>
         <span className="badge demo" title="Identity comes from X-Role / X-User headers; not real authentication">
           DEMO MODE

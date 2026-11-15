@@ -197,6 +197,7 @@ export default function CasePage({ id, login }) {
             <div className="actions">
               <button onClick={runAgent} disabled={running}>{running ? "Running agent…" : "Run agent"}</button>
               {login.role === "officer" && <a href={href("audit", d.case_id)}>Audit trail</a>}
+              {login.role === "officer" && d.status === "approved" && <a href={href("award", d.case_id)}>Award letter</a>}
             </div>
             {runError && <p className="error">{runError}</p>}
           </div>

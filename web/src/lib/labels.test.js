@@ -37,3 +37,10 @@ test("days open and overdue come from the API, never from browser date arithmeti
   assert.match(queue, /c\.days_open/);
   assert.match(queue, /c\.overdue/);
 });
+
+test("award page prints API values with the demo mark and computes nothing", () => {
+  const source = readFileSync(join(PAGES, "Award.jsx"), "utf8");
+  assert.match(source, /a\.total/);
+  assert.match(source, /window\.print\(\)/);
+  assert.match(source, /DEMO/);
+});

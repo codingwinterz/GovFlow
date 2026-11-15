@@ -30,6 +30,7 @@ from app.audit import log_action
 from app.citizen import RateLimiter, citizen_view, code_matches
 from app.citizen import citizen_secret as default_citizen_secret
 from app.extraction import EXTRACTION_UNAVAILABLE_MESSAGE, ProviderError
+from app.case_store import load_case
 from app.models import AuditLog, Case, CompensationItemRow, Document, ExtractedField, RuleResultRow
 from app.models import VerificationFlag, make_engine, queue_key
 from app.privacy import mask_identifiers
@@ -396,6 +397,35 @@ def create_app(engine: Optional[Engine] = None, agent_llm_factory: Optional[Call
                     "new_value": result.new_value, "changed_count": result.changed_count}, result.rules_version)
         session.commit()
         return result.model_dump()
+
+    @app.get("/cases/{case_id}/award")
+    def award(case_id: str, actor: Actor = Depends(_actor), session: Session = Depends(session_dep)) -> dict[str, Any]:
+        """Award letter / case summary for an approved case. Every value comes from stored results."""
+        _require(actor, "officer")
+        case = _get_case(session, case_id)
+        if case.status != "approved":
+            raise HTTPException(409, f"Case {case_id} is {case.status}; an award letter is only for approved cases")
+        scheme = load_scheme_by_name(case.scheme)
+        decision = (session.query(AuditLog).filter_by(case_id=case_id, action="officer_decision")
+                    .order_by(AuditLog.id.desc()).first())
+        docs = load_case(session, case_id).documents
+        field = lambda doc, name: docs[doc].fields[name].value if doc in docs and name in docs[doc].fields else None
+        items = session.query(CompensationItemRow).filter_by(case_id=case_id).all()
+        letter = mask_identifiers({
+            "case_id": case.id, "scheme": case.scheme, "labels": scheme.labels, "demo": True,
+            "applicant_name": field("application", "name"), "applicant_id": field("identity_proof", "id_number"),
+            "decision": {"decision": "approve", "officer_id": case.officer_id,
+                         "date": decision.ts.date().isoformat() if decision else None},
+            "rules_version": scheme.version,
+            "rule_results": [{"rule_id": r.rule_id, "status": r.status, "clause": r.clause, "reason": r.reason}
+                             for r in session.query(RuleResultRow).filter_by(case_id=case_id)],
+            "items": [{"component": i.component, "amount": i.amount, "formula_note": i.formula_note} for i in items],
+            "total": round(sum(i.amount for i in items), 2),
+            "generated_at": now().isoformat(),
+        })
+        log_action(session, case_id, actor.name, "award_letter_viewed", {"total": letter["total"]}, scheme.version)
+        session.commit()
+        return letter
 
     @app.get("/cases/{case_id}/audit")
     def audit(case_id: str, actor: Actor = Depends(_actor),

@@ -7,6 +7,7 @@ test("hash routes", () => {
   assert.deepEqual(parseRoute("#/"), { page: "queue" });
   assert.deepEqual(parseRoute("#/cases/LA-07"), { page: "case", id: "LA-07" });
   assert.deepEqual(parseRoute("#/cases/LA-07/audit"), { page: "audit", id: "LA-07" });
+  assert.deepEqual(parseRoute("#/cases/LA-07/award"), { page: "award", id: "LA-07" });
   assert.deepEqual(parseRoute("#/analytics"), { page: "analytics" });
   assert.deepEqual(parseRoute("#/intake"), { page: "intake" });
   assert.deepEqual(parseRoute("#/status"), { page: "status" });

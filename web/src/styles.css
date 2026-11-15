@@ -75,4 +75,13 @@ button.link { background: none; border: none; color: var(--accent); padding: 0; 
 .citizen-view .line { margin: 6px 0; }
 .citizen-view .source { font-size: 0.85rem; color: var(--muted); margin-top: -2px; }
 .citizen-view .total { font-weight: 700; }
+.letter { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 24px; margin: 16px 0; }
+.letter table.plain th { width: 30%; text-transform: none; font-size: 0.9rem; }
+.demo-mark { border: 2px dashed var(--demo); color: var(--demo); font-weight: 700; text-align: center; padding: 4px; }
+@media print {
+  .no-print { display: none !important; }
+  body, .app { background: #fff; color: #000; max-width: none; padding: 0; }
+  .letter { border: none; padding: 0; }
+  .demo-mark { color: #000; border-color: #000; }
+}
 .review-note { margin-top: 24px; padding-top: 8px; border-top: 1px solid var(--border); font-size: 0.85rem; color: var(--warn-text); }
