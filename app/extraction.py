@@ -1,0 +1,164 @@
+"""Field extraction from documents: vision LLM first, OCR + text LLM as a fallback.
+
+Extraction only reads; it never decides anything. Fields the scheme did not ask
+for are dropped, missing fields are reported (never invented), and anything
+below the confidence threshold stays flagged so the case routes to human review.
+"""
+
+import re
+from typing import Any, Literal, Optional, Protocol
+
+from pydantic import BaseModel
+
+Mode = Literal["document", "ocr_text"]
+Method = Literal["llm", "ocr_fallback"]
+
+
+class Page(BaseModel):
+    number: int
+    text: Optional[str] = None          # synthetic/plain-text documents and OCR output
+    image_bytes: Optional[bytes] = None
+    media_type: Optional[str] = None    # e.g. image/png, application/pdf
+
+
+class DocumentInput(BaseModel):
+    document_id: str
+    doc_type: str
+    pages: list[Page]
+
+
+class ExtractionRequest(BaseModel):
+    document_id: str
+    doc_type: str
+    fields: list[str]
+    pages: list[Page]
+    mode: Mode
+
+
+class ProviderField(BaseModel):
+    name: str
+    value: Any
+    confidence: float
+    page: Optional[int] = None
+
+
+class OcrResult(BaseModel):
+    text: str
+    confidence: float
+
+
+class ProviderError(RuntimeError):
+    """The extraction provider failed; the document goes to human review."""
+
+
+class ExtractionProvider(Protocol):
+    name: str
+
+    def extract(self, request: ExtractionRequest) -> list[ProviderField]: ...
+
+
+class OcrEngine(Protocol):
+    name: str
+
+    def ocr(self, document_id: str, page: Page) -> OcrResult: ...
+
+
+class ExtractedFieldOut(BaseModel):
+    name: str
+    value: Any
+    confidence: float
+    source_page: Optional[int]
+    method: Method
+    note: Optional[str] = None
+
+
+class ExtractionResult(BaseModel):
+    document_id: str
+    doc_type: str
+    fields: list[ExtractedFieldOut]
+    low_confidence: list[str]
+    missing: list[str]
+    used_fallback: bool
+    provider: str
+    ocr_engine: Optional[str]
+    error: Optional[str] = None
+
+
+def _normalise_text(value: Any) -> str:
+    return re.sub(r"\s+", " ", str(value)).strip().casefold()
+
+
+def values_match(a: Any, b: Any) -> bool:
+    """Equal as numbers, or equal as text ignoring case and spacing."""
+    try:
+        return abs(float(a) - float(b)) < 1e-9
+    except (TypeError, ValueError):
+        return _normalise_text(a) == _normalise_text(b)
+
+
+def _clean(fields: list[ProviderField], wanted: list[str]) -> dict[str, ProviderField]:
+    out: dict[str, ProviderField] = {}
+    for f in fields:
+        if f.name not in wanted or f.value in (None, ""):
+            continue
+        conf = f.confidence if 0.0 <= f.confidence <= 1.0 else 0.0
+        out[f.name] = f.model_copy(update={"confidence": conf})
+    return out
+
+
+def _from(f: ProviderField, method: Method, confidence: Optional[float] = None,
+          value: Any = None, note: Optional[str] = None) -> ExtractedFieldOut:
+    return ExtractedFieldOut(name=f.name, value=f.value if value is None else value,
+                             confidence=f.confidence if confidence is None else confidence,
+                             source_page=f.page, method=method, note=note)
+
+
+def _ocr_pass(document: DocumentInput, fields: list[str], provider: ExtractionProvider,
+              ocr: OcrEngine) -> dict[str, ProviderField]:
+    results = [(p.number, ocr.ocr(document.document_id, p)) for p in document.pages]
+    ocr_conf = min(r.confidence for _, r in results)
+    pages = [Page(number=n, text=r.text) for n, r in results]
+    request = ExtractionRequest(document_id=document.document_id, doc_type=document.doc_type,
+                                fields=fields, pages=pages, mode="ocr_text")
+    secondary = _clean(provider.extract(request), fields)
+    # A text extraction is never more trustworthy than the OCR it read
+    return {k: v.model_copy(update={"confidence": min(v.confidence, ocr_conf)}) for k, v in secondary.items()}
+
+
+def _merge(name: str, primary: Optional[ProviderField], secondary: Optional[ProviderField],
+           threshold: float) -> Optional[ExtractedFieldOut]:
+    if secondary is not None and secondary.confidence >= threshold:
+        if primary is None:
+            return _from(secondary, "ocr_fallback")
+        if values_match(primary.value, secondary.value):
+            return _from(secondary, "ocr_fallback", value=primary.value)
+        return _from(primary, "llm", note=f"OCR fallback read {secondary.value!r}; values disagree")
+    if primary is not None:
+        return _from(primary, "llm")
+    if secondary is not None:
+        return _from(secondary, "ocr_fallback")
+    return None
+
+
+def extract_facts(document: DocumentInput, fields: list[str], threshold: float,
+                  provider: ExtractionProvider, ocr: Optional[OcrEngine] = None) -> ExtractionResult:
+    base = {"document_id": document.document_id, "doc_type": document.doc_type,
+            "provider": provider.name, "ocr_engine": ocr.name if ocr else None}
+    request = ExtractionRequest(document_id=document.document_id, doc_type=document.doc_type,
+                                fields=fields, pages=document.pages, mode="document")
+    try:
+        primary = _clean(provider.extract(request), fields)
+        weak = [f for f in fields if f not in primary or primary[f].confidence < threshold]
+        secondary = _ocr_pass(document, weak, provider, ocr) if (weak and ocr) else {}
+    except ProviderError as exc:
+        return ExtractionResult(fields=[], low_confidence=[], missing=list(fields), used_fallback=False,
+                                error=str(exc), **base)
+
+    out = [m for f in fields if (m := _merge(f, primary.get(f), secondary.get(f), threshold))]
+    return ExtractionResult(
+        fields=out,
+        low_confidence=[f.name for f in out if f.confidence < threshold],
+        missing=[f for f in fields if f not in {o.name for o in out}],
+        used_fallback=bool(weak and ocr),
+        **base,
+    )

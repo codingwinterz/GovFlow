@@ -59,3 +59,23 @@ def test_rejects_rule_with_neither_when_nor_depends_on():
     data["eligibility_rules"][0].pop("when")
     with pytest.raises(RulesError):
         parse_scheme(data)
+
+
+def test_documents_declare_fields_to_extract():
+    scheme = parse_scheme(_base())
+    docs = {d.id: d for d in scheme.required_documents}
+    assert docs["ownership_record"].fields == ["name", "survey_number", "area", "area_unit", "issue_date"]
+
+
+def test_rejects_check_on_field_not_declared_for_document():
+    data = _base()
+    data["required_documents"][2]["fields"] = ["expiry_date"]   # identity_proof without `name`
+    with pytest.raises(RulesError, match="name"):
+        parse_scheme(data)
+
+
+def test_rejects_validity_field_not_declared_for_document():
+    data = _base()
+    data["required_documents"][2]["fields"] = ["name"]          # identity_proof without expiry_date
+    with pytest.raises(RulesError, match="expiry_date"):
+        parse_scheme(data)

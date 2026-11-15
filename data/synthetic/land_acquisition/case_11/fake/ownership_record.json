@@ -1,0 +1,52 @@
+{
+  "document": [
+    {
+      "name": "name",
+      "value": "L?ta Sh1rodkar",
+      "confidence": 0.62,
+      "page": 1
+    },
+    {
+      "name": "survey_number",
+      "value": "61/1",
+      "confidence": 0.9,
+      "page": 1
+    },
+    {
+      "name": "area",
+      "value": 900,
+      "confidence": 0.7,
+      "page": 1
+    },
+    {
+      "name": "area_unit",
+      "value": "sqm",
+      "confidence": 0.9,
+      "page": 1
+    },
+    {
+      "name": "issue_date",
+      "value": "2026-10-01",
+      "confidence": 0.9,
+      "page": 1
+    }
+  ],
+  "ocr": {
+    "text": "F0RM I & X1V\nOccup nt: Lata Shirodkar\nAr a: 900 sq m",
+    "confidence": 0.58
+  },
+  "ocr_text": [
+    {
+      "name": "name",
+      "value": "Lata Shirodkar",
+      "confidence": 0.9,
+      "page": 1
+    },
+    {
+      "name": "area",
+      "value": 900,
+      "confidence": 0.9,
+      "page": 1
+    }
+  ]
+}

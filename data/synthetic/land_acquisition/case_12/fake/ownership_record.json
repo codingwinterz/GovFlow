@@ -1,0 +1,36 @@
+{
+  "document": [
+    {
+      "name": "name",
+      "value": "Dinesh Naik",
+      "confidence": 0.97,
+      "page": 1
+    },
+    {
+      "name": "survey_number",
+      "value": "45/2",
+      "confidence": 0.96,
+      "page": 1
+    },
+    {
+      "name": "area",
+      "value": 0.4,
+      "confidence": 0.95,
+      "page": 1
+    },
+    {
+      "name": "area_unit",
+      "value": "ha",
+      "confidence": 0.95,
+      "page": 1
+    },
+    {
+      "name": "issue_date",
+      "value": "2026-10-01",
+      "confidence": 0.95,
+      "page": 1
+    }
+  ],
+  "ocr": null,
+  "ocr_text": []
+}

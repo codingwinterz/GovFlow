@@ -1,6 +1,6 @@
 """SQLite schema (SPEC section 3). audit_log is append-only, enforced by triggers."""
 
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from typing import Optional
 
 from sqlalchemy import DDL, Engine, ForeignKey, String, create_engine, event
@@ -28,6 +28,8 @@ class Case(Base):
     updated_at: Mapped[datetime] = mapped_column(default=_now, onupdate=_now)
     officer_id: Mapped[Optional[str]]
     confidence_flag: Mapped[bool] = mapped_column(default=False)   # True = needs human review
+    reference_date: Mapped[Optional[date]]                          # date checks compare against this
+    inputs_json: Mapped[str] = mapped_column(default="{}")          # officer-entered values (market value, dates)
 
 
 class Document(Base):
@@ -44,9 +46,11 @@ class ExtractedField(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     document_id: Mapped[int] = mapped_column(ForeignKey("documents.id"))
     field: Mapped[str]
-    value: Mapped[str]
+    value: Mapped[str]                                   # JSON-encoded so numbers stay numbers
     confidence: Mapped[float]
     source_page: Mapped[Optional[int]]
+    method: Mapped[str] = mapped_column(default="seed")  # llm | ocr_fallback | seed
+    note: Mapped[Optional[str]]
 
 
 class VerificationFlag(Base):

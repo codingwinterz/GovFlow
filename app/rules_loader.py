@@ -32,6 +32,7 @@ class Validity(BaseModel):
 
 class RequiredDocument(BaseModel):
     id: str
+    fields: list[str] = []            # what extraction must read; empty = not declared
     validity: Optional[Validity] = None
 
 
@@ -147,6 +148,21 @@ def _expressions(scheme: Scheme) -> list[str]:
     return exprs
 
 
+def _check_declared_fields(scheme: Scheme) -> None:
+    """Fields used by checks and validity must be in the document's extraction list."""
+    declared = {d.id: set(d.fields) for d in scheme.required_documents if d.fields}
+    needed: list[tuple[str, str, str]] = []
+    for check in scheme.verification_checks:
+        needed += [(doc, f, f"check {check.id}") for doc in check.across for f in check.fields]
+    for doc in scheme.required_documents:
+        if doc.validity:
+            v = doc.validity
+            needed += [(doc.id, f, "validity") for f in (v.expiry_field, v.date_field) if f]
+    for doc_id, field_name, used_by in needed:
+        if doc_id in declared and field_name not in declared[doc_id]:
+            raise RulesError(f"{doc_id}.{field_name} is used by {used_by} but not in its fields list")
+
+
 def _cross_check(scheme: Scheme) -> None:
     check_ids = {c.id for c in scheme.verification_checks}
     for rule in scheme.eligibility_rules:
@@ -158,6 +174,7 @@ def _cross_check(scheme: Scheme) -> None:
         unknown = set(check.across) - docs
         if unknown:
             raise RulesError(f"Check {check.id} uses undeclared documents: {sorted(unknown)}")
+    _check_declared_fields(scheme)
     for expr in _expressions(scheme):
         try:
             check_expression(expr)
