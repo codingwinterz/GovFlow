@@ -5,7 +5,11 @@ Three systems, reported separately:
   gemini          Gemini vision, no OCR fallback
   combined        Gemini vision first, Tesseract OCR + Gemini text pass for weak fields
 
-Needs: Tesseract binary (TESSERACT_CMD if not on PATH) and/or GEMINI_API_KEY in the environment.
+Provider errors (rate limits, timeouts) are reported apart from reading errors, and
+accuracy is computed only over documents the provider answered (answered/total shown).
+
+Needs: Tesseract binary (TESSERACT_CMD if not on PATH) and/or GEMINI_API_KEY (shell or .env).
+Optional: GEMINI_MODEL (model id), GEMINI_PACE_SECONDS (pause between calls, default 4).
 Full results, including model outputs, are written to eval_results/ (gitignored, never commit).
 
 Usage: python -m scripts.eval_images
@@ -13,14 +17,22 @@ Usage: python -m scripts.eval_images
 
 import json
 import os
+from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
 from app.evaluation import EvalReport, run_messy_eval
+from app.extraction import ExtractionResult
+from app.privacy import redact_secrets
 
-RESULTS_DIR = Path(__file__).resolve().parent.parent / "eval_results"
+ROOT = Path(__file__).resolve().parent.parent
+RESULTS_DIR = ROOT / "eval_results"
 VARIANTS = ("clean", "degraded")
+
+
+def say(line: str = "") -> None:
+    print(redact_secrets(line), flush=True)   # live progress, and never a key on screen
 
 
 def plan_systems(has_tesseract: bool, has_key: bool) -> list[tuple[str, Optional[str]]]:
@@ -42,38 +54,64 @@ def _build(system: str):
     return GeminiProvider(), TesseractOcr()
 
 
-def _line(system: str, r: EvalReport) -> str:
+def progress_line(label: str, result: ExtractionResult) -> str:
+    if result.status == "ok":
+        return f"    {label:<28} read {len(result.fields)} fields"
+    return f"    {label:<28} UNAVAILABLE ({result.error_kind})"
+
+
+def report_lines(system: str, r: EvalReport) -> list[str]:
     e, f = r.extraction, r.flags
-    return (f"{system:<15}{r.variant:<10}{e.correct:>3}/{e.total:<4}{e.accuracy:>8.3f}{e.accepted:>9}"
-            f"{e.accepted_wrong:>8}{e.routed_to_review:>8}{f.precision:>8.3f}{f.recall:>8.3f}{len(r.errors):>7}")
+    accuracy = "n/a" if e.accuracy is None else f"{e.accuracy:.3f}"
+    kinds = Counter(p.kind for p in r.provider_errors)
+    lines = [
+        f"{system} / {r.variant}   model {r.model or 'none (no LLM)'}",
+        f"  accuracy {accuracy}  ({e.correct}/{e.fields_answered} fields, answered {e.documents_answered}/"
+        f"{e.documents_total} docs)",
+        f"  accepted {e.accepted}   accepted WRONG {e.accepted_wrong}   routed to review {e.routed_to_review}",
+        f"  reading errors: {e.reading_errors} (answered fields wrong or not found)",
+        f"  provider errors: {len(r.provider_errors)}"
+        + (f" ({', '.join(f'{k} x{n}' for k, n in sorted(kinds.items()))})" if kinds else "")
+        + f"   -> {e.unavailable} fields unavailable, not scored",
+    ]
+    lines += [f"      {p.document}: {p.kind}: {p.message.splitlines()[0][:120]}" for p in r.provider_errors]
+    lines.append(f"  flags precision {f.precision:.3f} recall {f.recall:.3f} "
+                 f"(scored {f.cases_scored}/{f.cases_total} cases with every document answered)")
+    return [redact_secrets(line) for line in lines]
 
 
 def main() -> None:
     from app.env_file import load_env_file
     from app.providers.tesseract import tesseract_available
-    loaded = load_env_file(RESULTS_DIR.parent / ".env")
+    loaded = load_env_file(ROOT / ".env")
     if loaded:
-        print(f"Loaded from .env: {', '.join(loaded)}")
-    plan = plan_systems(tesseract_available(), bool(os.environ.get("GEMINI_API_KEY")))
-    print(f"{'system':<15}{'variant':<10}{'correct':<8}{'acc':>8}{'accepted':>9}{'WRONG':>8}{'review':>8}"
-          f"{'flagP':>8}{'flagR':>8}{'errors':>7}")
-    saved = {}
-    for system, skip in plan:
+        say(f"Loaded from .env: {', '.join(loaded)}")   # names only
+    say(f"Gemini model: {os.environ.get('GEMINI_MODEL') or 'default'}; "
+        f"pace {os.environ.get('GEMINI_PACE_SECONDS') or 'default'} s")
+    saved, summaries = {}, []
+    for system, skip in plan_systems(tesseract_available(), bool(os.environ.get("GEMINI_API_KEY"))):
         if skip:
-            print(f"{system:<15}SKIPPED: {skip}")
+            summaries.append([f"{system}: SKIPPED: {skip}"])
+            say(summaries[-1][0])
             continue
         provider, ocr = _build(system)
         for variant in VARIANTS:
-            report = run_messy_eval(provider=provider, ocr=ocr, variant=variant)
-            print(_line(system, report))
-            for err in report.errors:
-                print(f"{'':<15}  error: {err}")
+            say(f"\n{system} / {variant} ...")
+            report = run_messy_eval(provider=provider, ocr=ocr, variant=variant,
+                                    on_document=lambda label, result: say(progress_line(label, result)))
+            summaries.append(report_lines(system, report))
+            for line in summaries[-1]:
+                say(line)
             saved[f"{system}/{variant}"] = report.model_dump(mode="json")
+    say("\n=== summary ===")
+    for block in summaries:
+        for line in block:
+            say(line)
     if saved:
         RESULTS_DIR.mkdir(exist_ok=True)
         out = RESULTS_DIR / f"images_{datetime.now(timezone.utc):%Y%m%dT%H%M%SZ}.json"
-        out.write_text(json.dumps(saved, indent=2), encoding="utf-8")
-        print(f"\nFull rows written to {out} (gitignored)")
+        out.write_text(json.dumps(redact_secrets(saved), indent=2), encoding="utf-8")
+        say(f"\nFull rows written to {out} (gitignored)")
 
 
 if __name__ == "__main__":

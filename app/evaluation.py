@@ -3,17 +3,21 @@
 With no provider given, each document uses a FakeProvider that replays its recorded
 response. Those extraction numbers describe the recordings, not a model. Flag
 precision/recall measures the deterministic verification code on what was extracted.
+
+Provider failures (rate limits, timeouts) are counted apart from reading errors:
+accuracy is computed only over documents the provider actually answered, and flags
+only over cases whose labelled documents were all answered.
 """
 
 import json
 from pathlib import Path
-from typing import Any, Literal, Optional
+from typing import Any, Callable, Literal, Optional
 
 from pydantic import BaseModel
 
 from app.case_model import CaseIn
 from app.case_store import seed_case
-from app.extraction import ExtractionProvider, OcrEngine, ProviderField, values_match
+from app.extraction import ExtractionProvider, ExtractionResult, OcrEngine, ProviderField, values_match
 from app.models import Document, make_engine, make_session
 from app.providers.fake import FakeOcr, FakeProvider
 from app.rules_loader import load_scheme_by_name
@@ -22,6 +26,7 @@ from app.units import UnknownUnit, to_sqm
 
 SET_DIR = Path(__file__).resolve().parent.parent / "data" / "synthetic" / "land_acquisition"
 Variant = Literal["text", "clean", "degraded"]
+OnDocument = Callable[[str, ExtractionResult], None]
 
 
 class FieldRow(BaseModel):
@@ -32,22 +37,36 @@ class FieldRow(BaseModel):
     value: Any
     confidence: Optional[float]
     method: Optional[str]
+    answered: bool        # False when the provider failed on this document (nothing was read)
     accepted: bool        # at or above the confidence threshold, so the tools will use it
     correct: bool
 
 
+class ProviderFailure(BaseModel):
+    document: str         # e.g. case_02.identity_proof
+    kind: str             # error class: rate_limited, unavailable, timeout, ...
+    message: str
+
+
 class ExtractionSummary(BaseModel):
     rows: list[FieldRow]
-    total: int
+    total: int                 # all labelled fields
+    documents_total: int
+    documents_answered: int    # the provider returned a reading (possibly empty)
+    fields_answered: int       # labelled fields on answered documents
+    unavailable: int           # labelled fields on documents the provider failed on
     accepted: int
     accepted_correct: int
-    accepted_wrong: int   # the dangerous number: confidently wrong
-    routed_to_review: int
-    correct: int          # value right, whatever its confidence
-    accuracy: float       # correct / total
+    accepted_wrong: int        # the dangerous number: confidently wrong
+    routed_to_review: int      # answered but below threshold or not found
+    reading_errors: int        # answered fields that are wrong or missing
+    correct: int               # value right, whatever its confidence
+    accuracy: Optional[float]  # correct / fields_answered; None when nothing was answered
 
 
 class FlagSummary(BaseModel):
+    cases_total: int
+    cases_scored: int          # cases whose labelled documents were all answered
     per_case: dict[str, dict[str, list[str]]]
     true_positives: list[str]
     false_positives: list[str]
@@ -59,7 +78,8 @@ class FlagSummary(BaseModel):
 class EvalReport(BaseModel):
     variant: Variant
     providers: set[str]
-    errors: list[str]     # provider failures, one per affected document
+    model: Optional[str]                  # e.g. the Gemini model id; None for recorded fakes / no LLM
+    provider_errors: list[ProviderFailure]
     extraction: ExtractionSummary
     flags: FlagSummary
 
@@ -87,20 +107,21 @@ def field_matches(field: str, got: Any, truth: Any) -> bool:
     return values_match(got, truth)
 
 
-def _rows(case: str, doc_type: str, truth: dict, result, threshold: float) -> list[FieldRow]:
+def _rows(case: str, doc_type: str, truth: dict, result: ExtractionResult, threshold: float) -> list[FieldRow]:
     got = {f.name: f for f in result.fields}
+    answered = result.status == "ok"
     rows = []
     for name, true_value in truth.items():
         f = got.get(name)
         rows.append(FieldRow(case=case, doc_type=doc_type, field=name, truth=true_value,
                              value=f.value if f else None, confidence=f.confidence if f else None,
-                             method=f.method if f else None,
+                             method=f.method if f else None, answered=answered,
                              accepted=bool(f and f.confidence >= threshold),
                              correct=bool(f and field_matches(name, f.value, true_value))))
     return rows
 
 
-def _flag_summary(per_case: dict[str, dict[str, list[str]]]) -> FlagSummary:
+def _flag_summary(per_case: dict[str, dict[str, list[str]]], cases_total: int) -> FlagSummary:
     tp, fp, fn = [], [], []
     for case_id, sets in per_case.items():
         expected, actual = set(sets["expected"]), set(sets["actual"])
@@ -109,15 +130,30 @@ def _flag_summary(per_case: dict[str, dict[str, list[str]]]) -> FlagSummary:
         fn += [f"{case_id}:{k}" for k in sorted(expected - actual)]
     precision = len(tp) / (len(tp) + len(fp)) if (tp or fp) else 1.0
     recall = len(tp) / (len(tp) + len(fn)) if (tp or fn) else 1.0
-    return FlagSummary(per_case=per_case, true_positives=tp, false_positives=fp, false_negatives=fn,
+    return FlagSummary(cases_total=cases_total, cases_scored=len(per_case), per_case=per_case,
+                       true_positives=tp, false_positives=fp, false_negatives=fn,
                        precision=round(precision, 3), recall=round(recall, 3))
 
 
+def _summary(rows: list[FieldRow], documents_total: int, documents_answered: int) -> ExtractionSummary:
+    answered = [r for r in rows if r.answered]
+    accepted = [r for r in answered if r.accepted]
+    correct = sum(r.correct for r in answered)
+    return ExtractionSummary(
+        rows=rows, total=len(rows), documents_total=documents_total, documents_answered=documents_answered,
+        fields_answered=len(answered), unavailable=len(rows) - len(answered), accepted=len(accepted),
+        accepted_correct=sum(r.correct for r in accepted), accepted_wrong=sum(not r.correct for r in accepted),
+        routed_to_review=len(answered) - len(accepted), reading_errors=len(answered) - correct, correct=correct,
+        accuracy=round(correct / len(answered), 3) if answered else None,
+    )
+
+
 def run_messy_eval(provider: Optional[ExtractionProvider] = None, ocr: Optional[OcrEngine] = None,
-                   variant: Variant = "text") -> EvalReport:
+                   variant: Variant = "text", on_document: Optional[OnDocument] = None) -> EvalReport:
     """variant="text" reads documents/*.txt; "clean"/"degraded" read the rendered images.
 
     provider=None replays recorded fake responses (text only); pass a real provider to measure it.
+    on_document(label, result) is called after each document, for live progress.
     """
     if variant != "text" and provider is None:
         raise ValueError("Image variants need a real provider; recorded fakes only cover text documents")
@@ -125,7 +161,8 @@ def run_messy_eval(provider: Optional[ExtractionProvider] = None, ocr: Optional[
     threshold = load_scheme_by_name("land_acquisition").confidence_threshold
     rows: list[FieldRow] = []
     providers: set[str] = set()
-    errors: list[str] = []
+    failures: list[ProviderFailure] = []
+    unanswered_cases: set[str] = set()
 
     with make_session(make_engine("sqlite://")) as session:
         for folder in sorted(SET_DIR.glob("case_*")):
@@ -146,23 +183,24 @@ def run_messy_eval(provider: Optional[ExtractionProvider] = None, ocr: Optional[
                 doc_provider, doc_ocr = provider, ocr
             providers.add(doc_provider.name)
             result = extract_document(session, doc.id, doc_provider, doc_ocr, actor="eval")
-            if result.error:
-                errors.append(f"{item['case']}.{item['doc_type']}: {result.error}")
+            label = f"{item['case']}.{item['doc_type']}"
+            if result.status != "ok":
+                failures.append(ProviderFailure(document=label, kind=result.error_kind or "error",
+                                                message=result.error or ""))
+                unanswered_cases.add(case_id)
+            if on_document:
+                on_document(label, result)
             rows += _rows(item["case"], item["doc_type"], item["truth"], result, threshold)
 
         per_case = {}
         for case_id, expected in labels["expected_flags"].items():
+            if case_id in unanswered_cases:
+                continue   # a provider failure says nothing about the verification code
             actual = sorted({f.kind for f in verify_documents(session, case_id, actor="eval").flags})
             per_case[case_id] = {"expected": sorted(expected), "actual": actual}
 
-    accepted = [r for r in rows if r.accepted]
-    extraction = ExtractionSummary(
-        rows=rows, total=len(rows), accepted=len(accepted),
-        accepted_correct=sum(r.correct for r in accepted),
-        accepted_wrong=sum(not r.correct for r in accepted),
-        routed_to_review=len(rows) - len(accepted),
-        correct=sum(r.correct for r in rows),
-        accuracy=round(sum(r.correct for r in rows) / len(rows), 3) if rows else 0.0,
-    )
-    return EvalReport(variant=variant, providers=providers, errors=errors, extraction=extraction,
-                      flags=_flag_summary(per_case))
+    documents_total = len(labels["documents"])
+    extraction = _summary(rows, documents_total, documents_total - len(failures))
+    return EvalReport(variant=variant, providers=providers, model=getattr(provider, "model", None),
+                      provider_errors=failures, extraction=extraction,
+                      flags=_flag_summary(per_case, len(labels["expected_flags"])))

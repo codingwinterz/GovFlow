@@ -18,3 +18,24 @@ def test_leaves_other_numbers_alone():
 def test_masks_inside_nested_payloads():
     payload = {"fields": [{"name": "id_number", "value": "9876 5432 1098"}], "n": 5}
     assert mask_identifiers(payload) == {"fields": [{"name": "id_number", "value": "XXXX XXXX 1098"}], "n": 5}
+
+
+def test_redacts_api_key_shapes():
+    from app.privacy import redact_secrets
+    text = "a AIza" + "B" * 35 + " b AQ" + ".fake_value_" + "0" * 24 + " c sk-ant-" + "x" * 24
+    assert redact_secrets(text) == "a [redacted] b [redacted] c [redacted]"
+
+
+def test_redacts_the_configured_key_whatever_its_shape(monkeypatch):
+    from app.privacy import redact_secrets
+    monkeypatch.setenv("GEMINI_API_KEY", "odd-shaped-key-123")
+    assert redact_secrets({"error": ["failed for odd-shaped-key-123"]}) == {"error": ["failed for [redacted]"]}
+
+
+def test_audit_payload_is_redacted(monkeypatch):
+    from app.audit import log_action
+    from app.models import AuditLog, make_engine, make_session
+    monkeypatch.setenv("GEMINI_API_KEY", "odd-shaped-key-123")
+    with make_session(make_engine("sqlite://")) as s:
+        log_action(s, None, "system", "x", {"error": "odd-shaped-key-123 / 9876 5432 1098"})
+        assert s.query(AuditLog).one().payload_json == '{"error": "[redacted] / XXXX XXXX 1098"}'

@@ -15,3 +15,51 @@ def test_tesseract_only_runs_without_key():
 
 def test_all_run_when_both_available():
     assert all(reason is None for _, reason in plan_systems(has_tesseract=True, has_key=True))
+
+
+# --- report formatting (no network: built from fake runs) ----------------------
+
+from app.evaluation import run_messy_eval
+from app.extraction import ExtractionResult
+from app.providers.fake import FailingProvider
+from scripts.eval_images import progress_line, report_lines
+from tests.test_image_eval import PartlyFailing
+
+
+def test_report_shows_answered_over_total_next_to_accuracy():
+    text = "\n".join(report_lines("gemini", run_messy_eval(provider=PartlyFailing(), variant="text")))
+    assert "answered 5/7 docs" in text and "accuracy" in text
+
+
+def test_provider_errors_are_reported_apart_from_reading_errors():
+    lines = report_lines("gemini", run_messy_eval(provider=PartlyFailing(), variant="text"))
+    assert any(l.strip().startswith("provider errors: 2 (rate_limited x2)") for l in lines)
+    assert any(l.strip().startswith("reading errors:") for l in lines)
+
+
+def test_accuracy_is_not_applicable_when_nothing_answered():
+    text = "\n".join(report_lines("gemini", run_messy_eval(provider=FailingProvider(), variant="clean")))
+    assert "accuracy n/a" in text and "answered 0/7 docs" in text
+
+
+def test_report_names_the_model_used():
+    assert any("model test-model-1" in l for l in report_lines("gemini", run_messy_eval(provider=PartlyFailing())))
+
+
+def test_printed_errors_never_contain_the_key(monkeypatch):
+    monkeypatch.setenv("GEMINI_API_KEY", "odd-shaped-key-123")
+    report = run_messy_eval(provider=FailingProvider(kind="timeout", message="boom odd-shaped-key-123"),
+                            variant="clean")
+    assert "odd-shaped-key-123" not in "\n".join(report_lines("gemini", report))
+
+
+def _result(**kw):
+    return ExtractionResult(document_id="1", doc_type="survey_sheet", fields=[], low_confidence=[], missing=[],
+                            used_fallback=False, provider="gemini", ocr_engine=None, **kw)
+
+
+def test_progress_line_distinguishes_unavailable_from_read():
+    assert progress_line("case_08.survey_sheet", _result()).split() == ["case_08.survey_sheet", "read", "0", "fields"]
+    unavailable = progress_line("case_08.survey_sheet",
+                                _result(status="extraction_unavailable", error_kind="rate_limited"))
+    assert "UNAVAILABLE (rate_limited)" in unavailable

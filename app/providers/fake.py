@@ -22,8 +22,12 @@ class FakeProvider:
 class FailingProvider:
     name = "failing"
 
+    def __init__(self, kind: str = "unavailable", message: str = "provider unavailable"):
+        self.kind, self.message = kind, message
+
     def extract(self, request: ExtractionRequest) -> list[ProviderField]:
-        raise ProviderError("provider unavailable")
+        raise ProviderError(self.message, kind=self.kind,
+                            retryable=self.kind in ("rate_limited", "unavailable", "timeout"))
 
 
 class FakeOcr:

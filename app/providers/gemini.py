@@ -3,20 +3,29 @@
 The API key is read from the GEMINI_API_KEY environment variable and sent only in the
 x-goog-api-key header; it never appears in URLs, errors, logs or the audit trail.
 Confidence values are the model's own estimate and are not calibrated probabilities.
+
+Transient failures (HTTP 429, HTTP 503, timeouts) are retried with exponential backoff,
+honouring any retry hint the server gives. Calls are spaced by GEMINI_PACE_SECONDS.
 """
 
 import base64
 import json
 import os
+import re
+import time
 import urllib.error
 import urllib.request
 from typing import Any, Callable, Optional
 
-from app.extraction import ExtractionRequest, ProviderError, ProviderField
+from app.extraction import ErrorKind, ExtractionRequest, ProviderError, ProviderField
 
 DEFAULT_MODEL = "gemini-3.8-flash"   # override with GEMINI_MODEL
 API_BASE = "https://generativelanguage.googleapis.com/v1beta/models"
-TIMEOUT_SECONDS = 60
+TIMEOUT_SECONDS = 30
+MAX_ATTEMPTS = 4
+BASE_BACKOFF_SECONDS = 2.0           # 2, 4, 8 between the four attempts
+MAX_RETRY_WAIT_SECONDS = 60.0        # a longer server hint means quota is gone: give up, don't hang
+DEFAULT_PACE_SECONDS = 4.0           # override with GEMINI_PACE_SECONDS
 
 Post = Callable[[str, dict, dict, float], dict]
 
@@ -36,6 +45,14 @@ Copy values as they appear. Write dates as YYYY-MM-DD. Leave out anything unread
 confidence is your estimate (0 to 1) that the value is exactly what the original document says."""
 
 
+class GeminiCallError(ProviderError):
+    """One failed attempt, with the server's retry hint in seconds if it gave one."""
+
+    def __init__(self, message: str, kind: ErrorKind, retryable: bool, retry_after: Optional[float] = None):
+        super().__init__(message, kind=kind, retryable=retryable)
+        self.retry_after = retry_after
+
+
 def _urllib_post(url: str, headers: dict, body: dict, timeout: float) -> dict:
     request = urllib.request.Request(url, data=json.dumps(body).encode("utf-8"), headers=headers, method="POST")
     with urllib.request.urlopen(request, timeout=timeout) as response:
@@ -50,15 +67,58 @@ def _schema(fields: list[str]) -> dict:
     return {"type": "OBJECT", "properties": {"fields": {"type": "ARRAY", "items": item}}, "required": ["fields"]}
 
 
+def _seconds(text: Any) -> Optional[float]:
+    match = re.fullmatch(r"\s*(\d+(?:\.\d+)?)s?\s*", str(text)) if text is not None else None
+    return float(match.group(1)) if match else None
+
+
+def retry_hint(headers: Any, body_text: str) -> Optional[float]:
+    """Seconds to wait from a Retry-After header or a google.rpc.RetryInfo detail, if present."""
+    header = headers.get("Retry-After") if headers is not None else None
+    if _seconds(header) is not None:
+        return _seconds(header)
+    try:
+        details = json.loads(body_text).get("error", {}).get("details", [])
+    except (ValueError, AttributeError):
+        return None
+    for detail in details if isinstance(details, list) else []:
+        if isinstance(detail, dict) and str(detail.get("@type", "")).endswith("RetryInfo"):
+            return _seconds(detail.get("retryDelay"))
+    return None
+
+
+def _is_timeout(exc: BaseException) -> bool:
+    if isinstance(exc, TimeoutError):
+        return True
+    return isinstance(exc, urllib.error.URLError) and isinstance(exc.reason, TimeoutError)
+
+
+def _pace_from_env() -> float:
+    raw = os.environ.get("GEMINI_PACE_SECONDS")
+    if raw is None:
+        return DEFAULT_PACE_SECONDS
+    try:
+        pace = float(raw)
+    except ValueError:
+        pace = -1.0
+    if pace < 0:
+        raise ProviderError("GEMINI_PACE_SECONDS must be a number of seconds >= 0", kind="not_configured")
+    return pace
+
+
 class GeminiProvider:
     name = "gemini"
 
-    def __init__(self, api_key: Optional[str] = None, model: Optional[str] = None, post: Post = _urllib_post):
+    def __init__(self, api_key: Optional[str] = None, model: Optional[str] = None, post: Post = _urllib_post,
+                 sleep: Callable[[float], None] = time.sleep, clock: Callable[[], float] = time.monotonic,
+                 pace_seconds: Optional[float] = None):
         self._key = api_key or os.environ.get("GEMINI_API_KEY")
         if not self._key:
-            raise ProviderError("GEMINI_API_KEY is not set")
+            raise ProviderError("GEMINI_API_KEY is not set", kind="not_configured")
         self.model = model or os.environ.get("GEMINI_MODEL") or DEFAULT_MODEL
-        self._post = post
+        self.pace_seconds = _pace_from_env() if pace_seconds is None else pace_seconds
+        self._post, self._sleep, self._clock = post, sleep, clock
+        self._last_call: Optional[float] = None
 
     def _parts(self, request: ExtractionRequest) -> list[dict[str, Any]]:
         fields = ", ".join(request.fields)
@@ -77,19 +137,53 @@ class GeminiProvider:
     def _scrub(self, message: str) -> str:
         return message.replace(self._key, "***")
 
+    def _wait_for_pace(self) -> None:
+        if self._last_call is not None:
+            wait = self.pace_seconds - (self._clock() - self._last_call)
+            if wait > 0:
+                self._sleep(wait)
+        self._last_call = self._clock()
+
+    def _call_once(self, url: str, headers: dict, body: dict) -> dict:
+        self._wait_for_pace()
+        try:
+            return self._post(url, headers, body, TIMEOUT_SECONDS)
+        except urllib.error.HTTPError as exc:
+            text = exc.read().decode("utf-8", "replace")
+            kind: ErrorKind = {429: "rate_limited", 503: "unavailable"}.get(exc.code, "http_error")
+            raise GeminiCallError(f"Gemini HTTP {exc.code}: {self._scrub(text)[:300]}", kind=kind,
+                                  retryable=kind != "http_error", retry_after=retry_hint(exc.headers, text)) from None
+        except Exception as exc:
+            if _is_timeout(exc):
+                raise GeminiCallError("Gemini request timed out", kind="timeout", retryable=True) from None
+            raise GeminiCallError(self._scrub(f"Gemini request failed: {exc}"), kind="network",
+                                  retryable=False) from None
+
+    def _backoff(self, attempt: int, exc: GeminiCallError) -> Optional[float]:
+        """Seconds before the next attempt, or None to give up now."""
+        if not exc.retryable or attempt >= MAX_ATTEMPTS:
+            return None
+        wait = max(BASE_BACKOFF_SECONDS * 2 ** (attempt - 1), exc.retry_after or 0.0)
+        return wait if wait <= MAX_RETRY_WAIT_SECONDS else None
+
     def extract(self, request: ExtractionRequest) -> list[ProviderField]:
         body = {"contents": [{"parts": self._parts(request)}],
                 "generationConfig": {"temperature": 0, "responseMimeType": "application/json",
                                      "responseSchema": _schema(request.fields)}}
         url = f"{API_BASE}/{self.model}:generateContent"
         headers = {"Content-Type": "application/json", "x-goog-api-key": self._key}
-        try:
-            response = self._post(url, headers, body, TIMEOUT_SECONDS)
-        except urllib.error.HTTPError as exc:
-            raise ProviderError(f"Gemini HTTP {exc.code}: {self._scrub(exc.read().decode('utf-8', 'replace'))[:300]}")
-        except Exception as exc:   # network, timeout, JSON decode: all route to human review
-            raise ProviderError(self._scrub(f"Gemini request failed: {exc}")) from None
-        return self._parse(response)
+        for attempt in range(1, MAX_ATTEMPTS + 1):
+            try:
+                response = self._call_once(url, headers, body)
+            except GeminiCallError as exc:
+                wait = self._backoff(attempt, exc)
+                if wait is None:
+                    raise ProviderError(f"{exc} (attempt {attempt} of {MAX_ATTEMPTS})",
+                                        kind=exc.kind, retryable=exc.retryable) from None
+                self._sleep(wait)
+                continue
+            return self._parse(response)
+        raise AssertionError("unreachable")
 
     def _parse(self, response: dict) -> list[ProviderField]:
         try:
@@ -99,4 +193,5 @@ class GeminiProvider:
                                   page=i.get("page")) for i in items]
         except (KeyError, IndexError, TypeError, ValueError) as exc:
             reason = response.get("promptFeedback", {}).get("blockReason") if isinstance(response, dict) else None
-            raise ProviderError(f"Gemini response unusable ({reason or type(exc).__name__})") from None
+            raise ProviderError(f"Gemini response unusable ({reason or type(exc).__name__})",
+                                kind="bad_response") from None

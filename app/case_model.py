@@ -14,6 +14,7 @@ class FieldValue(BaseModel):
 
 class DocumentIn(BaseModel):
     fields: dict[str, FieldValue] = {}
+    extraction_unavailable: bool = False   # latest extraction attempt failed; retry
 
 
 class CaseIn(BaseModel):

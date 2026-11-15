@@ -204,3 +204,11 @@ def test_different_middle_names_are_not_a_dropped_middle_name():
                                                   id_name="Anil Ramesh Sawant")), "name_match")
     assert check.status != "pass"
     assert "middle name" not in check.detail
+
+
+def test_unavailable_extraction_is_flagged_for_retry():
+    case = _case()
+    case.documents["identity_proof"].extraction_unavailable = True
+    flags = verify_documents(load_scheme_by_name("land_acquisition"), case).flags
+    assert [f.detail for f in flags if f.kind == "extraction_unavailable"] == [
+        "identity_proof: extraction unavailable, retry"]

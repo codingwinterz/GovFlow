@@ -47,8 +47,19 @@ class OcrResult(BaseModel):
     confidence: float
 
 
+ErrorKind = Literal["rate_limited", "unavailable", "timeout", "network", "http_error",
+                    "bad_response", "not_configured", "error"]
+EXTRACTION_UNAVAILABLE_MESSAGE = "extraction unavailable, retry"
+
+
 class ProviderError(RuntimeError):
-    """The extraction provider failed; the document goes to human review."""
+    """The extraction provider failed (it read nothing). The document is marked
+    extraction_unavailable and can be retried; this is not a low-confidence reading."""
+
+    def __init__(self, message: str, kind: ErrorKind = "error", retryable: bool = False):
+        super().__init__(message)
+        self.kind: ErrorKind = kind
+        self.retryable = retryable
 
 
 class ExtractionProvider(Protocol):
@@ -81,7 +92,10 @@ class ExtractionResult(BaseModel):
     used_fallback: bool
     provider: str
     ocr_engine: Optional[str]
-    error: Optional[str] = None
+    status: Literal["ok", "extraction_unavailable"] = "ok"
+    error: Optional[str] = None           # provider message (already scrubbed of keys by the provider)
+    error_kind: Optional[ErrorKind] = None
+    retryable: bool = False
 
 
 def _normalise_text(value: Any) -> str:
@@ -151,8 +165,10 @@ def extract_facts(document: DocumentInput, fields: list[str], threshold: float,
         weak = [f for f in fields if f not in primary or primary[f].confidence < threshold]
         secondary = _ocr_pass(document, weak, provider, ocr) if (weak and ocr) else {}
     except ProviderError as exc:
-        return ExtractionResult(fields=[], low_confidence=[], missing=list(fields), used_fallback=False,
-                                error=str(exc), **base)
+        # Nothing was read: not low confidence, not missing. The document can be retried.
+        return ExtractionResult(fields=[], low_confidence=[], missing=[], used_fallback=False,
+                                status="extraction_unavailable", error=str(exc), error_kind=exc.kind,
+                                retryable=exc.retryable, **base)
 
     out = [m for f in fields if (m := _merge(f, primary.get(f), secondary.get(f), threshold))]
     return ExtractionResult(

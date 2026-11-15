@@ -98,6 +98,13 @@ def test_out_of_range_confidence_is_treated_as_zero():
     assert result.low_confidence == ["name"]
 
 
-def test_provider_failure_routes_everything_to_review():
-    result = extract_facts(DOC, FIELDS, 0.85, FailingProvider(), None)
-    assert result.error and result.fields == [] and result.missing == FIELDS
+def test_provider_failure_is_extraction_unavailable_not_low_confidence():
+    result = extract_facts(DOC, FIELDS, 0.85, FailingProvider(kind="rate_limited"), None)
+    assert result.status == "extraction_unavailable"
+    assert result.error_kind == "rate_limited" and result.retryable
+    assert result.fields == [] and result.low_confidence == [] and result.missing == []   # nothing was read
+
+
+def test_successful_extraction_has_status_ok():
+    result, _, _ = _run([pf("name", "A", 0.9), pf("survey_number", "1", 0.9), pf("area", 1, 0.9)], with_ocr=False)
+    assert result.status == "ok" and result.error is None and result.error_kind is None

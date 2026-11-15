@@ -103,6 +103,51 @@ def test_provider_failure_is_audited_and_extracts_nothing(session, tmp_path):
     assert json.loads(_audits(session, "extract_facts")[0].payload_json)["error"]
 
 
+def test_provider_failure_marks_document_unavailable_and_case_stays_retryable(session, tmp_path):
+    doc = _uploaded_identity_doc(session, tmp_path)
+    extract_document(session, doc.id, FailingProvider(kind="timeout"))
+    assert doc.extraction_status == "extraction_unavailable" and doc.extraction_error_kind == "timeout"
+    assert session.get(CaseRow, "LA-01").status == "received"          # not advanced: retry is possible
+
+
+def test_audit_records_error_class_and_never_the_key(session, tmp_path):
+    secret = "AQ" + ".secret-key-should-never-be-logged-0000"   # built at runtime: no key-shaped literal in the repo
+    doc = _uploaded_identity_doc(session, tmp_path)
+    extract_document(session, doc.id, FailingProvider(kind="rate_limited", message=f"quota for {secret}"))
+    row = _audits(session, "extract_facts")[0]
+    payload = json.loads(row.payload_json)
+    assert payload["status"] == "extraction_unavailable" and payload["error_kind"] == "rate_limited"
+    assert "secret-key" not in row.payload_json
+
+
+def test_retry_after_failure_succeeds_and_advances(session, tmp_path):
+    doc = _uploaded_identity_doc(session, tmp_path)
+    extract_document(session, doc.id, FailingProvider(kind="unavailable"))
+    result = extract_document(session, doc.id, _provider(str(doc.id)))
+    assert result.status == "ok" and doc.extraction_status == "ok" and doc.extraction_error_kind is None
+    assert session.get(CaseRow, "LA-01").status == "extracted"
+    assert [json.loads(a.payload_json)["status"] for a in _audits(session, "extract_facts")] == [
+        "extraction_unavailable", "ok"]
+
+
+def test_failed_retry_keeps_earlier_good_fields(session, tmp_path):
+    doc = _uploaded_identity_doc(session, tmp_path)
+    extract_document(session, doc.id, _provider(str(doc.id)))
+    extract_document(session, doc.id, FailingProvider())
+    assert session.query(ExtractedField).filter_by(document_id=doc.id).count() == 3
+    assert doc.extraction_status == "extraction_unavailable"
+
+
+def test_unavailable_document_raises_its_own_flag_not_low_confidence(session, tmp_path):
+    doc = _uploaded_identity_doc(session, tmp_path)
+    extract_document(session, doc.id, FailingProvider())
+    flags = verify_documents(session, "LA-01").flags
+    unavailable = [f for f in flags if f.kind == "extraction_unavailable"]
+    assert len(unavailable) == 1 and "extraction unavailable, retry" in unavailable[0].detail
+    assert unavailable[0].detail.startswith("identity_proof")
+    assert not any(f.kind == "low_confidence" for f in flags)
+
+
 def test_ocr_fallback_use_is_recorded(session, tmp_path):
     doc = _uploaded_identity_doc(session, tmp_path)
     did = str(doc.id)

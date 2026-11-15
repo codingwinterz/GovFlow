@@ -8,6 +8,7 @@ from pydantic import BaseModel
 from rapidfuzz import fuzz
 
 from app.case_model import CaseIn
+from app.extraction import EXTRACTION_UNAVAILABLE_MESSAGE
 from app.facts import CaseFacts, build_facts
 from app.rules_loader import Scheme, VerificationCheck
 from app.safe_eval import UnknownName, evaluate
@@ -178,7 +179,7 @@ def _duplicate_check(check: VerificationCheck, scheme: Scheme, case: CaseIn,
 
 # --- entry point ---------------------------------------------------------------
 
-def _flags(checks: list[CheckResult], facts: CaseFacts) -> list[Flag]:
+def _flags(checks: list[CheckResult], facts: CaseFacts, case: CaseIn) -> list[Flag]:
     flags = [Flag(kind=c.check_id, detail=c.detail, severity=c.severity) for c in checks if c.status != "pass"]
     flags += [Flag(kind="missing_document", detail=f"{d} not submitted", severity="high")
               for d in facts.missing_documents]
@@ -189,6 +190,9 @@ def _flags(checks: list[CheckResult], facts: CaseFacts) -> list[Flag]:
             flags.append(Flag(kind="validity_unknown", detail=f"{doc_id} date unreadable", severity="medium"))
     flags += [Flag(kind="low_confidence", detail=f"{ref} needs human review", severity="medium")
               for ref in facts.low_confidence]
+    flags += [Flag(kind="extraction_unavailable", detail=f"{doc_id}: {EXTRACTION_UNAVAILABLE_MESSAGE}",
+                   severity="high")
+              for doc_id, doc in case.documents.items() if doc.extraction_unavailable]
     return flags
 
 
@@ -200,4 +204,4 @@ def verify_documents(scheme: Scheme, case: CaseIn, other_cases: Optional[list[Ca
             checks.append(_duplicate_check(check, scheme, case, facts, other_cases or []))
         else:
             checks.append(_field_check(check, facts, scheme.confidence_threshold))
-    return VerificationResult(checks=checks, flags=_flags(checks, facts), rules_version=scheme.version)
+    return VerificationResult(checks=checks, flags=_flags(checks, facts, case), rules_version=scheme.version)

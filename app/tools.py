@@ -47,9 +47,11 @@ def extract_document(session: Session, document_id: int, provider: ExtractionPro
     document = DocumentInput(document_id=str(doc.id), doc_type=doc.doc_type, pages=load_pages(doc.file_path))
 
     result = extract_facts(document, wanted, scheme.confidence_threshold, provider, ocr)
-    _store_fields(session, doc.id, result)
-    if result.error is None:
+    doc.extraction_status, doc.extraction_error_kind = result.status, result.error_kind
+    if result.status == "ok":
+        _store_fields(session, doc.id, result)
         advance_status(case, "extracted")
+    # On extraction_unavailable: earlier fields are kept and the case does not advance, so it can be retried
     log_action(session, case.id, actor, "extract_facts", result.model_dump(), scheme.version)
     session.commit()
     return result

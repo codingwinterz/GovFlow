@@ -39,6 +39,8 @@ class Document(Base):
     doc_type: Mapped[str]
     file_path: Mapped[str]
     uploaded_at: Mapped[datetime] = mapped_column(default=_now)
+    extraction_status: Mapped[Optional[str]]       # None (not tried) | ok | extraction_unavailable
+    extraction_error_kind: Mapped[Optional[str]]   # e.g. rate_limited, timeout (class only, never the message)
 
 
 class ExtractedField(Base):
