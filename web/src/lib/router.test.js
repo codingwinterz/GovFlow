@@ -10,6 +10,7 @@ test("hash routes", () => {
   assert.deepEqual(parseRoute("#/analytics"), { page: "analytics" });
   assert.deepEqual(parseRoute("#/intake"), { page: "intake" });
   assert.deepEqual(parseRoute("#/status"), { page: "status" });
+  assert.deepEqual(parseRoute("#/track"), { page: "track" });
   assert.deepEqual(parseRoute("#/nope"), { page: "notfound" });
 });
 

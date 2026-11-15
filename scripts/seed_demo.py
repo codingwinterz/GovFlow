@@ -20,6 +20,7 @@ from typing import Any
 from sqlalchemy.orm import Session
 
 from app.agent import run_agent
+from app.citizen import citizen_code, citizen_secret
 from app.case_model import CaseIn
 from app.case_store import seed_case
 from app.evaluation import SET_DIR, _fake_for
@@ -30,6 +31,7 @@ from app.tools import add_document, extract_document, record_officer_decision
 
 ROOT = Path(__file__).resolve().parent.parent
 ASSESSED = [f"LA-{i:02d}" for i in range(1, 13)]
+CITIZEN_DEMO_CASES = ("LA-01", "LA-05", "LA-07", "LA-14")   # approved, sent back, under review, received
 DECISIONS = [("LA-01", "approve", "synthetic demo decision (seed script)"),
              ("LA-05", "send_back", "synthetic demo decision (seed script): identity proof expired, upload a valid one")]
 
@@ -89,7 +91,8 @@ def seed(db_path: Path, reset: bool = False, with_decisions: bool = True) -> dic
         statuses = [c.status for c in session.query(Case)]
     engine.dispose()
     return {"db": str(db_path), "cases": len(statuses),
-            "by_status": {s: statuses.count(s) for s in sorted(set(statuses))}}
+            "by_status": {s: statuses.count(s) for s in sorted(set(statuses))},
+            "citizen_codes": {ref: citizen_code(ref, citizen_secret()) for ref in CITIZEN_DEMO_CASES}}
 
 
 def main() -> None:
@@ -102,6 +105,9 @@ def main() -> None:
     print(f"Seeded {summary['cases']} synthetic cases into {summary['db']}")
     for status, n in summary["by_status"].items():
         print(f"  {status:<18}{n}")
+    print("Demo citizen verification codes (public page #/track):")
+    for ref, code in summary["citizen_codes"].items():
+        print(f"  {ref}: {code}")
 
 
 if __name__ == "__main__":

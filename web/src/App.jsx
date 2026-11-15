@@ -8,6 +8,7 @@ import Audit from "./pages/Audit.jsx";
 import Analytics from "./pages/Analytics.jsx";
 import Intake from "./pages/Intake.jsx";
 import StatusLookup from "./pages/StatusLookup.jsx";
+import Track from "./pages/Track.jsx";
 
 function useRoute() {
   const [route, setRoute] = useState(parseRoute(window.location.hash));
@@ -20,7 +21,7 @@ function useRoute() {
 }
 
 function Page({ route, login }) {
-  if (login.role === "citizen") return <StatusLookup />;
+  if (login.role === "citizen") return <Track />;   // citizens see only the public status page
   switch (route.page) {
     case "queue": return <Queue />;
     case "case": return <CasePage id={route.id} login={login} />;
@@ -52,13 +53,16 @@ export default function App() {
             <a href={href("status")}>Status lookup</a>
           </nav>
         )}
+        <a href={href("track")}>Track an application</a>
         {login && (
           <span className="who">
             {login.role}: {login.user} <button className="link" onClick={() => signIn(null)}>switch user</button>
           </span>
         )}
       </header>
-      <main>{login ? <Page route={route} login={login} /> : <Login onLogin={signIn} />}</main>
+      <main>
+        {route.page === "track" ? <Track /> : login ? <Page route={route} login={login} /> : <Login onLogin={signIn} />}
+      </main>
     </div>
   );
 }

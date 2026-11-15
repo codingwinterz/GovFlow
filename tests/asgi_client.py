@@ -13,14 +13,14 @@ _LOOP = asyncio.new_event_loop()
 
 
 def call(app: Any, method: str, path: str, body: Any = None,
-         headers: Optional[dict[str, str]] = None) -> tuple[int, Any]:
+         headers: Optional[dict[str, str]] = None, client: str = "test") -> tuple[int, Any]:
     path, _, query = path.partition("?")
     raw = json.dumps(body).encode() if body is not None else b""
     hdrs = [(b"content-type", b"application/json")]
     hdrs += [(k.lower().encode(), v.encode()) for k, v in (headers or {}).items()]
     scope = {"type": "http", "asgi": {"version": "3.0"}, "http_version": "1.1", "method": method,
              "scheme": "http", "path": path, "raw_path": path.encode(), "query_string": query.encode(),
-             "root_path": "", "headers": hdrs, "client": ("test", 1), "server": ("test", 80)}
+             "root_path": "", "headers": hdrs, "client": (client, 1), "server": ("test", 80)}
     messages: list[dict] = []
     sent = False
 

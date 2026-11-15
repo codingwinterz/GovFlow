@@ -10,6 +10,7 @@ import base64
 import binascii
 import json
 import re
+import time
 import uuid
 from datetime import date
 from pathlib import Path
@@ -24,6 +25,8 @@ from sqlalchemy.orm import Session
 from app import tools
 from app.agent import AgentReply, run_agent
 from app.analytics import analytics
+from app.citizen import RateLimiter, citizen_view, code_matches
+from app.citizen import citizen_secret as default_citizen_secret
 from app.extraction import EXTRACTION_UNAVAILABLE_MESSAGE, ProviderError
 from app.models import AuditLog, Case, CompensationItemRow, Document, ExtractedField, RuleResultRow
 from app.models import VerificationFlag, make_engine, queue_key
@@ -73,6 +76,11 @@ class Upload(BaseModel):
     doc_type: str
     filename: str
     content_base64: str
+
+
+class StatusLookup(BaseModel):
+    case_ref: str = Field(max_length=64)
+    code: str = Field(max_length=12)
 
 
 class DecisionIn(BaseModel):
@@ -163,8 +171,11 @@ def _detail(session: Session, case: Case) -> dict[str, Any]:
 
 def create_app(engine: Optional[Engine] = None, agent_llm_factory: Optional[Callable[[], Any]] = None,
                extraction_factory: Optional[Callable[[], Any]] = None,
-               upload_dir: Optional[Path] = None) -> FastAPI:
+               upload_dir: Optional[Path] = None, citizen_secret: Optional[str] = None,
+               clock: Callable[[], float] = time.monotonic) -> FastAPI:
     app = FastAPI(title="GovFlow", version="0.1.0")
+    secret = citizen_secret or default_citizen_secret()
+    limiter = RateLimiter(clock)
     state: dict[str, Any] = {"engine": engine}
     uploads = Path(upload_dir or DEFAULT_UPLOAD_DIR)
 
@@ -199,6 +210,21 @@ def create_app(engine: Optional[Engine] = None, agent_llm_factory: Optional[Call
     @app.get("/health")
     def health() -> dict[str, str]:
         return {"status": "ok"}
+
+    @app.post("/public/status")
+    def public_status(body: StatusLookup, request: Request,
+                      session: Session = Depends(session_dep)) -> dict[str, Any]:
+        """No login. Same 404 for an unknown reference or a wrong code; rate-limited by peer address."""
+        client = request.client.host if request.client else "unknown"   # never X-Forwarded-For (spoofable)
+        ref = body.case_ref.strip()
+        if not limiter.allow(client, ref.upper()):
+            raise HTTPException(429, "too_many_attempts")
+        case = session.get(Case, ref)
+        matches = code_matches(ref, body.code, secret)                    # computed even for unknown refs
+        if case is None or not matches:
+            limiter.failed(ref.upper())
+            raise HTTPException(404, "not_found")
+        return citizen_view(session, case)
 
     @app.get("/cases")
     def list_cases(status: Optional[str] = None, scheme: Optional[str] = None, actor: Actor = Depends(_actor),
@@ -241,6 +267,7 @@ def create_app(engine: Optional[Engine] = None, agent_llm_factory: Optional[Call
     @app.get("/cases/{case_id}/status")
     def case_status(case_id: str, actor: Actor = Depends(_actor),
                     session: Session = Depends(session_dep)) -> dict[str, Any]:
+        _require(actor, "clerk", "officer")   # blockers name internal flags: staff only
         return mask_identifiers(tools.get_case_status(session, case_id, actor=actor.name).model_dump())
 
     @app.put("/cases/{case_id}/inputs")

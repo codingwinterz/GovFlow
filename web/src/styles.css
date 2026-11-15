@@ -71,3 +71,8 @@ button.link { background: none; border: none; color: var(--accent); padding: 0; 
 .bars .bar-cell { width: 50%; }
 .bar { display: block; height: 10px; background: var(--accent); border-radius: 3px; min-width: 2px; }
 .decision-row td { font-weight: 600; }
+.track .lang { float: right; min-width: 140px; }
+.citizen-view .line { margin: 6px 0; }
+.citizen-view .source { font-size: 0.85rem; color: var(--muted); margin-top: -2px; }
+.citizen-view .total { font-weight: 700; }
+.review-note { margin-top: 24px; padding-top: 8px; border-top: 1px solid var(--border); font-size: 0.85rem; color: var(--warn-text); }

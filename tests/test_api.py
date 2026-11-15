@@ -65,8 +65,9 @@ def test_unknown_role_is_401(env):
     assert env("GET", "/cases", headers={"X-Role": "admin", "X-User": "x"})[0] == 401
 
 
-def test_citizen_sees_status_but_not_case_detail(env):
-    assert env("GET", "/cases/LA-01/status", headers=CITIZEN)[0] == 200
+def test_citizen_role_gets_no_staff_endpoints(env):
+    # status blockers name internal flags; citizens use POST /public/status instead
+    assert env("GET", "/cases/LA-01/status", headers=CITIZEN)[0] == 403
     assert env("GET", "/cases/LA-01", headers=CITIZEN)[0] == 403
     assert env("GET", "/cases", headers=CITIZEN)[0] == 403
 

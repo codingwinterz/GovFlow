@@ -62,3 +62,11 @@ def test_reset_only_deletes_database_files(tmp_path):
     with pytest.raises(ValueError, match=".db"):
         seed(target, reset=True)
     assert target.read_text(encoding="utf-8") == "keep me"
+
+
+def test_seed_lists_demo_citizen_codes_that_work(seeded):
+    from app.citizen import DEMO_SECRET, citizen_code
+    summary, _ = seeded
+    codes = summary["citizen_codes"]
+    assert {"LA-01", "LA-05", "LA-07"} <= set(codes)
+    assert all(code == citizen_code(ref, DEMO_SECRET) for ref, code in codes.items())
