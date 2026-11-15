@@ -1,0 +1,30 @@
+{
+  "case_id": "DR-07",
+  "description": "Name on residence proof does not match the applicant",
+  "verification": {
+    "name_match": "fail",
+    "house_match": "pass",
+    "duplicate_claim": "pass"
+  },
+  "eligibility": {
+    "overall": "not_eligible",
+    "rules": {
+      "documents_complete": "pass",
+      "identity_verified": "fail",
+      "residence_in_affected_area": "pass",
+      "damage_category_eligible": "pass",
+      "documents_not_expired": "pass",
+      "no_duplicate_relief": "pass"
+    }
+  },
+  "compensation": {
+    "status": "computed",
+    "items": {
+      "house_full": 0,
+      "house_partial": 10000,
+      "household_items": 5000
+    },
+    "total": 15000
+  },
+  "needs_human_review": true
+}

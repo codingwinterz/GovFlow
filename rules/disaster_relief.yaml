@@ -1,0 +1,96 @@
+scheme: disaster_relief
+version: "0.1.0"
+source: "State Disaster Response Fund norms and the Goa state relief schedule"   # VERIFY: exact notification and schedule references
+confidence_threshold: 0.85
+
+# Housing damage relief for one household after a notified disaster.
+# Same format as land_acquisition.yaml; no scheme-specific Python.
+# All amounts, thresholds and validity periods below are PLACEHOLDERS, not taken from any schedule.
+required_documents:
+  - id: application
+    fields: [name]
+  - id: identity_proof
+    fields: [name, id_number, expiry_date]
+    validity:
+      expiry_field: expiry_date
+  - id: residence_proof            # e.g. house tax receipt or ration card
+    fields: [name, house_number, village, issue_date]
+    validity:
+      date_field: issue_date
+      max_age_days: 365            # VERIFY: how recent the residence proof must be
+  - id: damage_assessment          # issued by the revenue / panchayat officer after the event
+    fields: [house_number, village, damage_percent, notified_area, assessment_date]
+    validity:
+      date_field: assessment_date
+      max_age_days: 90             # VERIFY: how long after assessment a claim may be filed
+
+verification_checks:
+  - id: name_match
+    fields: [name]
+    across: [application, identity_proof, residence_proof]
+    tolerance: fuzzy_0.9
+    severity: high
+  - id: house_match                # the assessed house is the applicant's residence
+    fields: [house_number, village]
+    across: [residence_proof, damage_assessment]
+    tolerance: exact
+    severity: high
+  - id: duplicate_claim
+    builtin: duplicate_claim
+    key: damage_assessment.village + "/" + damage_assessment.house_number
+    # The built-in requires claimed_area. Relief has no area, and total_area is left out,
+    # so ANY other open claim on the same house is needs_review (never pass, never fail).
+    claimed_area: damage_assessment.damage_percent
+    severity: high
+
+eligibility_rules:
+  - id: documents_complete
+    clause: "<clause ref>"
+    when: "all_documents_present"
+    fail_reason: "One or more required documents are missing."
+  - id: identity_verified
+    clause: "<clause ref>"
+    depends_on: [name_match]
+    when: "identity_proof.present"
+    fail_reason: "Identity proof missing or the name does not match the applicant."
+  - id: residence_in_affected_area
+    clause: "<clause ref>"
+    depends_on: [house_match]
+    # VERIFY: the format has no list membership (`in`), so the notified-village list cannot be
+    # written here; the damage assessment's own "notified area" certification is used instead.
+    when: "damage_assessment.notified_area == 'yes'"
+    fail_reason: "The damaged house is not the applicant's residence or is outside the notified area."
+  - id: damage_category_eligible
+    clause: "<clause ref>"
+    # VERIFY: minimum damage for housing relief. Must equal partial_damage_threshold below
+    # (eligibility rules cannot read compensation parameters, so the number is repeated).
+    when: "damage_assessment.damage_percent >= 15"
+    fail_reason: "Assessed damage is below the minimum for housing relief."
+  - id: documents_not_expired
+    clause: "<clause ref>"
+    when: "all_documents_valid"
+    fail_reason: "One or more documents are expired or too old."
+  - id: no_duplicate_relief
+    clause: "<clause ref>"
+    depends_on: [duplicate_claim]
+    fail_reason: "Another open claim exists for the same house."
+
+# Relief amounts, computed by the same formula mechanism as land compensation.
+# A comparison is 1 when true and 0 when false, so each line is the amount for one damage category.
+compensation:
+  inputs:
+    damage_percent:
+      from: damage_assessment.damage_percent
+  parameters:
+    full_damage_threshold: 75      # VERIFY: % damage counted as fully damaged
+    partial_damage_threshold: 15   # VERIFY: minimum % damage for any housing relief
+    full_house_relief: 100000      # VERIFY: PLACEHOLDER, take from the state relief schedule
+    partial_house_relief: 10000    # VERIFY: PLACEHOLDER, take from the state relief schedule
+    household_items_relief: 5000   # VERIFY: PLACEHOLDER (clothing and utensils per family)
+  components:
+    - id: house_full
+      formula: "full_house_relief * (damage_percent >= full_damage_threshold)"
+    - id: house_partial
+      formula: "partial_house_relief * (damage_percent >= partial_damage_threshold) * (damage_percent < full_damage_threshold)"
+    - id: household_items
+      formula: "household_items_relief * (damage_percent >= partial_damage_threshold)"

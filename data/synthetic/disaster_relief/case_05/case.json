@@ -1,0 +1,90 @@
+{
+  "case_id": "DR-05",
+  "scheme": "disaster_relief",
+  "status": "received",
+  "reference_date": "2026-11-15",
+  "documents": {
+    "application": {
+      "fields": {
+        "name": {
+          "value": "Esther D'Souza",
+          "confidence": 1.0,
+          "source_page": null
+        }
+      }
+    },
+    "identity_proof": {
+      "fields": {
+        "name": {
+          "value": "Esther D'Souza",
+          "confidence": 0.97,
+          "source_page": 1
+        },
+        "id_number": {
+          "value": "9999 2000 0005",
+          "confidence": 0.97,
+          "source_page": 1
+        },
+        "expiry_date": {
+          "value": "2030-12-31",
+          "confidence": 0.97,
+          "source_page": 1
+        }
+      }
+    },
+    "residence_proof": {
+      "fields": {
+        "name": {
+          "value": "Esther D'Souza",
+          "confidence": 0.97,
+          "source_page": 1
+        },
+        "house_number": {
+          "value": "H-4",
+          "confidence": 0.97,
+          "source_page": 1
+        },
+        "village": {
+          "value": "Arambol",
+          "confidence": 0.97,
+          "source_page": 1
+        },
+        "issue_date": {
+          "value": "2026-06-01",
+          "confidence": 0.97,
+          "source_page": 1
+        }
+      }
+    },
+    "damage_assessment": {
+      "fields": {
+        "house_number": {
+          "value": "H-4",
+          "confidence": 0.97,
+          "source_page": 1
+        },
+        "village": {
+          "value": "Arambol",
+          "confidence": 0.97,
+          "source_page": 1
+        },
+        "damage_percent": {
+          "value": 15,
+          "confidence": 0.97,
+          "source_page": 1
+        },
+        "notified_area": {
+          "value": "yes",
+          "confidence": 0.97,
+          "source_page": 1
+        },
+        "assessment_date": {
+          "value": "2026-10-20",
+          "confidence": 0.97,
+          "source_page": 1
+        }
+      }
+    }
+  },
+  "inputs": {}
+}

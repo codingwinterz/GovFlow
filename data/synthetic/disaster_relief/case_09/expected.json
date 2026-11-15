@@ -1,0 +1,26 @@
+{
+  "case_id": "DR-09",
+  "description": "Damage assessment report missing",
+  "verification": {
+    "name_match": "pass",
+    "house_match": "needs_review",
+    "duplicate_claim": "needs_review"
+  },
+  "eligibility": {
+    "overall": "not_eligible",
+    "rules": {
+      "documents_complete": "fail",
+      "identity_verified": "pass",
+      "residence_in_affected_area": "needs_review",
+      "damage_category_eligible": "needs_review",
+      "documents_not_expired": "pass",
+      "no_duplicate_relief": "needs_review"
+    }
+  },
+  "compensation": {
+    "status": "needs_review",
+    "items": {},
+    "total": null
+  },
+  "needs_human_review": true
+}

@@ -1,0 +1,26 @@
+{
+  "case_id": "DR-14",
+  "description": "Damage percentage read with low confidence",
+  "verification": {
+    "name_match": "pass",
+    "house_match": "pass",
+    "duplicate_claim": "pass"
+  },
+  "eligibility": {
+    "overall": "needs_review",
+    "rules": {
+      "documents_complete": "pass",
+      "identity_verified": "pass",
+      "residence_in_affected_area": "pass",
+      "damage_category_eligible": "needs_review",
+      "documents_not_expired": "pass",
+      "no_duplicate_relief": "pass"
+    }
+  },
+  "compensation": {
+    "status": "needs_review",
+    "items": {},
+    "total": null
+  },
+  "needs_human_review": true
+}

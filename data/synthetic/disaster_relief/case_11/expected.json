@@ -1,0 +1,30 @@
+{
+  "case_id": "DR-11",
+  "description": "Duplicate claim on the same house (second claimant)",
+  "verification": {
+    "name_match": "pass",
+    "house_match": "pass",
+    "duplicate_claim": "needs_review"
+  },
+  "eligibility": {
+    "overall": "needs_review",
+    "rules": {
+      "documents_complete": "pass",
+      "identity_verified": "pass",
+      "residence_in_affected_area": "pass",
+      "damage_category_eligible": "pass",
+      "documents_not_expired": "pass",
+      "no_duplicate_relief": "needs_review"
+    }
+  },
+  "compensation": {
+    "status": "computed",
+    "items": {
+      "house_full": 100000,
+      "house_partial": 0,
+      "household_items": 5000
+    },
+    "total": 105000
+  },
+  "needs_human_review": true
+}

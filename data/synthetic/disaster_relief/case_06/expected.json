@@ -1,0 +1,30 @@
+{
+  "case_id": "DR-06",
+  "description": "Damage just below the minimum (14.9%)",
+  "verification": {
+    "name_match": "pass",
+    "house_match": "pass",
+    "duplicate_claim": "pass"
+  },
+  "eligibility": {
+    "overall": "not_eligible",
+    "rules": {
+      "documents_complete": "pass",
+      "identity_verified": "pass",
+      "residence_in_affected_area": "pass",
+      "damage_category_eligible": "fail",
+      "documents_not_expired": "pass",
+      "no_duplicate_relief": "pass"
+    }
+  },
+  "compensation": {
+    "status": "computed",
+    "items": {
+      "house_full": 0,
+      "house_partial": 0,
+      "household_items": 0
+    },
+    "total": 0
+  },
+  "needs_human_review": true
+}
