@@ -1,0 +1,30 @@
+{
+  "case_id": "LA-12",
+  "description": "Overlapping claim on survey 45/2 (with case 13)",
+  "verification": {
+    "name_match": "pass",
+    "survey_no_match": "pass",
+    "duplicate_claim": "needs_review"
+  },
+  "eligibility": {
+    "overall": "needs_review",
+    "rules": {
+      "documents_complete": "pass",
+      "valid_ownership": "pass",
+      "land_identified": "pass",
+      "documents_not_expired": "pass",
+      "no_competing_claim": "needs_review"
+    }
+  },
+  "compensation": {
+    "status": "computed",
+    "items": {
+      "land_value": 8000000,
+      "assets_value": 0,
+      "solatium": 8000000,
+      "interest": 960000
+    },
+    "total": 16960000
+  },
+  "needs_human_review": true
+}

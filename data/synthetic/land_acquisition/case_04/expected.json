@@ -1,0 +1,30 @@
+{
+  "case_id": "LA-04",
+  "description": "Identity proof name does not match applicant",
+  "verification": {
+    "name_match": "fail",
+    "survey_no_match": "pass",
+    "duplicate_claim": "pass"
+  },
+  "eligibility": {
+    "overall": "not_eligible",
+    "rules": {
+      "documents_complete": "pass",
+      "valid_ownership": "fail",
+      "land_identified": "pass",
+      "documents_not_expired": "pass",
+      "no_competing_claim": "pass"
+    }
+  },
+  "compensation": {
+    "status": "computed",
+    "items": {
+      "land_value": 3500000,
+      "assets_value": 0,
+      "solatium": 3500000,
+      "interest": 420000
+    },
+    "total": 7420000
+  },
+  "needs_human_review": true
+}

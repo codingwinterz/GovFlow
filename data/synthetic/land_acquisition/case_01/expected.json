@@ -1,0 +1,30 @@
+{
+  "case_id": "LA-01",
+  "description": "Clean case, all documents consistent",
+  "verification": {
+    "name_match": "pass",
+    "survey_no_match": "pass",
+    "duplicate_claim": "pass"
+  },
+  "eligibility": {
+    "overall": "eligible",
+    "rules": {
+      "documents_complete": "pass",
+      "valid_ownership": "pass",
+      "land_identified": "pass",
+      "documents_not_expired": "pass",
+      "no_competing_claim": "pass"
+    }
+  },
+  "compensation": {
+    "status": "computed",
+    "items": {
+      "land_value": 7500000,
+      "assets_value": 200000,
+      "solatium": 7700000,
+      "interest": 1800000
+    },
+    "total": 17200000
+  },
+  "needs_human_review": false
+}

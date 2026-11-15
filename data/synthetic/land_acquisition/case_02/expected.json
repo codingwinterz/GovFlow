@@ -1,0 +1,30 @@
+{
+  "case_id": "LA-02",
+  "description": "Name spelled differently (Kamat/Kamath), within fuzzy tolerance",
+  "verification": {
+    "name_match": "pass",
+    "survey_no_match": "pass",
+    "duplicate_claim": "pass"
+  },
+  "eligibility": {
+    "overall": "eligible",
+    "rules": {
+      "documents_complete": "pass",
+      "valid_ownership": "pass",
+      "land_identified": "pass",
+      "documents_not_expired": "pass",
+      "no_competing_claim": "pass"
+    }
+  },
+  "compensation": {
+    "status": "computed",
+    "items": {
+      "land_value": 3000000,
+      "assets_value": 50000,
+      "solatium": 3050000,
+      "interest": 360000
+    },
+    "total": 6460000
+  },
+  "needs_human_review": false
+}

@@ -1,0 +1,30 @@
+{
+  "case_id": "LA-09",
+  "description": "Area given in square feet",
+  "verification": {
+    "name_match": "pass",
+    "survey_no_match": "pass",
+    "duplicate_claim": "pass"
+  },
+  "eligibility": {
+    "overall": "eligible",
+    "rules": {
+      "documents_complete": "pass",
+      "valid_ownership": "pass",
+      "land_identified": "pass",
+      "documents_not_expired": "pass",
+      "no_competing_claim": "pass"
+    }
+  },
+  "compensation": {
+    "status": "computed",
+    "items": {
+      "land_value": 2322576,
+      "assets_value": 30000,
+      "solatium": 2352576,
+      "interest": 278709.12
+    },
+    "total": 4983861.12
+  },
+  "needs_human_review": false
+}

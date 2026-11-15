@@ -1,0 +1,103 @@
+scheme: land_acquisition
+version: "0.1.0"
+source: "RFCTLARR Act 2013 and Goa notifications"   # VERIFY: exact notification references
+confidence_threshold: 0.85
+
+# Every document type the scheme needs. `validity` is optional:
+#   expiry_field: field holding an ISO expiry date (invalid after that date)
+#   date_field + max_age_days: issue date must be within N days of the case reference date
+# The `application` document is the form typed in by the clerk (confidence 1.0).
+required_documents:
+  - id: application
+  - id: ownership_record          # Form I & XIV
+    validity:
+      date_field: issue_date
+      max_age_days: 180            # VERIFY: how recent the extract must be
+  - id: identity_proof
+    validity:
+      expiry_field: expiry_date
+  - id: survey_sheet
+  - id: mutation_record
+    validity:
+      date_field: issue_date
+      max_age_days: 365            # VERIFY: how recent the mutation extract must be
+
+# Cross-document checks. Result status is pass | fail | needs_review.
+#   fuzzy_T: pass if score >= T, needs_review if score >= confidence_threshold, else fail
+#   exact:   pass if normalised values are equal, else fail
+#   duplicate_claim (built-in): needs_review when another open case claims the same
+#     key with an overlapping area
+verification_checks:
+  - id: name_match
+    fields: [name]
+    across: [application, ownership_record, identity_proof]
+    tolerance: fuzzy_0.9
+    severity: high
+  - id: survey_no_match
+    fields: [survey_number]
+    across: [ownership_record, survey_sheet]
+    tolerance: exact
+    severity: high
+  - id: duplicate_claim
+    builtin: duplicate_claim
+    key: ownership_record.survey_number
+    claimed_area: ownership_record.area_sqm
+    total_area: survey_sheet.area_sqm
+    severity: high
+
+# A rule passes only if every `depends_on` check passed and `when` is true.
+# A failed dependency fails the rule; a needs_review dependency makes it needs_review.
+# A field that is missing or below confidence_threshold makes the rule needs_review.
+eligibility_rules:
+  - id: documents_complete
+    clause: "<clause ref>"
+    when: "all_documents_present"
+    fail_reason: "One or more required documents are missing."
+  - id: valid_ownership
+    clause: "<clause ref>"
+    depends_on: [name_match]
+    when: "ownership_record.present"
+    fail_reason: "Ownership record missing or owner name does not match the applicant."
+  - id: land_identified
+    clause: "<clause ref>"
+    depends_on: [survey_no_match]
+    fail_reason: "Survey number differs between ownership record and survey sheet."
+  - id: documents_not_expired
+    clause: "<clause ref>"
+    when: "all_documents_valid"
+    fail_reason: "One or more documents are expired or too old."
+  - id: no_competing_claim
+    clause: "<clause ref>"
+    depends_on: [duplicate_claim]
+    fail_reason: "Another open case claims an overlapping area of the same survey number."
+
+compensation:
+  # Where each formula variable comes from. `from` is an expression over the case
+  # (documents by id, `case` = officer-entered inputs, `reference_date`).
+  inputs:
+    area_sqm:
+      from: ownership_record.area_sqm
+    market_value_per_sqm:
+      from: case.market_value_per_sqm
+    assets_total:
+      from: case.assets_total
+    multiplier:
+      from: case.multiplier
+      default: 1.0                 # VERIFY: Goa First Schedule multiplier (1.0 to 2.0 by distance from urban area)
+    years_since_notification:
+      years_between:
+        start: case.interest_start_date   # VERIFY: SIA notification date, s.30(3). No default: never guessed
+        end: case.interest_end_date       # VERIFY: award date or possession date, whichever is earlier
+        end_default_from: reference_date  # VERIFY: until the award, interest is estimated up to the reference date
+  parameters:
+    solatium_rate: 1.0             # VERIFY: 100% solatium, s.30(1)
+    interest_rate: 0.12            # VERIFY: 12% per annum, s.30(3)
+  components:
+    - id: land_value
+      formula: "area_sqm * market_value_per_sqm * multiplier"
+    - id: assets_value
+      formula: "assets_total"
+    - id: solatium
+      formula: "(land_value + assets_value) * solatium_rate"
+    - id: interest
+      formula: "land_value * interest_rate * years_since_notification"   # VERIFY: s.30(3) applies 12% to market value; check whether that base includes the multiplier

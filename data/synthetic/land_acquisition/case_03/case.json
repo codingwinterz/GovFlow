@@ -1,0 +1,104 @@
+{
+  "case_id": "LA-03",
+  "scheme": "land_acquisition",
+  "status": "received",
+  "reference_date": "2026-11-15",
+  "documents": {
+    "application": {
+      "fields": {
+        "name": {
+          "value": "Santosh Parab",
+          "confidence": 1.0,
+          "source_page": null
+        }
+      }
+    },
+    "ownership_record": {
+      "fields": {
+        "name": {
+          "value": "Santosh Parab",
+          "confidence": 0.95,
+          "source_page": 1
+        },
+        "survey_number": {
+          "value": "88/2",
+          "confidence": 0.95,
+          "source_page": 1
+        },
+        "area": {
+          "value": 800,
+          "confidence": 0.95,
+          "source_page": 1
+        },
+        "area_unit": {
+          "value": "sqm",
+          "confidence": 0.95,
+          "source_page": 1
+        },
+        "issue_date": {
+          "value": "2026-10-01",
+          "confidence": 0.95,
+          "source_page": 1
+        }
+      }
+    },
+    "identity_proof": {
+      "fields": {
+        "name": {
+          "value": "Santosh Prabhu",
+          "confidence": 0.95,
+          "source_page": 1
+        },
+        "id_number": {
+          "value": "XXXX XXXX 0001",
+          "confidence": 0.95,
+          "source_page": 1
+        },
+        "expiry_date": {
+          "value": "2031-03-31",
+          "confidence": 0.95,
+          "source_page": 1
+        }
+      }
+    },
+    "survey_sheet": {
+      "fields": {
+        "survey_number": {
+          "value": "88/2",
+          "confidence": 0.95,
+          "source_page": 1
+        },
+        "area": {
+          "value": 2000,
+          "confidence": 0.95,
+          "source_page": 1
+        },
+        "area_unit": {
+          "value": "sqm",
+          "confidence": 0.95,
+          "source_page": 1
+        }
+      }
+    },
+    "mutation_record": {
+      "fields": {
+        "name": {
+          "value": "Santosh Parab",
+          "confidence": 0.95,
+          "source_page": 1
+        },
+        "issue_date": {
+          "value": "2026-08-01",
+          "confidence": 0.95,
+          "source_page": 1
+        }
+      }
+    }
+  },
+  "inputs": {
+    "market_value_per_sqm": 4000,
+    "assets_total": 100000,
+    "interest_start_date": "2024-11-15",
+    "interest_end_date": "2026-11-15"
+  }
+}
