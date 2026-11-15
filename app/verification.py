@@ -142,11 +142,13 @@ def _try(expr: Optional[str], facts: CaseFacts) -> Optional[object]:
 
 def _duplicate_check(check: VerificationCheck, scheme: Scheme, case: CaseIn,
                      facts: CaseFacts, other_cases: list[CaseIn]) -> CheckResult:
+    """Another open case with the same key: needs_review, never fail. Wording comes from the YAML."""
     base = {"check_id": check.id, "severity": check.severity,
             "sources": [e for e in (check.key, check.claimed_area, check.total_area) if e]}
+    say = check.messages
     key = _try(check.key, facts)
     if key is None:
-        return CheckResult(status="needs_review", detail=f"Cannot check duplicates: {check.key} unavailable", **base)
+        return CheckResult(status="needs_review", detail=say["key_unavailable"].format(key_expr=check.key), **base)
 
     competing: list[tuple[str, Optional[float]]] = []
     for other in other_cases:
@@ -155,26 +157,24 @@ def _duplicate_check(check: VerificationCheck, scheme: Scheme, case: CaseIn,
         other_facts = build_facts(scheme, other)
         other_key = _try(check.key, other_facts)
         if other_key is not None and _normalise_exact(other_key) == _normalise_exact(key):
-            competing.append((other.case_id, _try(check.claimed_area, other_facts)))
+            competing.append((other.case_id, _try(check.claimed_area, other_facts) if check.claimed_area else None))
 
     if not competing:
-        return CheckResult(status="pass", detail=f"No other open case claims {key}.", **base)
+        return CheckResult(status="pass", detail=say["no_competitor"].format(key=key), **base)
 
     ids = ", ".join(cid for cid, _ in competing)
+    if not (check.claimed_area and check.total_area):
+        return CheckResult(status="needs_review", detail=say["competing"].format(ids=ids, key=key), **base)
     mine = _try(check.claimed_area, facts)
     total = _try(check.total_area, facts)
-    areas = [a for _, a in competing]
-    if mine is None or total is None or None in areas:
-        return CheckResult(status="needs_review",
-                           detail=f"Open cases {ids} also claim {key}; areas unknown, cannot rule out overlap.", **base)
-    combined = float(mine) + sum(float(a) for a in areas)
+    amounts = [a for _, a in competing]
+    if mine is None or total is None or None in amounts:
+        return CheckResult(status="needs_review", detail=say["competing"].format(ids=ids, key=key), **base)
+    combined = float(mine) + sum(float(a) for a in amounts)
+    values = {"ids": ids, "key": key, "combined": f"{combined:g}", "total": f"{float(total):g}"}
     if combined <= float(total) * (1 + AREA_TOLERANCE):
-        return CheckResult(status="pass",
-                           detail=f"Open cases {ids} also claim {key}, but combined area {combined:g} "
-                                  f"fits within survey total {float(total):g} (co-owners).", **base)
-    return CheckResult(status="needs_review",
-                       detail=f"Open cases {ids} also claim {key}; combined area {combined:g} exceeds "
-                              f"survey total {float(total):g}.", **base)
+        return CheckResult(status="pass", detail=say["within_total"].format(**values), **base)
+    return CheckResult(status="needs_review", detail=say["exceeds_total"].format(**values), **base)
 
 
 # --- entry point ---------------------------------------------------------------

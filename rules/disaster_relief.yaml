@@ -38,10 +38,12 @@ verification_checks:
   - id: duplicate_claim
     builtin: duplicate_claim
     key: damage_assessment.village + "/" + damage_assessment.house_number
-    # The built-in requires claimed_area. Relief has no area, and total_area is left out,
-    # so ANY other open claim on the same house is needs_review (never pass, never fail).
-    claimed_area: damage_assessment.damage_percent
+    # No claimed_area / total_area: ANY other open claim on the same house is needs_review.
     severity: high
+    messages:
+      key_unavailable: "Cannot check for duplicate relief: {key_expr} unavailable."
+      no_competitor: "No other open relief claim for house {key}."
+      competing: "Open claims {ids} are for the same house {key}; check whether relief was already given."
 
 eligibility_rules:
   - id: documents_complete

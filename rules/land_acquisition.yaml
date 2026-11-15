@@ -33,8 +33,10 @@ required_documents:
 #            a name differing only by a dropped middle name (or initial) is always
 #            needs_review: never pass, never fail
 #   exact:   pass if normalised values are equal, else fail
-#   duplicate_claim (built-in): needs_review when another case claims the same key with an
-#     overlapping area. Approved cases count; rejected and withdrawn cases do not.
+#   duplicate_claim (built-in): needs_review when another case claims the same key. With
+#     claimed_area and total_area, co-claims that fit within the total pass. Approved cases count;
+#     rejected and withdrawn cases do not. `messages` holds the officer-facing wording
+#     (placeholders: key_expr; key; ids, key; ids, key, combined, total).
 verification_checks:
   - id: name_match
     fields: [name]
@@ -52,6 +54,12 @@ verification_checks:
     claimed_area: ownership_record.area_sqm
     total_area: survey_sheet.area_sqm
     severity: high
+    messages:
+      key_unavailable: "Cannot check duplicates: {key_expr} unavailable"
+      no_competitor: "No other open case claims {key}."
+      competing: "Open cases {ids} also claim {key}; areas unknown, cannot rule out overlap."
+      within_total: "Open cases {ids} also claim {key}, but combined area {combined} fits within survey total {total} (co-owners)."
+      exceeds_total: "Open cases {ids} also claim {key}; combined area {combined} exceeds survey total {total}."
 
 # A rule passes only if every `depends_on` check passed and `when` is true.
 # A failed dependency fails the rule; a needs_review dependency makes it needs_review.

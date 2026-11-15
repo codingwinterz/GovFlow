@@ -1,6 +1,7 @@
 """Load and validate a scheme YAML file. All scheme logic lives in the YAML."""
 
 import re
+import string
 from pathlib import Path
 from typing import Any, Literal, Optional
 
@@ -36,6 +37,20 @@ class RequiredDocument(BaseModel):
     validity: Optional[Validity] = None
 
 
+# Message templates for the duplicate_claim built-in, with the placeholders each may use.
+DUPLICATE_MESSAGES = {
+    "key_unavailable": {"key_expr"},
+    "no_competitor": {"key"},
+    "competing": {"ids", "key"},                       # another open case shares the key
+    "within_total": {"ids", "key", "combined", "total"},   # only with claimed_area and total_area
+    "exceeds_total": {"ids", "key", "combined", "total"},
+}
+
+
+def _placeholders(template: str) -> set[str]:
+    return {name for _, name, _, _ in string.Formatter().parse(template) if name}
+
+
 class VerificationCheck(BaseModel):
     id: str
     severity: Literal["low", "medium", "high"] = "medium"
@@ -48,17 +63,37 @@ class VerificationCheck(BaseModel):
     key: Optional[str] = None
     claimed_area: Optional[str] = None
     total_area: Optional[str] = None
+    messages: dict[str, str] = {}     # wording shown to officers; each scheme writes its own
 
     @property
     def fuzzy_threshold(self) -> Optional[float]:
         match = re.fullmatch(r"fuzzy_(0(\.\d+)?|1(\.0+)?)", self.tolerance or "")
         return float(match.group(1)) if match else None
 
+    def _check_duplicate_shape(self) -> None:
+        if not self.key:
+            raise ValueError(f"{self.id}: duplicate_claim needs key")
+        if self.total_area and not self.claimed_area:
+            raise ValueError(f"{self.id}: total_area needs claimed_area")
+        required = {"key_unavailable", "no_competitor", "competing"}
+        if self.claimed_area and self.total_area:
+            required |= {"within_total", "exceeds_total"}
+        if not self.messages:
+            raise ValueError(f"{self.id}: duplicate_claim needs messages: {sorted(required)}")
+        missing = required - set(self.messages)
+        unknown = set(self.messages) - set(DUPLICATE_MESSAGES)
+        if missing or unknown:
+            raise ValueError(f"{self.id}: messages missing {sorted(missing)}, unknown {sorted(unknown)}")
+        for name, template in self.messages.items():
+            bad = _placeholders(template) - DUPLICATE_MESSAGES[name]
+            if bad:
+                raise ValueError(f"{self.id}: message {name} uses unknown placeholders {sorted(bad)}; "
+                                 f"allowed {sorted(DUPLICATE_MESSAGES[name])}")
+
     @model_validator(mode="after")
     def _shape(self) -> "VerificationCheck":
         if self.builtin == "duplicate_claim":
-            if not (self.key and self.claimed_area):
-                raise ValueError(f"{self.id}: duplicate_claim needs key and claimed_area")
+            self._check_duplicate_shape()
             return self
         if not (self.fields and len(self.across) >= 2):
             raise ValueError(f"{self.id}: needs fields and at least two documents in across")
