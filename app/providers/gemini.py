@@ -48,8 +48,9 @@ confidence is your estimate (0 to 1) that the value is exactly what the original
 class GeminiCallError(ProviderError):
     """One failed attempt, with the server's retry hint in seconds if it gave one."""
 
-    def __init__(self, message: str, kind: ErrorKind, retryable: bool, retry_after: Optional[float] = None):
-        super().__init__(message, kind=kind, retryable=retryable)
+    def __init__(self, message: str, kind: ErrorKind, retryable: bool, retry_after: Optional[float] = None,
+                 details: Optional[dict[str, Any]] = None):
+        super().__init__(message, kind=kind, retryable=retryable, details=details)
         self.retry_after = retry_after
 
 
@@ -85,6 +86,51 @@ def retry_hint(headers: Any, body_text: str) -> Optional[float]:
         if isinstance(detail, dict) and str(detail.get("@type", "")).endswith("RetryInfo"):
             return _seconds(detail.get("retryDelay"))
     return None
+
+
+MESSAGE_CHARS = 200
+
+
+def error_details(status_code: int, body_text: str) -> dict[str, Any]:
+    """The useful parts of a Google API error body, pulled out before anything is truncated."""
+    out: dict[str, Any] = {"http_status": status_code}
+    try:
+        error = json.loads(body_text).get("error", {})
+    except (ValueError, AttributeError):
+        error = None
+    if not isinstance(error, dict):
+        out["message"] = " ".join(body_text.split())[:MESSAGE_CHARS]
+        return out
+    if error.get("status"):
+        out["status"] = str(error["status"])
+    message = str(error.get("message", "")).strip()
+    out["message"] = (message.splitlines()[0] if message else "")[:MESSAGE_CHARS]
+    for detail in error.get("details") or []:
+        if not isinstance(detail, dict):
+            continue
+        kind = str(detail.get("@type", ""))
+        if kind.endswith("QuotaFailure"):
+            violations = [v for v in detail.get("violations") or [] if isinstance(v, dict)]
+            if violations:
+                out["quota_metric"] = ", ".join(str(v.get("quotaMetric", "")) for v in violations)
+                out["quota_id"] = ", ".join(str(v.get("quotaId", "")) for v in violations)
+                out["quota_value"] = ", ".join(str(v.get("quotaValue", "")) for v in violations)
+        elif kind.endswith("RetryInfo") and _seconds(detail.get("retryDelay")) is not None:
+            out["retry_delay_seconds"] = _seconds(detail.get("retryDelay"))
+    return out
+
+
+def describe(details: dict[str, Any]) -> str:
+    """One line: 'Gemini HTTP 429 RESOURCE_EXHAUSTED: <message> [quota <id> (<metric>), retry in 41s]'."""
+    head = f"Gemini HTTP {details.get('http_status')}"
+    if details.get("status"):
+        head += f" {details['status']}"
+    extras = []
+    if details.get("quota_id"):
+        extras.append(f"quota {details['quota_id']} ({details.get('quota_metric', '')}, limit {details.get('quota_value', '?')})")
+    if details.get("retry_delay_seconds") is not None:
+        extras.append(f"retry in {details['retry_delay_seconds']:g}s")
+    return f"{head}: {details.get('message', '')}" + (f" [{'; '.join(extras)}]" if extras else "")
 
 
 def _is_timeout(exc: BaseException) -> bool:
@@ -137,6 +183,9 @@ class GeminiProvider:
     def _scrub(self, message: str) -> str:
         return message.replace(self._key, "***")
 
+    def _scrub_details(self, details: dict[str, Any]) -> dict[str, Any]:
+        return {k: self._scrub(v) if isinstance(v, str) else v for k, v in details.items()}
+
     def _wait_for_pace(self) -> None:
         if self._last_call is not None:
             wait = self.pace_seconds - (self._clock() - self._last_call)
@@ -149,10 +198,11 @@ class GeminiProvider:
         try:
             return self._post(url, headers, body, TIMEOUT_SECONDS)
         except urllib.error.HTTPError as exc:
-            text = exc.read().decode("utf-8", "replace")
+            text = self._scrub(exc.read().decode("utf-8", "replace"))   # scrub before parsing or storing
             kind: ErrorKind = {429: "rate_limited", 503: "unavailable"}.get(exc.code, "http_error")
-            raise GeminiCallError(f"Gemini HTTP {exc.code}: {self._scrub(text)[:300]}", kind=kind,
-                                  retryable=kind != "http_error", retry_after=retry_hint(exc.headers, text)) from None
+            details = self._scrub_details(error_details(exc.code, text))
+            raise GeminiCallError(describe(details), kind=kind, retryable=kind != "http_error",
+                                  retry_after=retry_hint(exc.headers, text), details=details) from None
         except Exception as exc:
             if _is_timeout(exc):
                 raise GeminiCallError("Gemini request timed out", kind="timeout", retryable=True) from None
@@ -178,8 +228,8 @@ class GeminiProvider:
             except GeminiCallError as exc:
                 wait = self._backoff(attempt, exc)
                 if wait is None:
-                    raise ProviderError(f"{exc} (attempt {attempt} of {MAX_ATTEMPTS})",
-                                        kind=exc.kind, retryable=exc.retryable) from None
+                    raise ProviderError(f"{exc} (attempt {attempt} of {MAX_ATTEMPTS})", kind=exc.kind,
+                                        retryable=exc.retryable, details=exc.details) from None
                 self._sleep(wait)
                 continue
             return self._parse(response)

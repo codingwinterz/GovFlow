@@ -187,3 +187,53 @@ def test_invalid_pace_is_a_config_error(monkeypatch, bad):
     with pytest.raises(ProviderError) as exc:
         GeminiProvider(api_key=KEY)
     assert exc.value.kind == "not_configured"
+
+
+# --- structured error details (quota id / metric / retry delay survive truncation) -------
+
+def _quota_429(key_in_message=""):
+    long_text = ("You exceeded your current quota, please check your plan and billing details. "
+                 + "For more information on this error, head to the rate-limit docs. " * 6 + key_in_message
+                 + "\n* Quota exceeded for metric: generate_content_free_tier_requests, limit: 20")
+    return {"error": {"code": 429, "status": "RESOURCE_EXHAUSTED", "message": long_text, "details": [
+        {"@type": "type.googleapis.com/google.rpc.QuotaFailure", "violations": [{
+            "quotaMetric": "generativelanguage.googleapis.com/generate_content_free_tier_requests",
+            "quotaId": "GenerateRequestsPerDayPerProjectPerModel-FreeTier",
+            "quotaDimensions": {"model": "gemini-3.8-flash", "location": "global"}, "quotaValue": "20"}]},
+        {"@type": "type.googleapis.com/google.rpc.RetryInfo", "retryDelay": "41s"}]}}
+
+
+def _exhaust(body):
+    post = Script(*[_http(429, body=body) for _ in range(4)])   # fresh objects: an error body can be read once
+    with pytest.raises(ProviderError) as exc:
+        _provider(post)[0].extract(_request())
+    return exc.value
+
+
+def test_quota_details_are_extracted_before_truncation():
+    details = _exhaust(_quota_429()).details
+    assert details["http_status"] == 429 and details["status"] == "RESOURCE_EXHAUSTED"
+    assert details["quota_id"] == "GenerateRequestsPerDayPerProjectPerModel-FreeTier"
+    assert details["quota_metric"] == "generativelanguage.googleapis.com/generate_content_free_tier_requests"
+    assert details["quota_value"] == "20" and details["retry_delay_seconds"] == 41.0
+    assert details["message"].startswith("You exceeded your current quota")
+    assert len(details["message"]) <= 200
+
+
+def test_error_text_names_the_quota_even_when_the_message_is_long():
+    text = str(_exhaust(_quota_429()))
+    assert "GenerateRequestsPerDayPerProjectPerModel-FreeTier" in text and "retry in 41s" in text
+    assert not text.rstrip().endswith("{")
+
+
+def test_key_never_appears_in_error_details():
+    exc = _exhaust(_quota_429(key_in_message=f" key={KEY} "))
+    assert KEY not in json.dumps(exc.details) and KEY not in str(exc)
+
+
+def test_non_json_error_body_still_gives_a_short_message():
+    post = Script(urllib.error.HTTPError("https://x", 503, "err", {}, io.BytesIO(b"<html>Service down</html>")),
+                  *[_http(503)] * 3)
+    with pytest.raises(ProviderError) as exc:
+        _provider(post)[0].extract(_request())
+    assert exc.value.details["http_status"] == 503

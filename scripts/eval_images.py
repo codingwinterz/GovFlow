@@ -22,7 +22,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
-from app.evaluation import EvalReport, run_messy_eval
+from app.evaluation import EvalReport, ProviderFailure, run_messy_eval
 from app.extraction import ExtractionResult
 from app.privacy import redact_secrets
 
@@ -60,6 +60,20 @@ def progress_line(label: str, result: ExtractionResult) -> str:
     return f"    {label:<28} UNAVAILABLE ({result.error_kind})"
 
 
+def error_text(p: ProviderFailure) -> str:
+    """The provider's own message plus quota and retry delay, if the provider reported them."""
+    d = p.details
+    if not d:
+        return p.message.splitlines()[0][:160] if p.message else ""
+    text = f"HTTP {d.get('http_status', '?')}" + (f" {d['status']}" if d.get("status") else "")
+    text += f": {d.get('message', '')}"
+    if d.get("quota_id"):
+        text += f" | quota {d['quota_id']} ({d.get('quota_metric', '')}, limit {d.get('quota_value', '?')})"
+    if d.get("retry_delay_seconds") is not None:
+        text += f" | retry in {d['retry_delay_seconds']:g}s"
+    return text
+
+
 def report_lines(system: str, r: EvalReport) -> list[str]:
     e, f = r.extraction, r.flags
     accuracy = "n/a" if e.accuracy is None else f"{e.accuracy:.3f}"
@@ -74,9 +88,11 @@ def report_lines(system: str, r: EvalReport) -> list[str]:
         + (f" ({', '.join(f'{k} x{n}' for k, n in sorted(kinds.items()))})" if kinds else "")
         + f"   -> {e.unavailable} fields unavailable, not scored",
     ]
-    lines += [f"      {p.document}: {p.kind}: {p.message.splitlines()[0][:120]}" for p in r.provider_errors]
-    lines.append(f"  flags precision {f.precision:.3f} recall {f.recall:.3f} "
-                 f"(scored {f.cases_scored}/{f.cases_total} cases with every document answered)")
+    lines += [f"      {p.document}: {p.kind}: {error_text(p)}" for p in r.provider_errors]
+    na = lambda v: "n/a" if v is None else f"{v:.3f}"
+    lines.append(f"  flags precision {na(f.precision)} recall {na(f.recall)} "
+                 f"(scored {f.cases_scored}/{f.cases_total} cases; unscored: "
+                 + (", ".join(f"{c} {why}" for c, why in f.unscored.items()) or "none") + ")")
     return [redact_secrets(line) for line in lines]
 
 

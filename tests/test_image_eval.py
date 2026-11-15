@@ -2,7 +2,7 @@
 
 import pytest
 
-from app.evaluation import field_matches, run_messy_eval
+from app.evaluation import field_matches, run_messy_eval, scoring_status
 from app.extraction import ProviderError, ProviderField
 from app.providers.fake import FailingProvider
 from app.providers.tesseract import TesseractBaselineProvider, TesseractOcr
@@ -91,7 +91,29 @@ def test_accuracy_counts_only_documents_the_provider_answered():
 def test_flags_are_scored_only_on_cases_whose_documents_all_answered():
     flags = run_messy_eval(provider=PartlyFailing(), variant="text").flags
     assert "LA-02" not in flags.per_case and "LA-05" not in flags.per_case
-    assert flags.cases_scored == flags.cases_total - 2
+    assert flags.unscored["LA-02"] == "1 of 1 labelled documents unanswered"
+    assert flags.cases_scored == flags.cases_total - 3          # LA-02, LA-05, and LA-07 (no documents)
+
+
+@pytest.mark.parametrize("labelled, answered, reason", [
+    (0, 0, "no labelled documents"),                 # the zero-document case: never "fully answered"
+    (2, 0, "2 of 2 labelled documents unanswered"),
+    (2, 1, "1 of 2 labelled documents unanswered"),
+    (1, 1, None),
+])
+def test_scoring_status(labelled, answered, reason):
+    assert scoring_status(labelled, answered) == reason
+
+
+def test_case_with_no_labelled_documents_is_not_scored():
+    flags = run_messy_eval().flags                   # recorded fakes: every document answers
+    assert "LA-07" not in flags.per_case and flags.unscored == {"LA-07": "no labelled documents"}
+    assert (flags.cases_scored, flags.cases_total) == (7, 8)
+
+
+def test_flag_scores_are_not_applicable_when_no_answered_document_backs_them():
+    flags = run_messy_eval(provider=FailingProvider(), variant="clean").flags
+    assert flags.cases_scored == 0 and flags.precision is None and flags.recall is None
 
 
 def test_report_names_the_model():
@@ -110,3 +132,21 @@ def test_fake_text_eval_still_reports_accuracy():
     assert report.variant == "text" and report.provider_errors == []
     assert report.extraction.accuracy == pytest.approx(26 / 27, abs=0.001)   # garbled LA-11 name is wrong
     assert (report.extraction.documents_answered, report.extraction.documents_total) == (7, 7)
+
+
+QUOTA = {"http_status": 429, "status": "RESOURCE_EXHAUSTED", "message": "You exceeded your current quota",
+         "quota_id": "GenerateRequestsPerDayPerProjectPerModel-FreeTier",
+         "quota_metric": "generate_content_free_tier_requests", "quota_value": "20", "retry_delay_seconds": 41.0}
+
+
+class QuotaExhausted:
+    name, model = "gemini", "test-model-1"
+
+    def extract(self, request):
+        raise ProviderError("Gemini HTTP 429", kind="rate_limited", retryable=True, details=dict(QUOTA))
+
+
+def test_provider_error_details_are_stored_in_the_results():
+    report = run_messy_eval(provider=QuotaExhausted(), variant="clean")
+    assert report.provider_errors[0].details == QUOTA
+    assert report.model_dump(mode="json")["provider_errors"][0]["details"]["quota_id"] == QUOTA["quota_id"]

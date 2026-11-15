@@ -46,6 +46,7 @@ class ProviderFailure(BaseModel):
     document: str         # e.g. case_02.identity_proof
     kind: str             # error class: rate_limited, unavailable, timeout, ...
     message: str
+    details: dict[str, Any] = {}   # provider's structured error: quota id/metric, retry delay, http status
 
 
 class ExtractionSummary(BaseModel):
@@ -66,13 +67,14 @@ class ExtractionSummary(BaseModel):
 
 class FlagSummary(BaseModel):
     cases_total: int
-    cases_scored: int          # cases whose labelled documents were all answered
+    cases_scored: int          # cases with at least one labelled document, all of them answered
+    unscored: dict[str, str]   # case id -> why it was not scored
     per_case: dict[str, dict[str, list[str]]]
     true_positives: list[str]
     false_positives: list[str]
     false_negatives: list[str]
-    precision: float
-    recall: float
+    precision: Optional[float]   # None when no case was scored
+    recall: Optional[float]
 
 
 class EvalReport(BaseModel):
@@ -121,18 +123,30 @@ def _rows(case: str, doc_type: str, truth: dict, result: ExtractionResult, thres
     return rows
 
 
-def _flag_summary(per_case: dict[str, dict[str, list[str]]], cases_total: int) -> FlagSummary:
+def scoring_status(labelled: int, answered: int) -> Optional[str]:
+    """None if a case's flags can be scored, else the reason. Zero documents is never 'fully answered'."""
+    if labelled == 0:
+        return "no labelled documents"
+    if answered < labelled:
+        return f"{labelled - answered} of {labelled} labelled documents unanswered"
+    return None
+
+
+def _flag_summary(per_case: dict[str, dict[str, list[str]]], cases_total: int,
+                  unscored: dict[str, str]) -> FlagSummary:
     tp, fp, fn = [], [], []
     for case_id, sets in per_case.items():
         expected, actual = set(sets["expected"]), set(sets["actual"])
         tp += [f"{case_id}:{k}" for k in sorted(expected & actual)]
         fp += [f"{case_id}:{k}" for k in sorted(actual - expected)]
         fn += [f"{case_id}:{k}" for k in sorted(expected - actual)]
-    precision = len(tp) / (len(tp) + len(fp)) if (tp or fp) else 1.0
-    recall = len(tp) / (len(tp) + len(fn)) if (tp or fn) else 1.0
-    return FlagSummary(cases_total=cases_total, cases_scored=len(per_case), per_case=per_case,
-                       true_positives=tp, false_positives=fp, false_negatives=fn,
-                       precision=round(precision, 3), recall=round(recall, 3))
+    precision = recall = None
+    if per_case:   # only answered documents can back a score
+        precision = round(len(tp) / (len(tp) + len(fp)), 3) if (tp or fp) else 1.0
+        recall = round(len(tp) / (len(tp) + len(fn)), 3) if (tp or fn) else 1.0
+    return FlagSummary(cases_total=cases_total, cases_scored=len(per_case), unscored=unscored,
+                       per_case=per_case, true_positives=tp, false_positives=fp, false_negatives=fn,
+                       precision=precision, recall=recall)
 
 
 def _summary(rows: list[FieldRow], documents_total: int, documents_answered: int) -> ExtractionSummary:
@@ -162,7 +176,8 @@ def run_messy_eval(provider: Optional[ExtractionProvider] = None, ocr: Optional[
     rows: list[FieldRow] = []
     providers: set[str] = set()
     failures: list[ProviderFailure] = []
-    unanswered_cases: set[str] = set()
+    labelled: dict[str, int] = {}
+    answered: dict[str, int] = {}
 
     with make_session(make_engine("sqlite://")) as session:
         for folder in sorted(SET_DIR.glob("case_*")):
@@ -171,6 +186,7 @@ def run_messy_eval(provider: Optional[ExtractionProvider] = None, ocr: Optional[
         for item in labels["documents"]:
             folder = SET_DIR / item["case"]
             case_id = json.loads((folder / "case.json").read_text(encoding="utf-8"))["case_id"]
+            labelled[case_id] = labelled.get(case_id, 0) + 1
             source = (folder / "documents" / f"{item['doc_type']}.txt" if variant == "text"
                       else folder / "images" / f"{item['doc_type']}_{variant}.png")
             doc = Document(case_id=case_id, doc_type=item["doc_type"], file_path=str(source))
@@ -186,16 +202,19 @@ def run_messy_eval(provider: Optional[ExtractionProvider] = None, ocr: Optional[
             label = f"{item['case']}.{item['doc_type']}"
             if result.status != "ok":
                 failures.append(ProviderFailure(document=label, kind=result.error_kind or "error",
-                                                message=result.error or ""))
-                unanswered_cases.add(case_id)
+                                                message=result.error or "", details=result.error_details))
+            else:
+                answered[case_id] = answered.get(case_id, 0) + 1
             if on_document:
                 on_document(label, result)
             rows += _rows(item["case"], item["doc_type"], item["truth"], result, threshold)
 
-        per_case = {}
+        per_case, unscored = {}, {}
         for case_id, expected in labels["expected_flags"].items():
-            if case_id in unanswered_cases:
-                continue   # a provider failure says nothing about the verification code
+            reason = scoring_status(labelled.get(case_id, 0), answered.get(case_id, 0))
+            if reason:
+                unscored[case_id] = reason   # a provider failure says nothing about the verification code
+                continue
             actual = sorted({f.kind for f in verify_documents(session, case_id, actor="eval").flags})
             per_case[case_id] = {"expected": sorted(expected), "actual": actual}
 
@@ -203,4 +222,4 @@ def run_messy_eval(provider: Optional[ExtractionProvider] = None, ocr: Optional[
     extraction = _summary(rows, documents_total, documents_total - len(failures))
     return EvalReport(variant=variant, providers=providers, model=getattr(provider, "model", None),
                       provider_errors=failures, extraction=extraction,
-                      flags=_flag_summary(per_case, len(labels["expected_flags"])))
+                      flags=_flag_summary(per_case, len(labels["expected_flags"]), unscored))

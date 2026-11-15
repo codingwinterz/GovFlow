@@ -56,10 +56,12 @@ class ProviderError(RuntimeError):
     """The extraction provider failed (it read nothing). The document is marked
     extraction_unavailable and can be retried; this is not a low-confidence reading."""
 
-    def __init__(self, message: str, kind: ErrorKind = "error", retryable: bool = False):
+    def __init__(self, message: str, kind: ErrorKind = "error", retryable: bool = False,
+                 details: Optional[dict[str, Any]] = None):
         super().__init__(message)
         self.kind: ErrorKind = kind
         self.retryable = retryable
+        self.details: dict[str, Any] = details or {}   # e.g. http_status, quota_id, retry_delay_seconds
 
 
 class ExtractionProvider(Protocol):
@@ -95,6 +97,7 @@ class ExtractionResult(BaseModel):
     status: Literal["ok", "extraction_unavailable"] = "ok"
     error: Optional[str] = None           # provider message (already scrubbed of keys by the provider)
     error_kind: Optional[ErrorKind] = None
+    error_details: dict[str, Any] = {}    # structured provider error (http_status, quota_id, retry delay)
     retryable: bool = False
 
 
@@ -168,7 +171,7 @@ def extract_facts(document: DocumentInput, fields: list[str], threshold: float,
         # Nothing was read: not low confidence, not missing. The document can be retried.
         return ExtractionResult(fields=[], low_confidence=[], missing=[], used_fallback=False,
                                 status="extraction_unavailable", error=str(exc), error_kind=exc.kind,
-                                retryable=exc.retryable, **base)
+                                error_details=exc.details, retryable=exc.retryable, **base)
 
     out = [m for f in fields if (m := _merge(f, primary.get(f), secondary.get(f), threshold))]
     return ExtractionResult(

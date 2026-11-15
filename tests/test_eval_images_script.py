@@ -63,3 +63,15 @@ def test_progress_line_distinguishes_unavailable_from_read():
     unavailable = progress_line("case_08.survey_sheet",
                                 _result(status="extraction_unavailable", error_kind="rate_limited"))
     assert "UNAVAILABLE (rate_limited)" in unavailable
+
+
+def test_report_shows_quota_and_retry_delay():
+    from tests.test_image_eval import QuotaExhausted
+    text = "\n".join(report_lines("gemini", run_messy_eval(provider=QuotaExhausted(), variant="clean")))
+    assert "GenerateRequestsPerDayPerProjectPerModel-FreeTier" in text and "retry in 41s" in text
+    assert "limit 20" in text and "You exceeded your current quota" in text
+
+
+def test_flag_scores_print_na_when_nothing_was_scored():
+    text = "\n".join(report_lines("gemini", run_messy_eval(provider=FailingProvider(), variant="clean")))
+    assert "flags precision n/a recall n/a (scored 0/8 cases" in text
