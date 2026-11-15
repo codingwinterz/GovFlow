@@ -25,6 +25,7 @@ from sqlalchemy.orm import Session
 from app import tools
 from app.agent import AgentReply, run_agent
 from app.analytics import analytics
+from app.audit import log_action
 from app.citizen import RateLimiter, citizen_view, code_matches
 from app.citizen import citizen_secret as default_citizen_secret
 from app.extraction import EXTRACTION_UNAVAILABLE_MESSAGE, ProviderError
@@ -33,6 +34,7 @@ from app.models import VerificationFlag, make_engine, queue_key
 from app.privacy import mask_identifiers
 from app.rules_engine import overall_from
 from app.self_check import NoSelfCheck, public_questions, self_check
+from app.simulator import knobs, simulate
 from app.rules_loader import RULES_DIR, Scheme, load_scheme_by_name
 
 
@@ -47,7 +49,7 @@ def officer_inputs(scheme: Scheme) -> list[str]:
 def _all_schemes() -> list[Scheme]:
     return [load_scheme_by_name(p.stem) for p in sorted(RULES_DIR.glob("*.yaml"))]
 
-ROLES = ("citizen", "clerk", "officer")
+ROLES = ("citizen", "clerk", "officer", "admin")   # admin: rule simulator only
 UPLOAD_TYPES = {".txt", ".png", ".jpg", ".jpeg", ".pdf"}
 MAX_UPLOAD_BYTES = 10 * 1024 * 1024
 DEFAULT_UPLOAD_DIR = Path(__file__).resolve().parent.parent / "uploads"   # gitignored: citizen documents
@@ -87,6 +89,12 @@ class StatusLookup(BaseModel):
 class SelfCheckIn(BaseModel):
     scheme: str = Field(max_length=64)
     answers: dict[str, str] = {}
+
+
+class SimulateIn(BaseModel):
+    scheme: str = Field(max_length=64)
+    name: str = Field(max_length=64)
+    value: float
 
 
 class DecisionIn(BaseModel):
@@ -357,6 +365,34 @@ def create_app(engine: Optional[Engine] = None, agent_llm_factory: Optional[Call
         _require(actor, "officer")
         return tools.record_officer_decision(session, case_id, role=actor.role, officer_id=actor.user,
                                              decision=body.decision, comment=body.comment).model_dump()
+
+    def _known_scheme(name: str) -> None:
+        if not tools.SCHEME_NAME.match(name) or not (RULES_DIR / f"{name}.yaml").is_file():
+            raise HTTPException(404, f"Unknown scheme {name!r}")
+
+    @app.get("/simulate/{scheme}")
+    def simulator_knobs(scheme: str, actor: Actor = Depends(_actor)) -> dict[str, Any]:
+        _require(actor, "officer", "admin")
+        _known_scheme(scheme)
+        s = load_scheme_by_name(scheme)
+        return {"scheme": scheme, "rules_version": s.version, "labels": s.labels,
+                "knobs": [k.model_dump() for k in knobs(s)]}
+
+    @app.post("/simulate")
+    def run_simulation(body: SimulateIn, actor: Actor = Depends(_actor),
+                       session: Session = Depends(session_dep)) -> dict[str, Any]:
+        """Read-only what-if over the synthetic set. Never edits the YAML."""
+        _require(actor, "officer", "admin")
+        _known_scheme(body.scheme)
+        try:
+            result = simulate(body.scheme, body.name, body.value)
+        except ValueError as exc:
+            raise HTTPException(400, str(exc)) from None
+        log_action(session, None, actor.name, "rule_simulation",
+                   {"scheme": body.scheme, "name": body.name, "original_value": result.original_value,
+                    "new_value": result.new_value, "changed_count": result.changed_count}, result.rules_version)
+        session.commit()
+        return result.model_dump()
 
     @app.get("/cases/{case_id}/audit")
     def audit(case_id: str, actor: Actor = Depends(_actor),

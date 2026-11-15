@@ -12,6 +12,7 @@ test("hash routes", () => {
   assert.deepEqual(parseRoute("#/status"), { page: "status" });
   assert.deepEqual(parseRoute("#/track"), { page: "track" });
   assert.deepEqual(parseRoute("#/self-check"), { page: "self-check" });
+  assert.deepEqual(parseRoute("#/simulator"), { page: "simulator" });
   assert.deepEqual(parseRoute("#/nope"), { page: "notfound" });
 });
 

@@ -62,7 +62,7 @@ def test_missing_role_is_401(env):
 
 
 def test_unknown_role_is_401(env):
-    assert env("GET", "/cases", headers={"X-Role": "admin", "X-User": "x"})[0] == 401
+    assert env("GET", "/cases", headers={"X-Role": "superuser", "X-User": "x"})[0] == 401
 
 
 def test_citizen_role_gets_no_staff_endpoints(env):
@@ -293,3 +293,10 @@ def test_schemes_list_officer_inputs_from_the_yaml(env):
     (la,) = [s for s in env("GET", "/schemes", headers=CLERK)[1] if s["scheme"] == "land_acquisition"]
     assert la["officer_inputs"] == ["market_value_per_sqm", "assets_total", "multiplier",
                                     "interest_start_date", "interest_end_date"]
+
+
+def test_admin_role_reaches_only_the_simulator(env):
+    admin = {"X-Role": "admin", "X-User": "A-1"}
+    assert env("GET", "/cases", headers=admin)[0] == 403
+    assert env("GET", "/cases/LA-01", headers=admin)[0] == 403
+    assert env("POST", "/cases/LA-01/decision", {"decision": "approve"}, admin)[0] == 403

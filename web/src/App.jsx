@@ -10,6 +10,7 @@ import Intake from "./pages/Intake.jsx";
 import StatusLookup from "./pages/StatusLookup.jsx";
 import Track from "./pages/Track.jsx";
 import SelfCheck from "./pages/SelfCheck.jsx";
+import Simulator from "./pages/Simulator.jsx";
 
 function useRoute() {
   const [route, setRoute] = useState(parseRoute(window.location.hash));
@@ -23,6 +24,7 @@ function useRoute() {
 
 function Page({ route, login }) {
   if (login.role === "citizen") return <Track />;   // citizens see only the public status page
+  if (login.role === "admin") return <Simulator />;  // admins: rule simulator only
   switch (route.page) {
     case "queue": return <Queue />;
     case "case": return <CasePage id={route.id} login={login} />;
@@ -30,6 +32,7 @@ function Page({ route, login }) {
     case "analytics": return <Analytics />;
     case "intake": return <Intake />;
     case "status": return <StatusLookup />;
+    case "simulator": return login.role === "officer" ? <Simulator /> : <p>Only officers and admins can use the simulator.</p>;
     default: return <p>Page not found. <a href={href("queue")}>Back to the queue</a></p>;
   }
 }
@@ -46,12 +49,13 @@ export default function App() {
         <span className="badge demo" title="Identity comes from X-Role / X-User headers; not real authentication">
           DEMO MODE
         </span>
-        {login && login.role !== "citizen" && (
+        {login && !["citizen", "admin"].includes(login.role) && (
           <nav>
             <a href={href("queue")}>Queue</a>
             <a href={href("intake")}>Intake</a>
             <a href={href("analytics")}>Analytics</a>
             <a href={href("status")}>Status lookup</a>
+            {login.role === "officer" && <a href={href("simulator")}>Simulator</a>}
           </nav>
         )}
         <a href={href("track")}>Track an application</a>
