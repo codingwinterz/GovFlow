@@ -151,7 +151,8 @@ def test_unusable_response_is_not_retried():
 
 
 def test_key_never_appears_in_exhausted_error():
-    post = Script(*[_http(503, body={"error": {"message": f"bad {KEY}"}})] * 4)
+    # fresh error objects: the final error comes from the last attempt, which must also carry the key
+    post = Script(*[_http(503, body={"error": {"message": f"bad {KEY}"}}) for _ in range(4)])
     with pytest.raises(ProviderError) as exc:
         _provider(post)[0].extract(_request())
     assert KEY not in str(exc.value) and KEY not in repr(exc.value)
@@ -227,7 +228,11 @@ def test_error_text_names_the_quota_even_when_the_message_is_long():
 
 
 def test_key_never_appears_in_error_details():
-    exc = _exhaust(_quota_429(key_in_message=f" key={KEY} "))
+    body = _quota_429()
+    body["error"]["message"] = f"key={KEY} rejected"              # early: survives the 200-char cut
+    body["error"]["details"][0]["violations"][0]["quotaId"] = f"q-{KEY}"   # quota fields are never truncated
+    exc = _exhaust(body)
+    assert exc.details["message"].startswith("key=") and exc.details["quota_id"].startswith("q-")
     assert KEY not in json.dumps(exc.details) and KEY not in str(exc)
 
 
