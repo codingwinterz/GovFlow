@@ -66,12 +66,15 @@ def test_queue_shows_days_open_and_overdue_from_the_api(env):
 def test_decided_cases_stop_the_clock_and_are_never_overdue(env):
     engine, get = env
     with Session(engine) as s:
+        s.get(Case, "LA-01").created_at = datetime.now(timezone.utc) - timedelta(days=200)   # far past the SLA
+        s.commit()
         verify_documents(s, "LA-01"); check_eligibility(s, "LA-01"); compute_compensation(s, "LA-01")
         submit_to_officer(s, "LA-01")
         record_officer_decision(s, "LA-01", role="officer", officer_id="O-1", decision="approve")
     row = _queue(get)["LA-01"]
-    assert row["overdue"] is False and row["status"] == "approved"
-    assert row["days_open"] < 100          # counted to the decision (made "now" in real time), not to NOW
+    assert row["status"] == "approved" and row["days_open"] > row["sla_days"]   # it took longer than the SLA...
+    assert row["overdue"] is False                                             # ...but a closed case is never overdue
+    assert 199 <= row["days_open"] <= 201  # counted to the decision (made in real time), not to NOW
 
 
 def test_analytics_counts_overdue_by_status_and_scheme(env):
@@ -89,8 +92,9 @@ def test_overdue_is_a_flag_only(env):
     engine, get = env
     with Session(engine) as s:
         before = ({c.id: c.status for c in s.query(Case)}, s.scalar(select(func.count()).select_from(AuditLog)))
-    get("/cases")
+    returned = {c["case_id"]: c["status"] for c in get("/cases")[1]}
     get("/analytics")
+    assert returned == before[0]                                   # the response does not change statuses either
     with Session(engine) as s:
         after = ({c.id: c.status for c in s.query(Case)}, s.scalar(select(func.count()).select_from(AuditLog)))
     assert after == before
