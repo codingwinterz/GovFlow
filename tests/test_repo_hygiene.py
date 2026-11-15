@@ -16,6 +16,11 @@ SECRET_PATTERNS = [
 ]
 
 
+def test_uploaded_documents_are_never_committable():
+    assert "uploads/" in (ROOT / ".gitignore").read_text(encoding="utf-8").split()
+    assert not [p for p in _tracked_files() if "uploads" in p.parts]
+
+
 def test_dotenv_is_never_committable():
     assert ".env" in (ROOT / ".gitignore").read_text(encoding="utf-8").split()
     assert not [p for p in _tracked_files() if p.name == ".env"]

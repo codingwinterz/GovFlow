@@ -152,8 +152,8 @@ def _pace_from_env() -> float:
     return pace
 
 
-class GeminiProvider:
-    name = "gemini"
+class GeminiClient:
+    """generateContent over REST with key scrubbing, pacing, retries and backoff. Shared by all Gemini uses."""
 
     def __init__(self, api_key: Optional[str] = None, model: Optional[str] = None, post: Post = _urllib_post,
                  sleep: Callable[[float], None] = time.sleep, clock: Callable[[], float] = time.monotonic,
@@ -165,20 +165,6 @@ class GeminiProvider:
         self.pace_seconds = _pace_from_env() if pace_seconds is None else pace_seconds
         self._post, self._sleep, self._clock = post, sleep, clock
         self._last_call: Optional[float] = None
-
-    def _parts(self, request: ExtractionRequest) -> list[dict[str, Any]]:
-        fields = ", ".join(request.fields)
-        if request.mode == "ocr_text":
-            text = "\n\n".join(f"--- page {p.number} ---\n{p.text or ''}" for p in request.pages)
-            return [{"text": OCR_PROMPT.format(doc_type=request.doc_type, fields=fields)}, {"text": text}]
-        parts: list[dict[str, Any]] = [{"text": PROMPT.format(doc_type=request.doc_type, fields=fields)}]
-        for page in request.pages:
-            if page.image_bytes is not None:
-                parts.append({"inline_data": {"mime_type": page.media_type or "image/png",
-                                              "data": base64.b64encode(page.image_bytes).decode("ascii")}})
-            else:
-                parts.append({"text": f"--- page {page.number} ---\n{page.text or ''}"})
-        return parts
 
     def _scrub(self, message: str) -> str:
         return message.replace(self._key, "***")
@@ -216,24 +202,50 @@ class GeminiProvider:
         wait = max(BASE_BACKOFF_SECONDS * 2 ** (attempt - 1), exc.retry_after or 0.0)
         return wait if wait <= MAX_RETRY_WAIT_SECONDS else None
 
-    def extract(self, request: ExtractionRequest) -> list[ProviderField]:
-        body = {"contents": [{"parts": self._parts(request)}],
-                "generationConfig": {"temperature": 0, "responseMimeType": "application/json",
-                                     "responseSchema": _schema(request.fields)}}
+    def generate(self, body: dict) -> dict:
         url = f"{API_BASE}/{self.model}:generateContent"
         headers = {"Content-Type": "application/json", "x-goog-api-key": self._key}
         for attempt in range(1, MAX_ATTEMPTS + 1):
             try:
-                response = self._call_once(url, headers, body)
+                return self._call_once(url, headers, body)
             except GeminiCallError as exc:
                 wait = self._backoff(attempt, exc)
                 if wait is None:
                     raise ProviderError(f"{exc} (attempt {attempt} of {MAX_ATTEMPTS})", kind=exc.kind,
                                         retryable=exc.retryable, details=exc.details) from None
                 self._sleep(wait)
-                continue
-            return self._parse(response)
         raise AssertionError("unreachable")
+
+
+class GeminiProvider:
+    """Field extraction from document images (or OCR text) with a JSON response schema."""
+    name = "gemini"
+
+    def __init__(self, api_key: Optional[str] = None, model: Optional[str] = None, post: Post = _urllib_post,
+                 sleep: Callable[[float], None] = time.sleep, clock: Callable[[], float] = time.monotonic,
+                 pace_seconds: Optional[float] = None):
+        self.client = GeminiClient(api_key, model, post, sleep, clock, pace_seconds)
+        self.model, self.pace_seconds = self.client.model, self.client.pace_seconds
+
+    def _parts(self, request: ExtractionRequest) -> list[dict[str, Any]]:
+        fields = ", ".join(request.fields)
+        if request.mode == "ocr_text":
+            text = "\n\n".join(f"--- page {p.number} ---\n{p.text or ''}" for p in request.pages)
+            return [{"text": OCR_PROMPT.format(doc_type=request.doc_type, fields=fields)}, {"text": text}]
+        parts: list[dict[str, Any]] = [{"text": PROMPT.format(doc_type=request.doc_type, fields=fields)}]
+        for page in request.pages:
+            if page.image_bytes is not None:
+                parts.append({"inline_data": {"mime_type": page.media_type or "image/png",
+                                              "data": base64.b64encode(page.image_bytes).decode("ascii")}})
+            else:
+                parts.append({"text": f"--- page {page.number} ---\n{page.text or ''}"})
+        return parts
+
+    def extract(self, request: ExtractionRequest) -> list[ProviderField]:
+        body = {"contents": [{"parts": self._parts(request)}],
+                "generationConfig": {"temperature": 0, "responseMimeType": "application/json",
+                                     "responseSchema": _schema(request.fields)}}
+        return self._parse(self.client.generate(body))
 
     def _parse(self, response: dict) -> list[ProviderField]:
         try:

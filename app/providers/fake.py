@@ -41,3 +41,22 @@ class FakeOcr:
         self.calls += 1
         text, confidence = self.pages.get(document_id, ("", 0.0))
         return OcrResult(text=text, confidence=confidence)
+
+
+class ScriptedAgentLLM:
+    """Agent LLM stand-in: returns scripted replies in order (an exception in the script is raised)."""
+    name, model = "scripted", None
+
+    def __init__(self, script: list):
+        self.script = list(script)
+        self.calls: list[dict] = []
+
+    def complete(self, system, messages, tools):
+        self.calls.append({"system": system, "messages": list(messages), "tools": list(tools)})
+        from app.agent import AgentReply
+        if not self.script:
+            return AgentReply(text="(script ended)")
+        step = self.script.pop(0)
+        if isinstance(step, BaseException):
+            raise step
+        return step

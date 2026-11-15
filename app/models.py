@@ -30,6 +30,7 @@ class Case(Base):
     confidence_flag: Mapped[bool] = mapped_column(default=False)   # True = needs human review
     reference_date: Mapped[Optional[date]]                          # date checks compare against this
     inputs_json: Mapped[str] = mapped_column(default="{}")          # officer-entered values (market value, dates)
+    submitted_at: Mapped[Optional[datetime]]                        # when it entered the officer queue
 
 
 class Document(Base):
