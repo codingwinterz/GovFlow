@@ -37,6 +37,19 @@ export default function Analytics() {
             <p className="big">{formatDuration(d.average_processing_seconds)}</p>
             <p className="muted small">Over {d.decided_cases} decided case(s). Source: {d.average_processing_source}.</p>
           </section>
+          <section className="card">
+            <h2>Overdue against SLA</h2>
+            <p className="big">{d.overdue_count}</p>
+            <p className="muted small">Flag only; nothing changes automatically. Source: {d.overdue_source}.</p>
+          </section>
+          {d.overdue_count > 0 && (
+            <>
+              <Counts title="Overdue by status (where cases are stuck)" counts={d.overdue_by_status} total={d.overdue_count}
+                source="overdue_by_status from /analytics" />
+              <Counts title="Overdue by scheme" counts={d.overdue_by_scheme} total={d.overdue_count}
+                source="overdue_by_scheme from /analytics" />
+            </>
+          )}
           <section className="card wide">
             <h2>Stuck cases</h2>
             <label>No movement for at least <input type="number" min="0" step="1" value={days}

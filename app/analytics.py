@@ -7,6 +7,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.models import AuditLog, Case
+from app import sla
 from app.models import as_utc as _utc
 
 CLOSED = ("approved", "rejected", "withdrawn")
@@ -42,7 +43,18 @@ def analytics(session: Session, stuck_days: float = 7, now: Optional[datetime] =
                      "last_movement": moved[c.id].isoformat()}
                     for c in cases if c.status not in CLOSED and moved[c.id] <= cutoff),
                    key=lambda s: s["last_movement"])
+    decided = sla.decision_times(session)
+    overdue = [{"case_id": c.id, "status": c.status, "scheme": c.scheme, **sla.sla_view(c, now, decided)}
+               for c in cases if sla.sla_view(c, now, decided)["overdue"]]
+    overdue_by_status: dict[str, int] = {}
+    overdue_by_scheme: dict[str, int] = {}
+    for o in overdue:
+        overdue_by_status[o["status"]] = overdue_by_status.get(o["status"], 0) + 1
+        overdue_by_scheme[o["scheme"]] = overdue_by_scheme.get(o["scheme"], 0) + 1
     return {"total_cases": len(cases), "by_status": by_status, "per_scheme": per_scheme,
+            "overdue_count": len(overdue), "overdue_by_status": overdue_by_status,
+            "overdue_by_scheme": overdue_by_scheme, "overdue_source": sla.SOURCE,
+            "overdue_cases": sorted(overdue, key=lambda o: -o["days_open"]),
             "decided_cases": len(times),
             "average_processing_seconds": round(sum(times) / len(times), 1) if times else None,
             "average_processing_source": "case created_at to officer_decision audit entry",

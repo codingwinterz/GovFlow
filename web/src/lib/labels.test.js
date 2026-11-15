@@ -27,3 +27,13 @@ test("the self-check page shows the API's guide label with every result", () => 
   assert.match(source, /result\.guide_label/);
   assert.doesNotMatch(source, /eligible\s*=|\.reduce\(/);   // no eligibility logic in the browser
 });
+
+test("days open and overdue come from the API, never from browser date arithmetic", () => {
+  for (const name of readdirSync(PAGES)) {
+    const source = readFileSync(join(PAGES, name), "utf8");
+    assert.doesNotMatch(source, /Date\.now\(|\.getTime\(\)|new Date\(\)\s*-/, name);
+  }
+  const queue = readFileSync(join(PAGES, "Queue.jsx"), "utf8");
+  assert.match(queue, /c\.days_open/);
+  assert.match(queue, /c\.overdue/);
+});

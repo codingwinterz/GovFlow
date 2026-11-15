@@ -2,6 +2,7 @@ scheme: land_acquisition
 version: "0.1.0"
 source: "RFCTLARR Act 2013 and Goa notifications"   # VERIFY: exact notification references
 confidence_threshold: 0.85
+sla_days: 60                       # VERIFY: target days from intake to officer decision (placeholder)
 labels:                            # wording shown by the API and the officer dashboard
   title: "Land acquisition compensation"
   amounts: "Compensation"

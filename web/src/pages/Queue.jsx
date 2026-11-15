@@ -39,7 +39,7 @@ export default function Queue() {
         cases.data.length === 0 ? <p className="muted">No cases match these filters.</p> : (
           <table>
             <thead>
-              <tr><th>#</th><th>Case</th><th>Scheme</th><th>Status</th><th>Flags</th><th>Submitted</th></tr>
+              <tr><th>#</th><th>Case</th><th>Scheme</th><th>Status</th><th>Flags</th><th className="num">Days open</th><th>Submitted</th></tr>
             </thead>
             <tbody>
               {cases.data.map((c, i) => (
@@ -50,6 +50,9 @@ export default function Queue() {
                   <td><span className={`status s-${c.status}`}>{c.status}</span></td>
                   <td title="verification flags stored for this case">
                     {c.flags_count}{c.confidence_flag && <span className="badge warn">needs review</span>}
+                  </td>
+                  <td className="num" title={`target ${c.sla_days} days (scheme sla_days); flag only, nothing changes automatically`}>
+                    {c.days_open}{c.overdue && <span className="badge warn">overdue</span>}
                   </td>
                   <td>{formatDate(c.submitted_at)}</td>
                 </tr>

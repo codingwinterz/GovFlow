@@ -2,6 +2,7 @@ scheme: disaster_relief
 version: "0.1.0"
 source: "State Disaster Response Fund norms and the Goa state relief schedule"   # VERIFY: exact notification and schedule references
 confidence_threshold: 0.85
+sla_days: 15                       # VERIFY: target days from intake to decision for relief (placeholder)
 labels:
   title: "Disaster relief: housing damage"
   amounts: "Relief"

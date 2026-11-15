@@ -22,9 +22,9 @@ def seeded(tmp_path):
 def test_seed_covers_the_dashboard_states(seeded):
     summary, s = seeded
     statuses = {c.id: c.status for c in s.query(Case)}
-    assert len(statuses) == 15
+    assert len(statuses) == 29 and {c.scheme for c in s.query(Case)} == {"land_acquisition", "disaster_relief"}
     assert {"in_officer_review", "received", "approved", "needs_info"} <= set(statuses.values())
-    assert summary["cases"] == 15 and summary["by_status"] == {
+    assert summary["cases"] == 29 and summary["by_status"] == {
         k: list(statuses.values()).count(k) for k in set(statuses.values())}
 
 
@@ -53,7 +53,7 @@ def test_seed_refuses_to_overwrite_without_reset(tmp_path):
     seed(db)
     with pytest.raises(FileExistsError):
         seed(db)
-    assert seed(db, reset=True)["cases"] == 15
+    assert seed(db, reset=True)["cases"] == 29
 
 
 def test_reset_only_deletes_database_files(tmp_path):
@@ -68,5 +68,16 @@ def test_seed_lists_demo_citizen_codes_that_work(seeded):
     from app.citizen import DEMO_SECRET, citizen_code
     summary, _ = seeded
     codes = summary["citizen_codes"]
-    assert {"LA-01", "LA-05", "LA-07"} <= set(codes)
+    assert {"LA-01", "LA-05", "LA-07", "DR-01"} <= set(codes)
     assert all(code == citizen_code(ref, DEMO_SECRET) for ref, code in codes.items())
+
+
+def test_seed_spreads_intake_dates_so_some_cases_are_overdue(seeded):
+    from datetime import datetime, timezone
+    from app.analytics import analytics
+    _, s = seeded
+    result = analytics(s, now=datetime.now(timezone.utc))
+    assert result["overdue_count"] >= 2
+    assert set(result["overdue_by_scheme"]) == {"land_acquisition", "disaster_relief"}
+    ages = {c.id: (datetime.now(timezone.utc) - c.created_at.replace(tzinfo=timezone.utc)).days for c in s.query(Case)}
+    assert max(ages.values()) <= 90 and len(set(ages.values())) > 5

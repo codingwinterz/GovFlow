@@ -206,12 +206,19 @@ class Scheme(BaseModel):
     version: str
     source: str
     labels: dict[str, str]
+    sla_days: int                    # target days from intake to officer decision; overdue is a flag only
     confidence_threshold: float
     required_documents: list[RequiredDocument]
     verification_checks: list[VerificationCheck] = []
     eligibility_rules: list[EligibilityRule]
     compensation: Optional[Compensation] = None
     self_check: Optional[SelfCheck] = None
+
+    @model_validator(mode="after")
+    def _positive_sla(self) -> "Scheme":
+        if self.sla_days <= 0:
+            raise ValueError(f"sla_days must be a positive whole number of days, got {self.sla_days}")
+        return self
 
     @model_validator(mode="after")
     def _labels(self) -> "Scheme":

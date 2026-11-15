@@ -12,7 +12,7 @@ import json
 import re
 import time
 import uuid
-from datetime import date
+from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Iterator, Optional
 
@@ -24,6 +24,7 @@ from sqlalchemy.orm import Session
 
 from app import tools
 from app.agent import AgentReply, run_agent
+from app import sla
 from app.analytics import analytics
 from app.audit import log_action
 from app.citizen import RateLimiter, citizen_view, code_matches
@@ -186,7 +187,8 @@ def _detail(session: Session, case: Case) -> dict[str, Any]:
 def create_app(engine: Optional[Engine] = None, agent_llm_factory: Optional[Callable[[], Any]] = None,
                extraction_factory: Optional[Callable[[], Any]] = None,
                upload_dir: Optional[Path] = None, citizen_secret: Optional[str] = None,
-               clock: Callable[[], float] = time.monotonic) -> FastAPI:
+               clock: Callable[[], float] = time.monotonic,
+               now: Callable[[], datetime] = lambda: datetime.now(timezone.utc)) -> FastAPI:
     app = FastAPI(title="GovFlow", version="0.1.0")
     secret = citizen_secret or default_citizen_secret()
     limiter = RateLimiter(clock)
@@ -271,13 +273,14 @@ def create_app(engine: Optional[Engine] = None, agent_llm_factory: Optional[Call
         counts = dict(session.query(VerificationFlag.case_id, func.count(VerificationFlag.id))
                       .group_by(VerificationFlag.case_id).all())
         cases = sorted(query.all(), key=queue_key)
-        return [_case_summary(c, counts.get(c.id, 0)) for c in cases]
+        decided, at = sla.decision_times(session), now()
+        return [{**_case_summary(c, counts.get(c.id, 0)), **sla.sla_view(c, at, decided)} for c in cases]
 
     @app.get("/analytics")
     def get_analytics(stuck_days: float = 7, actor: Actor = Depends(_actor),
                       session: Session = Depends(session_dep)) -> dict[str, Any]:
         _require(actor, "clerk", "officer")
-        return analytics(session, stuck_days=stuck_days)
+        return analytics(session, stuck_days=stuck_days, now=now())
 
     @app.get("/schemes")
     def schemes(actor: Actor = Depends(_actor)) -> list[dict[str, Any]]:

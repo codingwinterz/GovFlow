@@ -1,28 +1,31 @@
-"""Build a demo database from the synthetic land-acquisition set (no network, no LLM).
+"""Build a demo database from the synthetic sets of every scheme (no network, no LLM).
 
-- all 15 synthetic cases are seeded from data/synthetic (fields from case.json);
-- the messy documents are re-read with their recorded fake responses, so low-confidence
-  fields and the OCR fallback appear on the case page;
+- every synthetic case in data/synthetic/<scheme>/ is seeded (fields from case.json);
+- the land-acquisition messy documents are re-read with their recorded fake responses, so
+  low-confidence fields and the OCR fallback appear on the case page;
 - one document is "uploaded" and fails with a simulated rate limit, to demo the retry banner;
-- LA-01..LA-12 go through the agent's deterministic fallback (no LLM), so each has an
-  assessment and a plain summary clearly labelled "generated without the LLM";
-- two officer decisions are recorded as actor officer:seed-demo with a "synthetic" comment,
-  so analytics has data (skip with --no-decisions).
+- most cases go through the agent's deterministic fallback (no LLM), so each has an assessment
+  and a plain summary clearly labelled "generated without the LLM";
+- intake dates are SYNTHETIC: spread over recent weeks by a fixed pattern, so SLA timers and
+  overdue flags have something to show (audit entries keep their real timestamps);
+- three officer decisions are recorded as actor officer:seed-demo with a "synthetic" comment,
+  so analytics and the citizen page have data (skip with --no-decisions).
 
 Usage: python -m scripts.seed_demo [--db govflow.db] [--reset] [--no-decisions]
 """
 
 import argparse
 import json
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
 from sqlalchemy.orm import Session
 
 from app.agent import run_agent
-from app.citizen import citizen_code, citizen_secret
 from app.case_model import CaseIn
 from app.case_store import seed_case
+from app.citizen import citizen_code, citizen_secret
 from app.evaluation import SET_DIR, _fake_for
 from app.extraction import ProviderError
 from app.models import Case, make_engine
@@ -30,10 +33,13 @@ from app.providers.fake import FailingProvider
 from app.tools import add_document, extract_document, record_officer_decision
 
 ROOT = Path(__file__).resolve().parent.parent
-ASSESSED = [f"LA-{i:02d}" for i in range(1, 13)]
-CITIZEN_DEMO_CASES = ("LA-01", "LA-05", "LA-07", "LA-14")   # approved, sent back, under review, received
+DATA = ROOT / "data" / "synthetic"
+NOT_RUN = ("LA-13", "LA-14", "LA-15", "DR-13", "DR-14")     # left as received / extracted
+CITIZEN_DEMO_CASES = ("LA-01", "LA-05", "LA-07", "LA-14", "DR-01", "DR-08")
 DECISIONS = [("LA-01", "approve", "synthetic demo decision (seed script)"),
-             ("LA-05", "send_back", "synthetic demo decision (seed script): identity proof expired, upload a valid one")]
+             ("LA-05", "send_back", "synthetic demo decision (seed script): identity proof expired, upload a valid one"),
+             ("DR-01", "approve", "synthetic demo decision (seed script)")]
+INTAKE_DAYS_AGO = [3, 8, 12, 20, 27, 35, 41, 48, 55, 62, 66, 70, 74, 80, 85]   # synthetic, by case order
 
 
 class _NoLLM:
@@ -43,13 +49,15 @@ class _NoLLM:
         raise ProviderError("no agent LLM in the seed script", kind="not_configured")
 
 
-def _case_ids() -> dict[str, str]:
-    return {f.name: json.loads((f / "case.json").read_text(encoding="utf-8"))["case_id"]
-            for f in sorted(SET_DIR.glob("case_*"))}
+def _all_cases() -> list[CaseIn]:
+    return [CaseIn.model_validate_json(p.read_text(encoding="utf-8"))
+            for scheme in sorted(d for d in DATA.iterdir() if d.is_dir())
+            for p in sorted(scheme.glob("case_*/case.json"))]
 
 
 def _read_messy_documents(session: Session) -> None:
-    ids = _case_ids()
+    ids = {f.name: json.loads((f / "case.json").read_text(encoding="utf-8"))["case_id"]
+           for f in sorted(SET_DIR.glob("case_*"))}
     labels = json.loads((SET_DIR / "messy_labels.json").read_text(encoding="utf-8"))
     for item in labels["documents"]:
         folder = SET_DIR / item["case"]
@@ -67,6 +75,18 @@ def _unavailable_document(session: Session) -> None:
                      actor="seed-demo")
 
 
+def _spread_intake_dates(session: Session, cases: list[CaseIn]) -> None:
+    now = datetime.now(timezone.utc)
+    per_scheme: dict[str, int] = {}
+    for case in cases:
+        i = per_scheme[case.scheme] = per_scheme.get(case.scheme, -1) + 1
+        days = INTAKE_DAYS_AGO[i % len(INTAKE_DAYS_AGO)]
+        if case.scheme == "disaster_relief":
+            days = days // 3 + 1                      # relief cases are more recent
+        session.get(Case, case.case_id).created_at = now - timedelta(days=days)
+    session.commit()
+
+
 def seed(db_path: Path, reset: bool = False, with_decisions: bool = True) -> dict[str, Any]:
     db_path = Path(db_path)
     if db_path.exists():
@@ -76,13 +96,16 @@ def seed(db_path: Path, reset: bool = False, with_decisions: bool = True) -> dic
             raise ValueError(f"Refusing to delete {db_path}: --reset only replaces .db files")
         db_path.unlink()
     engine = make_engine(f"sqlite:///{db_path}")
+    cases = _all_cases()
     with Session(engine) as session:
-        for folder in sorted(SET_DIR.glob("case_*")):
-            seed_case(session, CaseIn.model_validate_json((folder / "case.json").read_text(encoding="utf-8")))
+        for case in cases:
+            seed_case(session, case)
+        _spread_intake_dates(session, cases)
         _read_messy_documents(session)
         _unavailable_document(session)
-        for case_id in ASSESSED:
-            run_agent(session, case_id, _NoLLM(), actor="seed-demo")
+        for case in cases:
+            if case.case_id not in NOT_RUN:
+                run_agent(session, case.case_id, _NoLLM(), actor="seed-demo")
         if with_decisions:
             for case_id, decision, comment in DECISIONS:
                 if session.get(Case, case_id).status == "in_officer_review":
