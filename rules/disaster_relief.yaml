@@ -58,9 +58,9 @@ eligibility_rules:
   - id: residence_in_affected_area
     clause: "<clause ref>"
     depends_on: [house_match]
-    # VERIFY: the format has no list membership (`in`), so the notified-village list cannot be
-    # written here; the damage assessment's own "notified area" certification is used instead.
-    when: "damage_assessment.notified_area == 'yes'"
+    # VERIFY: uses the damage assessment's own "notified area" certification. A notified-village
+    # list could now be written with `in`, but it changes per disaster event, so it is not a scheme rule.
+    when: "lower(damage_assessment.notified_area) == 'yes'"
     fail_reason: "The damaged house is not the applicant's residence or is outside the notified area."
   - id: damage_category_eligible
     clause: "<clause ref>"

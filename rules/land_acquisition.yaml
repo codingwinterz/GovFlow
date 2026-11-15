@@ -66,7 +66,8 @@ verification_checks:
       exceeds_total: "Open cases {ids} also claim {key}; combined area {combined} exceeds survey total {total}."
 
 # A rule passes only if every `depends_on` check passed and `when` is true.
-# Expressions can read scheme parameters as params.<name> (unknown names fail at load).
+# Expressions can read scheme parameters as params.<name> (unknown names fail at load),
+# test membership with `x in ['a', 'b']`, and compare text case-insensitively with lower(x).
 # A failed dependency fails the rule; a needs_review dependency makes it needs_review.
 # A field that is missing or below confidence_threshold makes the rule needs_review.
 eligibility_rules:

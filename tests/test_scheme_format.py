@@ -59,3 +59,50 @@ def test_params_is_reserved_as_a_document_id():
     data["required_documents"][0]["id"] = "params"
     with pytest.raises(RulesError, match="params"):
         parse_scheme(data)
+
+
+# --- 3. list membership and case-insensitive text --------------------------------------------
+
+from app.safe_eval import UnsafeExpression, check_expression, evaluate, names_in
+
+
+@pytest.mark.parametrize("expr, names, expected", [
+    ("x in ['a', 'b']", {"x": "a"}, True), ("x in ['a', 'b']", {"x": "c"}, False),
+    ("x not in ('a', 'b')", {"x": "c"}, True), ("x in [y, 'b']", {"x": 3, "y": 3}, True),
+    ("lower(x) == 'yes'", {"x": "Yes"}, True), ("lower(x) == 'yes'", {"x": " YES "}, True),
+    ("lower(x) in ['siolim', 'anjuna']", {"x": " Siolim "}, True), ("lower(x) == lower(y)", {"x": "Asha  Naik", "y": "asha naik"}, True),
+])
+def test_membership_and_lower(expr, names, expected):
+    check_expression(expr)
+    assert evaluate(expr, names) is expected
+
+
+def test_in_needs_a_list_not_a_string():
+    with pytest.raises(TypeError):
+        evaluate("x in 'abc'", {"x": "a"})          # no accidental substring matching
+
+
+def test_lower_only_accepts_text():
+    with pytest.raises(TypeError):
+        evaluate("lower(x) == 'yes'", {"x": 5})
+
+
+@pytest.mark.parametrize("expr", ["upper(x)", "x.lower()", "lower(x, y)", "lower(x=1)", "lower(*x)", "open('f')",
+                                  "[c for c in x]", "{'a': 1}", "lower(x)(y)"])
+def test_other_calls_and_constructs_stay_forbidden(expr):
+    with pytest.raises(UnsafeExpression):
+        check_expression(expr)
+    with pytest.raises(UnsafeExpression):
+        evaluate(expr, {"x": "a", "y": "b", "lower": str.lower, "upper": str.upper, "open": open})
+
+
+def test_function_names_are_not_reported_as_inputs():
+    assert names_in("lower(a.b) == c") == ["a", "c"]
+
+
+@pytest.mark.parametrize("value, status", [("yes", "pass"), ("Yes", "pass"), (" YES ", "pass"), ("no", "fail")])
+def test_notified_area_compares_case_insensitively(value, status):
+    case = _case("disaster_relief", 1)
+    case.documents["damage_assessment"].fields["notified_area"].value = value
+    result = assess_case(load_scheme_by_name("disaster_relief"), case, [])
+    assert _rule(result, "residence_in_affected_area").status == status
