@@ -217,3 +217,10 @@ def test_unknown_document_type_is_refused(session, tmp_path):
     from app.tools import InvalidInput
     with pytest.raises(InvalidInput, match="document type"):
         add_document(session, "LA-01", "selfie", str(tmp_path / "x.txt"))
+
+
+def test_queue_order_works_with_timestamps_reloaded_from_the_database(session):
+    _to_review(session, "LA-01")
+    session.expire_all()                       # SQLite hands back naive datetimes after a reload
+    _assess(session, "LA-02")                  # clean like LA-01, so the order falls to the timestamps
+    assert submit_to_officer(session, "LA-02").queue_position == 2

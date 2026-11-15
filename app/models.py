@@ -14,6 +14,16 @@ def _now() -> datetime:
     return datetime.now(timezone.utc)
 
 
+def as_utc(ts: datetime) -> datetime:
+    """SQLite returns naive datetimes (stored as UTC); new values are aware. Compare them as aware UTC."""
+    return ts if ts.tzinfo else ts.replace(tzinfo=timezone.utc)
+
+
+def queue_key(case: "Case") -> tuple[bool, datetime]:
+    """Officer queue order: flagged cases first, then oldest submission (or creation) first."""
+    return (not case.confidence_flag, as_utc(case.submitted_at or case.created_at))
+
+
 class Base(DeclarativeBase):
     pass
 

@@ -240,3 +240,55 @@ def test_changing_inputs_after_assessment_reopens_assessment(env):
     env("POST", "/cases/LA-01/run", headers=CLERK)
     env("PUT", "/cases/LA-01/inputs", {"inputs": {"market_value_per_sqm": 9999}}, OFFICER)
     assert env("GET", "/cases/LA-01/status", headers=OFFICER)[1]["status"] == "verified"
+
+
+# --- queue extras and analytics (Days 6-8) ---------------------------------------------------
+
+def test_queue_shows_flag_count_and_filters_by_scheme(env):
+    env("POST", "/cases/LA-07/run", headers=CLERK)
+    _, queue = env("GET", "/cases?scheme=land_acquisition", headers=OFFICER)
+    by_id = {c["case_id"]: c for c in queue}
+    assert len(queue) == 15 and by_id["LA-07"]["flags_count"] >= 1 and by_id["LA-03"]["flags_count"] == 0
+    assert env("GET", "/cases?scheme=disaster_relief", headers=OFFICER)[1] == []
+
+
+def test_analytics_counts_status_scheme_and_processing_time(env):
+    env("POST", "/cases/LA-01/run", headers=CLERK)
+    env("POST", "/cases/LA-01/decision", {"decision": "approve"}, OFFICER)
+    status, a = env("GET", "/analytics", headers=OFFICER)
+    assert status == 200
+    assert a["by_status"]["approved"] == 1 and a["by_status"]["received"] == 14
+    assert a["per_scheme"] == {"land_acquisition": 15}
+    assert a["decided_cases"] == 1 and a["average_processing_seconds"] >= 0
+    assert a["average_processing_source"] == "case created_at to officer_decision audit entry"
+
+
+def test_analytics_has_no_average_when_nothing_decided(env):
+    a = env("GET", "/analytics", headers=OFFICER)[1]
+    assert a["decided_cases"] == 0 and a["average_processing_seconds"] is None
+
+
+def test_stuck_cases_use_last_audit_movement(env):
+    env("POST", "/cases/LA-01/run", headers=CLERK)
+    env("POST", "/cases/LA-01/decision", {"decision": "approve"}, OFFICER)
+    stuck_now = env("GET", "/analytics?stuck_days=0", headers=OFFICER)[1]["stuck_cases"]
+    assert "LA-01" not in {c["case_id"] for c in stuck_now}             # closed cases are never stuck
+    assert len(stuck_now) == 14 and all("last_movement" in c and "status" in c for c in stuck_now)
+    assert env("GET", "/analytics?stuck_days=30", headers=OFFICER)[1]["stuck_cases"] == []
+
+
+def test_analytics_is_staff_only(env):
+    assert env("GET", "/analytics", headers=CITIZEN)[0] == 403
+
+
+def test_schemes_lists_every_rules_file_with_its_documents(env):
+    status, schemes = env("GET", "/schemes", headers=CLERK)
+    by_name = {s["scheme"]: s for s in schemes}
+    assert status == 200 and by_name["land_acquisition"]["version"] == "0.1.0"
+    assert "mutation_record" in by_name["land_acquisition"]["documents"]
+
+
+def test_schemes_list_officer_inputs_from_the_yaml(env):
+    (la,) = [s for s in env("GET", "/schemes", headers=CLERK)[1] if s["scheme"] == "land_acquisition"]
+    assert la["officer_inputs"] == ["market_value_per_sqm", "assets_total", "multiplier",
+                                    "interest_start_date", "interest_end_date"]

@@ -9,6 +9,7 @@ Every response that carries extracted values passes through mask_identifiers (ru
 import base64
 import binascii
 import json
+import re
 import uuid
 from datetime import date
 from pathlib import Path
@@ -17,17 +18,30 @@ from typing import Any, Callable, Iterator, Optional
 from fastapi import Depends, FastAPI, Header, HTTPException, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
-from sqlalchemy import Engine
+from sqlalchemy import Engine, func
 from sqlalchemy.orm import Session
 
 from app import tools
 from app.agent import AgentReply, run_agent
+from app.analytics import analytics
 from app.extraction import EXTRACTION_UNAVAILABLE_MESSAGE, ProviderError
 from app.models import AuditLog, Case, CompensationItemRow, Document, ExtractedField, RuleResultRow
-from app.models import VerificationFlag, make_engine
+from app.models import VerificationFlag, make_engine, queue_key
 from app.privacy import mask_identifiers
 from app.rules_engine import overall_from
-from app.rules_loader import load_scheme_by_name
+from app.rules_loader import RULES_DIR, Scheme, load_scheme_by_name
+
+
+def officer_inputs(scheme: Scheme) -> list[str]:
+    """Officer-entered values the scheme reads as `case.<name>`, in YAML order (no names hardcoded here)."""
+    if scheme.compensation is None:
+        return []
+    names = re.findall(r"\bcase\.([A-Za-z_][A-Za-z0-9_]*)", json.dumps(scheme.compensation.model_dump(by_alias=True)))
+    return list(dict.fromkeys(names))
+
+
+def _all_schemes() -> list[Scheme]:
+    return [load_scheme_by_name(p.stem) for p in sorted(RULES_DIR.glob("*.yaml"))]
 
 ROLES = ("citizen", "clerk", "officer")
 UPLOAD_TYPES = {".txt", ".png", ".jpg", ".jpeg", ".pdf"}
@@ -90,9 +104,13 @@ def _require(actor: Actor, *roles: str) -> None:
 
 # --- read models ---------------------------------------------------------------------------
 
-def _case_summary(c: Case) -> dict[str, Any]:
-    return {"case_id": c.id, "scheme": c.scheme, "status": c.status, "confidence_flag": c.confidence_flag,
-            "submitted_at": c.submitted_at.isoformat() if c.submitted_at else None, "officer_id": c.officer_id}
+def _case_summary(c: Case, flags_count: Optional[int] = None) -> dict[str, Any]:
+    out = {"case_id": c.id, "scheme": c.scheme, "status": c.status, "confidence_flag": c.confidence_flag,
+           "submitted_at": c.submitted_at.isoformat() if c.submitted_at else None, "officer_id": c.officer_id,
+           "created_at": c.created_at.isoformat() if c.created_at else None}
+    if flags_count is not None:
+        out["flags_count"] = flags_count
+    return out
 
 
 def _documents(session: Session, case_id: str, threshold: float) -> list[dict[str, Any]]:
@@ -183,14 +201,29 @@ def create_app(engine: Optional[Engine] = None, agent_llm_factory: Optional[Call
         return {"status": "ok"}
 
     @app.get("/cases")
-    def list_cases(status: Optional[str] = None, actor: Actor = Depends(_actor),
+    def list_cases(status: Optional[str] = None, scheme: Optional[str] = None, actor: Actor = Depends(_actor),
                    session: Session = Depends(session_dep)) -> list[dict[str, Any]]:
         _require(actor, "clerk", "officer")
         query = session.query(Case)
         if status:
             query = query.filter_by(status=status)
-        cases = sorted(query.all(), key=lambda c: (not c.confidence_flag, c.submitted_at or c.created_at))
-        return [_case_summary(c) for c in cases]
+        if scheme:
+            query = query.filter_by(scheme=scheme)
+        counts = dict(session.query(VerificationFlag.case_id, func.count(VerificationFlag.id))
+                      .group_by(VerificationFlag.case_id).all())
+        cases = sorted(query.all(), key=queue_key)
+        return [_case_summary(c, counts.get(c.id, 0)) for c in cases]
+
+    @app.get("/analytics")
+    def get_analytics(stuck_days: float = 7, actor: Actor = Depends(_actor),
+                      session: Session = Depends(session_dep)) -> dict[str, Any]:
+        _require(actor, "clerk", "officer")
+        return analytics(session, stuck_days=stuck_days)
+
+    @app.get("/schemes")
+    def schemes(actor: Actor = Depends(_actor)) -> list[dict[str, Any]]:
+        return [{"scheme": s.scheme, "version": s.version, "documents": [d.id for d in s.required_documents],
+                 "officer_inputs": officer_inputs(s)} for s in _all_schemes()]
 
     @app.post("/cases", status_code=201)
     def create_case(body: CreateCase, actor: Actor = Depends(_actor),

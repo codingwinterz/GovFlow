@@ -1,0 +1,64 @@
+"""The demo seed script builds a realistic, fully synthetic database without any network call."""
+
+import json
+
+import pytest
+from sqlalchemy.orm import Session
+
+from app.models import AuditLog, Case, Document, ExtractedField, make_engine
+from scripts.seed_demo import seed
+
+
+@pytest.fixture
+def seeded(tmp_path):
+    db = tmp_path / "demo.db"
+    summary = seed(db)
+    engine = make_engine(f"sqlite:///{db}")
+    with Session(engine) as s:
+        yield summary, s
+    engine.dispose()
+
+
+def test_seed_covers_the_dashboard_states(seeded):
+    summary, s = seeded
+    statuses = {c.id: c.status for c in s.query(Case)}
+    assert len(statuses) == 15
+    assert {"in_officer_review", "received", "approved", "needs_info"} <= set(statuses.values())
+    assert summary["cases"] == 15 and summary["by_status"] == {
+        k: list(statuses.values()).count(k) for k in set(statuses.values())}
+
+
+def test_seed_shows_low_confidence_fields_and_an_unavailable_document(seeded):
+    _, s = seeded
+    assert s.query(ExtractedField).filter(ExtractedField.confidence < 0.85).count() >= 1
+    (doc,) = s.query(Document).filter_by(extraction_status="extraction_unavailable").all()
+    assert doc.extraction_error_kind == "rate_limited"
+
+
+def test_every_seeded_explanation_is_labelled_as_generated_without_the_llm(seeded):
+    _, s = seeded
+    rows = s.query(AuditLog).filter_by(action="agent_explanation").all()
+    assert rows and all("generated without the LLM" in json.loads(r.payload_json)["text"] for r in rows)
+
+
+def test_seeded_decisions_are_labelled_synthetic(seeded):
+    _, s = seeded
+    rows = s.query(AuditLog).filter_by(action="officer_decision").all()
+    assert rows and all(r.actor == "officer:seed-demo" for r in rows)
+    assert all("synthetic" in json.loads(r.payload_json)["comment"] for r in rows)
+
+
+def test_seed_refuses_to_overwrite_without_reset(tmp_path):
+    db = tmp_path / "demo.db"
+    seed(db)
+    with pytest.raises(FileExistsError):
+        seed(db)
+    assert seed(db, reset=True)["cases"] == 15
+
+
+def test_reset_only_deletes_database_files(tmp_path):
+    target = tmp_path / "notes.txt"
+    target.write_text("keep me", encoding="utf-8")
+    with pytest.raises(ValueError, match=".db"):
+        seed(target, reset=True)
+    assert target.read_text(encoding="utf-8") == "keep me"

@@ -24,7 +24,7 @@ from app.extraction import (
     EXTRACTION_UNAVAILABLE_MESSAGE, DocumentInput, ExtractionProvider, ExtractionResult, OcrEngine, Page,
     extract_facts,
 )
-from app.models import Case, CompensationItemRow, Document, ExtractedField, RuleResultRow, VerificationFlag
+from app.models import Case, CompensationItemRow, queue_key, Document, ExtractedField, RuleResultRow, VerificationFlag
 from app.rules_engine import EligibilityResult, overall_from
 from app.rules_engine import check_eligibility as check_eligibility_pure
 from app.rules_loader import RULES_DIR, Scheme, load_scheme_by_name
@@ -192,7 +192,7 @@ def _unavailable_documents(session: Session, case_id: str) -> list[str]:
 
 def _queue_position(session: Session, case: Case) -> int:
     queue = session.query(Case).filter_by(status="in_officer_review").all()
-    queue.sort(key=lambda c: (not c.confidence_flag, c.submitted_at or c.created_at))   # flagged cases first
+    queue.sort(key=queue_key)
     return [c.id for c in queue].index(case.id) + 1
 
 
