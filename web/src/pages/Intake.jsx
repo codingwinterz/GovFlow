@@ -29,7 +29,7 @@ function CreateCase({ schemes, onCreated }) {
         onChange={(e) => setForm({ ...form, case_id: e.target.value })} placeholder="LA-50" /></label>
       <label>Scheme
         <select value={scheme?.scheme || ""} onChange={(e) => setForm({ ...form, scheme: e.target.value })}>
-          {schemes.map((s) => <option key={s.scheme} value={s.scheme}>{s.scheme} (v{s.version})</option>)}
+          {schemes.map((s) => <option key={s.scheme} value={s.scheme}>{s.labels.title} (v{s.version})</option>)}
         </select>
       </label>
       <label>Reference date <input type="date" required value={form.reference_date}

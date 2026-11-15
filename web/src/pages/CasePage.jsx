@@ -91,10 +91,10 @@ function Rules({ detail }) {
   );
 }
 
-function Compensation({ compensation, version }) {
+function Amounts({ compensation, version, labels }) {
   return (
     <section className="card">
-      <h2>Compensation <span className="badge rec">recommendation only</span></h2>
+      <h2>{labels.amounts} <span className="badge rec">recommendation only</span></h2>
       {compensation.items.length === 0 ? <p className="muted">Not computed yet.</p> : (
         <table>
           <thead><tr><th>Component</th><th className="num">Amount</th><th>Formula (source)</th></tr></thead>
@@ -103,7 +103,7 @@ function Compensation({ compensation, version }) {
               <tr key={i.component}><td>{i.component}</td><td className="num">{formatRupees(i.amount)}</td><td className="small">{i.formula_note}</td></tr>
             ))}
             <tr className="total">
-              <td>Total</td><td className="num">{formatRupees(compensation.total)}</td>
+              <td>{labels.total}</td><td className="num">{formatRupees(compensation.total)}</td>
               <td className="small">as returned by the API (rules version {version}); not computed in the browser</td>
             </tr>
           </tbody>
@@ -192,7 +192,7 @@ export default function CasePage({ id, login }) {
         <>
           <div className="case-head">
             <h1>{d.case_id} <span className={`status s-${d.status}`}>{d.status}</span></h1>
-            <p className="muted">{d.scheme} · rules version {d.rules_version} · reference date {d.reference_date}
+            <p className="muted">{d.labels.title} · rules version {d.rules_version} · reference date {d.reference_date}
               {d.officer_id && <> · officer {d.officer_id}</>}</p>
             <div className="actions">
               <button onClick={runAgent} disabled={running}>{running ? "Running agent…" : "Run agent"}</button>
@@ -211,7 +211,7 @@ export default function CasePage({ id, login }) {
           )}
           <Explanation explanation={d.explanation} />
           <Rules detail={d} />
-          <Compensation compensation={d.compensation} version={d.rules_version} />
+          <Amounts compensation={d.compensation} version={d.rules_version} labels={d.labels} />
           <Documents documents={d.documents} />
           <section className="card">
             <h2>Officer-entered inputs</h2>

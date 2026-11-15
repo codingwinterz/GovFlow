@@ -161,3 +161,44 @@ def test_bad_derived_declarations_fail_at_load(derived, match):
     d["derived"]["area_sqm"] = derived
     with pytest.raises(RulesError, match=match):
         parse_scheme(data)
+
+
+# --- 5. display labels per scheme ----------------------------------------------------------------
+
+def test_each_scheme_has_its_own_labels():
+    assert load_scheme_by_name("land_acquisition").labels["amounts"] == "Compensation"
+    assert load_scheme_by_name("disaster_relief").labels["amounts"] == "Relief"
+
+
+def test_labels_are_required():
+    data = _yaml("disaster_relief")
+    del data["labels"]["total"]
+    with pytest.raises(RulesError, match="total"):
+        parse_scheme(data)
+
+
+def test_unknown_label_is_rejected():
+    data = _yaml("disaster_relief")
+    data["labels"]["subtitle"] = "x"
+    with pytest.raises(RulesError, match="subtitle"):
+        parse_scheme(data)
+
+
+def test_api_serves_labels_in_scheme_list_and_case_detail(tmp_path):
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import Session
+    from sqlalchemy.pool import StaticPool
+    from app.case_store import seed_case
+    from app.main import create_app
+    from app.models import Base
+    from tests.asgi_client import call
+    engine = create_engine("sqlite://", poolclass=StaticPool, connect_args={"check_same_thread": False})
+    Base.metadata.create_all(engine)
+    with Session(engine) as s:
+        seed_case(s, _case("disaster_relief", 1))
+    app = create_app(engine=engine, upload_dir=tmp_path)
+    officer = {"X-Role": "officer", "X-User": "O-1"}
+    schemes = {s["scheme"]: s for s in call(app, "GET", "/schemes", headers=officer)[1]}
+    assert schemes["disaster_relief"]["labels"]["total"] == "Total relief"
+    assert schemes["land_acquisition"]["labels"]["total"] == "Total compensation"
+    assert call(app, "GET", "/cases/DR-01", headers=officer)[1]["labels"]["amounts"] == "Relief"

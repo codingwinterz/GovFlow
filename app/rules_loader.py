@@ -187,15 +187,27 @@ class Compensation(BaseModel):
     components: list[Component]
 
 
+LABELS = ("title", "amounts", "total")   # display wording; each scheme writes its own
+
+
 class Scheme(BaseModel):
     scheme: str
     version: str
     source: str
+    labels: dict[str, str]
     confidence_threshold: float
     required_documents: list[RequiredDocument]
     verification_checks: list[VerificationCheck] = []
     eligibility_rules: list[EligibilityRule]
     compensation: Optional[Compensation] = None
+
+    @model_validator(mode="after")
+    def _labels(self) -> "Scheme":
+        missing = [k for k in LABELS if not str(self.labels.get(k, "")).strip()]
+        unknown = sorted(set(self.labels) - set(LABELS))
+        if missing or unknown:
+            raise ValueError(f"labels missing {missing}, unknown {unknown}; expected {list(LABELS)}")
+        return self
 
     @property
     def document_ids(self) -> list[str]:

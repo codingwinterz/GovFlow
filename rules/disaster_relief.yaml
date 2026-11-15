@@ -2,6 +2,10 @@ scheme: disaster_relief
 version: "0.1.0"
 source: "State Disaster Response Fund norms and the Goa state relief schedule"   # VERIFY: exact notification and schedule references
 confidence_threshold: 0.85
+labels:
+  title: "Disaster relief: housing damage"
+  amounts: "Relief"
+  total: "Total relief"
 
 # Housing damage relief for one household after a notified disaster.
 # Same format as land_acquisition.yaml; no scheme-specific Python.

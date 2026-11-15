@@ -145,7 +145,7 @@ def _detail(session: Session, case: Case) -> dict[str, Any]:
     items = session.query(CompensationItemRow).filter_by(case_id=case.id).all()
     return mask_identifiers({
         **_case_summary(case), "reference_date": case.reference_date.isoformat() if case.reference_date else None,
-        "inputs": json.loads(case.inputs_json), "rules_version": scheme.version,
+        "inputs": json.loads(case.inputs_json), "rules_version": scheme.version, "labels": scheme.labels,
         "documents": _documents(session, case.id, scheme.confidence_threshold),
         "flags": [{"kind": f.kind, "detail": f.detail, "severity": f.severity}
                   for f in session.query(VerificationFlag).filter_by(case_id=case.id)],
@@ -223,7 +223,7 @@ def create_app(engine: Optional[Engine] = None, agent_llm_factory: Optional[Call
     @app.get("/schemes")
     def schemes(actor: Actor = Depends(_actor)) -> list[dict[str, Any]]:
         return [{"scheme": s.scheme, "version": s.version, "documents": [d.id for d in s.required_documents],
-                 "officer_inputs": officer_inputs(s)} for s in _all_schemes()]
+                 "officer_inputs": officer_inputs(s), "labels": s.labels} for s in _all_schemes()]
 
     @app.post("/cases", status_code=201)
     def create_case(body: CreateCase, actor: Actor = Depends(_actor),
