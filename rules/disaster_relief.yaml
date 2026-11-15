@@ -80,6 +80,17 @@ eligibility_rules:
     depends_on: [duplicate_claim]
     fail_reason: "Another open claim exists for the same house."
 
+# Self-check before applying: questions for a dry run of the listed rules (nothing is stored).
+# Cross-document checks (name, house, duplicate) can only run once documents are submitted.
+self_check:
+  questions:
+    - field: damage_assessment.damage_percent
+      prompt: "About what percentage of your house was damaged? (as on the damage assessment, if you have it)"
+    - field: damage_assessment.notified_area
+      prompt: "Is your house in the area notified as disaster-affected?"
+      choices: ["yes", "no"]
+  rules: [damage_category_eligible, residence_in_affected_area]
+
 # Relief amounts, computed by the same formula mechanism as land compensation.
 # A comparison is 1 when true and 0 when false, so each line is the amount for one damage category.
 compensation:

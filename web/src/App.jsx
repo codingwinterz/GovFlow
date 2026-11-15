@@ -9,6 +9,7 @@ import Analytics from "./pages/Analytics.jsx";
 import Intake from "./pages/Intake.jsx";
 import StatusLookup from "./pages/StatusLookup.jsx";
 import Track from "./pages/Track.jsx";
+import SelfCheck from "./pages/SelfCheck.jsx";
 
 function useRoute() {
   const [route, setRoute] = useState(parseRoute(window.location.hash));
@@ -54,6 +55,7 @@ export default function App() {
           </nav>
         )}
         <a href={href("track")}>Track an application</a>
+        <a href={href("self-check")}>Check before you apply</a>
         {login && (
           <span className="who">
             {login.role}: {login.user} <button className="link" onClick={() => signIn(null)}>switch user</button>
@@ -61,7 +63,8 @@ export default function App() {
         )}
       </header>
       <main>
-        {route.page === "track" ? <Track /> : login ? <Page route={route} login={login} /> : <Login onLogin={signIn} />}
+        {route.page === "track" ? <Track /> : route.page === "self-check" ? <SelfCheck />
+          : login ? <Page route={route} login={login} /> : <Login onLogin={signIn} />}
       </main>
     </div>
   );

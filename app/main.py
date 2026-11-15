@@ -32,6 +32,7 @@ from app.models import AuditLog, Case, CompensationItemRow, Document, ExtractedF
 from app.models import VerificationFlag, make_engine, queue_key
 from app.privacy import mask_identifiers
 from app.rules_engine import overall_from
+from app.self_check import NoSelfCheck, public_questions, self_check
 from app.rules_loader import RULES_DIR, Scheme, load_scheme_by_name
 
 
@@ -81,6 +82,11 @@ class Upload(BaseModel):
 class StatusLookup(BaseModel):
     case_ref: str = Field(max_length=64)
     code: str = Field(max_length=12)
+
+
+class SelfCheckIn(BaseModel):
+    scheme: str = Field(max_length=64)
+    answers: dict[str, str] = {}
 
 
 class DecisionIn(BaseModel):
@@ -225,6 +231,25 @@ def create_app(engine: Optional[Engine] = None, agent_llm_factory: Optional[Call
             limiter.failed(ref.upper())
             raise HTTPException(404, "not_found")
         return citizen_view(session, case)
+
+    @app.get("/public/self-check")
+    def self_check_questions() -> list[dict[str, Any]]:
+        return [q for q in (public_questions(s) for s in _all_schemes()) if q]
+
+    @app.post("/public/self-check")
+    def run_self_check(body: SelfCheckIn, request: Request) -> dict[str, Any]:
+        """Dry run: no session, nothing created, nothing stored. A guide, not a decision."""
+        client = request.client.host if request.client else "unknown"
+        if not limiter.allow(client, f"self-check:{body.scheme}"):
+            raise HTTPException(429, "too_many_attempts")
+        if not tools.SCHEME_NAME.match(body.scheme) or not (RULES_DIR / f"{body.scheme}.yaml").is_file():
+            raise HTTPException(404, "no_self_check")
+        try:
+            return self_check(load_scheme_by_name(body.scheme), body.answers).model_dump()
+        except NoSelfCheck:
+            raise HTTPException(404, "no_self_check") from None
+        except ValueError as exc:
+            raise HTTPException(400, str(exc)) from None
 
     @app.get("/cases")
     def list_cases(status: Optional[str] = None, scheme: Optional[str] = None, actor: Actor = Depends(_actor),

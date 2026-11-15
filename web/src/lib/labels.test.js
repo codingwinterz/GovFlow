@@ -21,3 +21,9 @@ test("the case page reads its section labels from the API", () => {
   assert.match(source, /labels\.amounts/);
   assert.match(source, /labels\.total/);
 });
+
+test("the self-check page shows the API's guide label with every result", () => {
+  const source = readFileSync(join(PAGES, "SelfCheck.jsx"), "utf8");
+  assert.match(source, /result\.guide_label/);
+  assert.doesNotMatch(source, /eligible\s*=|\.reduce\(/);   // no eligibility logic in the browser
+});

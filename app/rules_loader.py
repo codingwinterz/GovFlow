@@ -190,6 +190,17 @@ class Compensation(BaseModel):
 LABELS = ("title", "amounts", "total")   # display wording; each scheme writes its own
 
 
+class SelfCheckQuestion(BaseModel):
+    field: str                         # doc_id.field, a declared document field
+    prompt: str
+    choices: list[str] = []
+
+
+class SelfCheck(BaseModel):
+    questions: list[SelfCheckQuestion]
+    rules: list[str]                   # eligibility rules whose `when` can be answered from the questions
+
+
 class Scheme(BaseModel):
     scheme: str
     version: str
@@ -200,6 +211,7 @@ class Scheme(BaseModel):
     verification_checks: list[VerificationCheck] = []
     eligibility_rules: list[EligibilityRule]
     compensation: Optional[Compensation] = None
+    self_check: Optional[SelfCheck] = None
 
     @model_validator(mode="after")
     def _labels(self) -> "Scheme":
@@ -266,6 +278,38 @@ def _check_params(scheme: Scheme) -> None:
             raise RulesError(f"{expr!r} uses unknown parameters {sorted(unknown)}; declared: {sorted(known)}")
 
 
+def _refs(expr: str) -> tuple[set[str], set[str]]:
+    """Top-level names, and doc.field references, in an expression."""
+    tree = ast.parse(expr, mode="eval")
+    calls = {id(n.func) for n in ast.walk(tree) if isinstance(n, ast.Call)}
+    names = {n.id for n in ast.walk(tree) if isinstance(n, ast.Name) and id(n) not in calls}
+    refs = {f"{n.value.id}.{n.attr}" for n in ast.walk(tree)
+            if isinstance(n, ast.Attribute) and isinstance(n.value, ast.Name)}
+    return names, refs
+
+
+def _check_self_check(scheme: Scheme) -> None:
+    if scheme.self_check is None:
+        return
+    declared = {f"{d.id}.{f}" for d in scheme.required_documents for f in d.fields}
+    asked = {q.field for q in scheme.self_check.questions}
+    unknown = sorted(asked - declared)
+    if unknown:
+        raise RulesError(f"self_check questions {unknown} are not declared document fields")
+    rules = {r.id: r for r in scheme.eligibility_rules}
+    for rule_id in scheme.self_check.rules:
+        if rule_id not in rules:
+            raise RulesError(f"self_check lists unknown rule {rule_id!r}")
+        when = rules[rule_id].when
+        if not when:
+            raise RulesError(f"self_check rule {rule_id!r} has no `when` condition to evaluate")
+        names, refs = _refs(when)
+        docs = {q.split(".")[0] for q in asked}
+        outside = (names - docs - {"params"}) | {r for r in refs if r.split(".")[0] in docs and r not in asked}
+        if outside:
+            raise RulesError(f"self_check rule {rule_id!r} reads {sorted(outside)}, which are not questions")
+
+
 def _cross_check(scheme: Scheme) -> None:
     reserved = set(scheme.document_ids) & set(RESERVED_NAMES)
     if reserved:
@@ -287,6 +331,7 @@ def _cross_check(scheme: Scheme) -> None:
         except UnsafeExpression as exc:
             raise RulesError(str(exc)) from exc
     _check_params(scheme)
+    _check_self_check(scheme)
 
 
 def parse_scheme(data: dict) -> Scheme:

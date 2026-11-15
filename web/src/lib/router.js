@@ -6,7 +6,7 @@ export function parseRoute(hash) {
   if (parts.length === 0) return { page: "queue" };
   if (parts[0] === "cases" && parts.length === 2) return { page: "case", id: parts[1] };
   if (parts[0] === "cases" && parts.length === 3 && parts[2] === "audit") return { page: "audit", id: parts[1] };
-  if (parts.length === 1 && ["analytics", "intake", "status", "track"].includes(parts[0])) return { page: parts[0] };
+  if (parts.length === 1 && ["analytics", "intake", "status", "track", "self-check"].includes(parts[0])) return { page: parts[0] };
   return { page: "notfound" };
 }
 

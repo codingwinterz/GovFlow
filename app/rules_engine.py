@@ -54,6 +54,9 @@ def _evaluate_when(when: str, facts: CaseFacts) -> tuple[Status, str]:
     return ("pass" if value else "fail"), f"`{when}` is {str(value).lower()}"
 
 
+evaluate_when = _evaluate_when   # public: used by the self-check dry run
+
+
 def _evaluate_rule(rule: EligibilityRule, facts: CaseFacts, checks: dict[str, CheckResult], version: str) -> RuleResult:
     parts: list[tuple[Status, str]] = [
         (checks[c].status, f"{c}: {checks[c].status} ({checks[c].detail})") for c in rule.depends_on
