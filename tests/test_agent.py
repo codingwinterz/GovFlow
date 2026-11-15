@@ -161,3 +161,18 @@ def test_explanation_with_an_amount_no_tool_produced_is_flagged(session):
     assert run.explanation_warnings == ["74,20,000 does not match any tool result"]
     audit = [json.loads(a.payload_json) for a in session.query(AuditLog).filter_by(action="agent_explanation")]
     assert audit[0]["warnings"] == run.explanation_warnings
+
+
+@pytest.mark.parametrize("tool", ["get_case_status", "verify_documents", "check_eligibility",
+                                  "compute_compensation", "submit_to_officer"])
+def test_case_id_supplied_by_the_llm_is_ignored(session, tool):
+    script = [calls("verify_documents"), calls("check_eligibility", "compute_compensation"),
+              AgentReply(tool_calls=[call(tool, case_id="LA-02")]), AgentReply(text="ok")]
+    from app import tools
+    tools.verify_documents(session, "LA-02")                  # LA-02 assessed, so a wrongly
+    tools.check_eligibility(session, "LA-02")                 # targeted submit would succeed
+    tools.compute_compensation(session, "LA-02")
+    before = _actions(session, "LA-02")
+    run_agent(session, "LA-01", ScriptedAgentLLM(script))
+    assert _actions(session, "LA-02") == before               # the other case was never touched
+    assert session.get(CaseRow, "LA-02").status == "assessed"
