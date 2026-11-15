@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from app.case_model import CaseIn, DocumentIn, FieldValue
 from app.models import Case, Document, ExtractedField
 
-CLOSED_STATUSES = ("approved", "rejected")
+NOT_COMPETING_STATUSES = ("rejected", "withdrawn")
 STATUS_ORDER = ("received", "extracted", "verified", "assessed", "in_officer_review")
 
 
@@ -47,6 +47,8 @@ def load_case(session: Session, case_id: str) -> CaseIn:
                   documents=documents, inputs=json.loads(case.inputs_json))
 
 
-def open_cases(session: Session, scheme: str) -> list[CaseIn]:
-    ids = [c.id for c in session.query(Case).filter(Case.scheme == scheme, Case.status.not_in(CLOSED_STATUSES))]
+def competing_cases(session: Session, scheme: str) -> list[CaseIn]:
+    """Cases whose claims count for duplicate checks: everything except rejected or withdrawn."""
+    ids = [c.id for c in session.query(Case).filter(Case.scheme == scheme,
+                                                    Case.status.not_in(NOT_COMPETING_STATUSES))]
     return [load_case(session, i) for i in ids]

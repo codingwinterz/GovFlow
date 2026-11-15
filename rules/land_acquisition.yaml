@@ -29,10 +29,12 @@ required_documents:
       max_age_days: 365            # VERIFY: how recent the mutation extract must be
 
 # Cross-document checks. Result status is pass | fail | needs_review.
-#   fuzzy_T: pass if score >= T, needs_review if score >= confidence_threshold, else fail
+#   fuzzy_T: pass if score >= T, needs_review if score >= confidence_threshold, else fail;
+#            a name differing only by a dropped middle name (or initial) is always
+#            needs_review: never pass, never fail
 #   exact:   pass if normalised values are equal, else fail
-#   duplicate_claim (built-in): needs_review when another open case claims the same
-#     key with an overlapping area
+#   duplicate_claim (built-in): needs_review when another case claims the same key with an
+#     overlapping area. Approved cases count; rejected and withdrawn cases do not.
 verification_checks:
   - id: name_match
     fields: [name]

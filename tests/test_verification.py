@@ -164,3 +164,43 @@ def test_expired_document_is_flagged():
     case.documents["identity_proof"].fields["expiry_date"].value = "2026-01-01"
     flags = verify_documents(SCHEME, case).flags
     assert any(f.kind == "document_expired" and "identity_proof" in f.detail for f in flags)
+
+
+# --- policy: approved claims still count as competing; rejected/withdrawn do not ------
+
+def test_approved_case_still_counts_as_competing_claim():
+    other = _case(case_id="T-2", claimed_ha=0.9, status="approved")
+    assert _check(verify_documents(SCHEME, _case(), [other]), "duplicate_claim").status == "needs_review"
+
+
+def test_withdrawn_cases_are_ignored():
+    other = _case(case_id="T-2", claimed_ha=0.9, status="withdrawn")
+    assert _check(verify_documents(SCHEME, _case(), [other]), "duplicate_claim").status == "pass"
+
+
+# --- policy: a dropped middle name is never a fail -------------------------------------
+
+def test_dropped_middle_name_needs_review_not_fail():
+    # scores 0.786 (< 0.85), which would otherwise be a fail
+    check = _check(verify_documents(SCHEME, _case(app_name="Anil Kumar Sawant", owner_name="Anil Kumar Sawant",
+                                                  id_name="Anil Sawant")), "name_match")
+    assert check.status == "needs_review"
+    assert "middle name" in check.detail
+
+
+def test_middle_initial_versus_none_needs_review():
+    check = _check(verify_documents(SCHEME, _case(app_name="Anil K Sawant", owner_name="Anil K Sawant",
+                                                  id_name="Anil Sawant")), "name_match")
+    assert check.status == "needs_review"
+
+
+def test_dropped_surname_is_not_treated_as_middle_name():
+    check = _check(verify_documents(SCHEME, _case(id_name="Asha")), "name_match")
+    assert check.status == "fail"
+
+
+def test_different_middle_names_are_not_a_dropped_middle_name():
+    check = _check(verify_documents(SCHEME, _case(app_name="Anil Kumar Sawant", owner_name="Anil Kumar Sawant",
+                                                  id_name="Anil Ramesh Sawant")), "name_match")
+    assert check.status != "pass"
+    assert "middle name" not in check.detail

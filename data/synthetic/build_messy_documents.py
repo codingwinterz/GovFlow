@@ -60,6 +60,9 @@ DOCS = [
         "case": "case_11", "doc_type": "ownership_record",
         "text": "F0RM I & X1V (SYNTHETIC)\nOccup?nt: L?ta Sh1rodkar\nSurvey No.: 61/1\n"
                 "Ar?a: 9?0 sq. m.\nIssued: 01/10/2026\n",
+        # what is actually printed on the paper; the .txt above simulates a bad scan of it
+        "print_text": "FORM I & XIV (SYNTHETIC)\nOccupant: Lata Shirodkar\nSurvey No.: 61/1\n"
+                      "Area: 900 sq. m.\nIssued: 01/10/2026\n",
         "document": [pf("name", "L?ta Sh1rodkar", 0.62), pf("survey_number", "61/1", 0.90),
                      pf("area", 900, 0.70), pf("area_unit", "sqm", 0.90), pf("issue_date", "2026-10-01", 0.90)],
         "ocr": {"text": "F0RM I & X1V\nOccup nt: Lata Shirodkar\nAr a: 900 sq m", "confidence": 0.58},
@@ -107,6 +110,8 @@ def main() -> None:
         (folder / "documents").mkdir(parents=True, exist_ok=True)
         (folder / "fake").mkdir(parents=True, exist_ok=True)
         (folder / "documents" / f"{d['doc_type']}.txt").write_text(d["text"], encoding="utf-8")
+        if "print_text" in d:
+            (folder / "documents" / f"{d['doc_type']}.print.txt").write_text(d["print_text"], encoding="utf-8")
         fake = {"document": d["document"], "ocr": d.get("ocr"), "ocr_text": d.get("ocr_text", [])}
         (folder / "fake" / f"{d['doc_type']}.json").write_text(json.dumps(fake, indent=2) + "\n", encoding="utf-8")
         labels["documents"].append({"case": d["case"], "doc_type": d["doc_type"], "truth": d["truth"]})

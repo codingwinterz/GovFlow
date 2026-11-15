@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 
 from app import verification
 from app.audit import log_action
-from app.case_store import advance_status, load_case, open_cases
+from app.case_store import advance_status, load_case, competing_cases
 from app.extraction import DocumentInput, ExtractionProvider, ExtractionResult, OcrEngine, Page, extract_facts
 from app.models import Case, Document, ExtractedField, VerificationFlag
 from app.rules_loader import load_scheme_by_name
@@ -58,7 +58,7 @@ def extract_document(session: Session, document_id: int, provider: ExtractionPro
 def verify_documents(session: Session, case_id: str, actor: str = "system") -> verification.VerificationResult:
     case_in = load_case(session, case_id)
     scheme = load_scheme_by_name(case_in.scheme)
-    result = verification.verify_documents(scheme, case_in, open_cases(session, case_in.scheme))
+    result = verification.verify_documents(scheme, case_in, competing_cases(session, case_in.scheme))
 
     session.query(VerificationFlag).filter_by(case_id=case_id).delete()
     for flag in result.flags:

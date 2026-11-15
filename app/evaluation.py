@@ -7,7 +7,7 @@ precision/recall measures the deterministic verification code on what was extrac
 
 import json
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Literal, Optional
 
 from pydantic import BaseModel
 
@@ -18,8 +18,10 @@ from app.models import Document, make_engine, make_session
 from app.providers.fake import FakeOcr, FakeProvider
 from app.rules_loader import load_scheme_by_name
 from app.tools import extract_document, verify_documents
+from app.units import UnknownUnit, to_sqm
 
 SET_DIR = Path(__file__).resolve().parent.parent / "data" / "synthetic" / "land_acquisition"
+Variant = Literal["text", "clean", "degraded"]
 
 
 class FieldRow(BaseModel):
@@ -41,6 +43,8 @@ class ExtractionSummary(BaseModel):
     accepted_correct: int
     accepted_wrong: int   # the dangerous number: confidently wrong
     routed_to_review: int
+    correct: int          # value right, whatever its confidence
+    accuracy: float       # correct / total
 
 
 class FlagSummary(BaseModel):
@@ -53,7 +57,9 @@ class FlagSummary(BaseModel):
 
 
 class EvalReport(BaseModel):
+    variant: Variant
     providers: set[str]
+    errors: list[str]     # provider failures, one per affected document
     extraction: ExtractionSummary
     flags: FlagSummary
 
@@ -69,6 +75,18 @@ def _fake_for(doc_id: str, fixture: dict) -> tuple[FakeProvider, Optional[FakeOc
     return provider, ocr
 
 
+def field_matches(field: str, got: Any, truth: Any) -> bool:
+    """Compare an extracted value with the truth label; units compare by conversion factor."""
+    if got is None:
+        return False
+    if field == "area_unit":
+        try:
+            return abs(to_sqm(1, str(got)) - to_sqm(1, str(truth))) < 1e-9
+        except UnknownUnit:
+            return False
+    return values_match(got, truth)
+
+
 def _rows(case: str, doc_type: str, truth: dict, result, threshold: float) -> list[FieldRow]:
     got = {f.name: f for f in result.fields}
     rows = []
@@ -78,7 +96,7 @@ def _rows(case: str, doc_type: str, truth: dict, result, threshold: float) -> li
                              value=f.value if f else None, confidence=f.confidence if f else None,
                              method=f.method if f else None,
                              accepted=bool(f and f.confidence >= threshold),
-                             correct=bool(f and values_match(f.value, true_value))))
+                             correct=bool(f and field_matches(name, f.value, true_value))))
     return rows
 
 
@@ -95,12 +113,19 @@ def _flag_summary(per_case: dict[str, dict[str, list[str]]]) -> FlagSummary:
                        precision=round(precision, 3), recall=round(recall, 3))
 
 
-def run_messy_eval(provider: Optional[ExtractionProvider] = None, ocr: Optional[OcrEngine] = None) -> EvalReport:
-    """provider=None replays recorded fake responses; pass a real provider to measure a model."""
+def run_messy_eval(provider: Optional[ExtractionProvider] = None, ocr: Optional[OcrEngine] = None,
+                   variant: Variant = "text") -> EvalReport:
+    """variant="text" reads documents/*.txt; "clean"/"degraded" read the rendered images.
+
+    provider=None replays recorded fake responses (text only); pass a real provider to measure it.
+    """
+    if variant != "text" and provider is None:
+        raise ValueError("Image variants need a real provider; recorded fakes only cover text documents")
     labels = json.loads((SET_DIR / "messy_labels.json").read_text(encoding="utf-8"))
     threshold = load_scheme_by_name("land_acquisition").confidence_threshold
     rows: list[FieldRow] = []
     providers: set[str] = set()
+    errors: list[str] = []
 
     with make_session(make_engine("sqlite://")) as session:
         for folder in sorted(SET_DIR.glob("case_*")):
@@ -109,8 +134,9 @@ def run_messy_eval(provider: Optional[ExtractionProvider] = None, ocr: Optional[
         for item in labels["documents"]:
             folder = SET_DIR / item["case"]
             case_id = json.loads((folder / "case.json").read_text(encoding="utf-8"))["case_id"]
-            doc = Document(case_id=case_id, doc_type=item["doc_type"],
-                           file_path=str(folder / "documents" / f"{item['doc_type']}.txt"))
+            source = (folder / "documents" / f"{item['doc_type']}.txt" if variant == "text"
+                      else folder / "images" / f"{item['doc_type']}_{variant}.png")
+            doc = Document(case_id=case_id, doc_type=item["doc_type"], file_path=str(source))
             session.add(doc)
             session.commit()
             if provider is None:
@@ -120,6 +146,8 @@ def run_messy_eval(provider: Optional[ExtractionProvider] = None, ocr: Optional[
                 doc_provider, doc_ocr = provider, ocr
             providers.add(doc_provider.name)
             result = extract_document(session, doc.id, doc_provider, doc_ocr, actor="eval")
+            if result.error:
+                errors.append(f"{item['case']}.{item['doc_type']}: {result.error}")
             rows += _rows(item["case"], item["doc_type"], item["truth"], result, threshold)
 
         per_case = {}
@@ -133,5 +161,8 @@ def run_messy_eval(provider: Optional[ExtractionProvider] = None, ocr: Optional[
         accepted_correct=sum(r.correct for r in accepted),
         accepted_wrong=sum(not r.correct for r in accepted),
         routed_to_review=len(rows) - len(accepted),
+        correct=sum(r.correct for r in rows),
+        accuracy=round(sum(r.correct for r in rows) / len(rows), 3) if rows else 0.0,
     )
-    return EvalReport(providers=providers, extraction=extraction, flags=_flag_summary(per_case))
+    return EvalReport(variant=variant, providers=providers, errors=errors, extraction=extraction,
+                      flags=_flag_summary(per_case))

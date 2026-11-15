@@ -11,3 +11,6 @@ web/dist/
 *.pem
 secrets*.json
 .claude/settings.local.json
+
+# real-model evaluation output (contains model responses; never commit)
+eval_results/

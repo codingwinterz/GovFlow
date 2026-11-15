@@ -7,7 +7,7 @@ from sqlalchemy import DDL, Engine, ForeignKey, String, create_engine, event
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column
 
 CASE_STATUSES = ("received", "extracted", "verified", "assessed",
-                 "in_officer_review", "approved", "rejected", "needs_info")
+                 "in_officer_review", "approved", "rejected", "needs_info", "withdrawn")
 
 
 def _now() -> datetime:

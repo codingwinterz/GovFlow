@@ -151,10 +151,13 @@ def test_reverification_replaces_flags(session):
 def test_duplicate_claim_uses_other_open_cases_in_db(session):
     seed_case(session, _case(case_id="LA-12", claimed_ha=0.6))
     seed_case(session, _case(case_id="LA-13", claimed_ha=0.6))
+    seed_case(session, _case(case_id="LA-98", claimed_ha=0.6, status="approved"))
     seed_case(session, _case(case_id="LA-99", claimed_ha=0.6, status="rejected"))
     result = verify_documents(session, "LA-12")
     dup = next(c for c in result.checks if c.check_id == "duplicate_claim")
-    assert dup.status == "needs_review" and "LA-13" in dup.detail and "LA-99" not in dup.detail
+    assert dup.status == "needs_review" and "LA-13" in dup.detail
+    assert "LA-98" in dup.detail          # approved claims still compete
+    assert "LA-99" not in dup.detail      # rejected claims do not
 
 
 def test_low_confidence_extraction_routes_to_review_end_to_end(session, tmp_path):
