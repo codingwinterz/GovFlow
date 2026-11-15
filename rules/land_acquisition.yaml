@@ -7,23 +7,25 @@ confidence_threshold: 0.85
 #   expiry_field: field holding an ISO expiry date (invalid after that date)
 #   date_field + max_age_days: issue date must be within N days of the case reference date
 # The `application` document is the form typed in by the clerk (confidence 1.0).
-# `fields` lists what extraction must read from each document (dates as YYYY-MM-DD).
+# `fields` maps what extraction must read to its type: text | number | date | unit.
+# Extracted strings are coerced once before any rule sees them; a value that cannot be
+# coerced ("80%", "eighty", "15/11/2026", "bigha") goes to human review with its reason.
 required_documents:
   - id: application
-    fields: [name]
+    fields: {name: text}
   - id: ownership_record          # Form I & XIV
-    fields: [name, survey_number, area, area_unit, issue_date]
+    fields: {name: text, survey_number: text, area: number, area_unit: unit, issue_date: date}
     validity:
       date_field: issue_date
       max_age_days: 180            # VERIFY: how recent the extract must be
   - id: identity_proof
-    fields: [name, id_number, expiry_date]
+    fields: {name: text, id_number: text, expiry_date: date}
     validity:
       expiry_field: expiry_date
   - id: survey_sheet
-    fields: [survey_number, area, area_unit]
+    fields: {survey_number: text, area: number, area_unit: unit}
   - id: mutation_record
-    fields: [name, issue_date]
+    fields: {name: text, issue_date: date}
     validity:
       date_field: issue_date
       max_age_days: 365            # VERIFY: how recent the mutation extract must be

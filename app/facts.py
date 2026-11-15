@@ -1,7 +1,9 @@
 """Build the evaluation namespace for one case.
 
 Low-confidence fields are withheld from the namespace, so any rule or formula
-that needs them hits UnknownName and is routed to human review.
+that needs them hits UnknownName and is routed to human review. Fields with a declared
+type are coerced here, once (extraction returns strings); a value that cannot be coerced
+is withheld the same way, with its reason kept in `invalid`.
 """
 
 from dataclasses import dataclass, field
@@ -9,7 +11,8 @@ from datetime import date
 from typing import Any, Literal, Optional
 
 from app.case_model import CaseIn, DocumentIn
-from app.rules_loader import Scheme, Validity
+from app.field_types import coerce
+from app.rules_loader import RequiredDocument, Scheme, Validity
 from app.units import UnknownUnit, to_sqm
 
 ValidityStatus = Literal["valid", "expired", "unknown"]
@@ -19,6 +22,7 @@ ValidityStatus = Literal["valid", "expired", "unknown"]
 class CaseFacts:
     names: dict[str, Any]
     low_confidence: list[str] = field(default_factory=list)   # "doc_id.field"
+    invalid: dict[str, str] = field(default_factory=dict)     # "doc_id.field" -> why it could not be coerced
     missing_documents: list[str] = field(default_factory=list)
     validity: dict[str, ValidityStatus] = field(default_factory=dict)
 
@@ -32,14 +36,32 @@ def _parse_date(value: Any) -> Optional[date]:
         return None
 
 
-def _confident_fields(doc_id: str, doc: DocumentIn, threshold: float, low: list[str]) -> dict[str, Any]:
+def _confident_fields(req: RequiredDocument, doc: DocumentIn, threshold: float, facts: CaseFacts) -> dict[str, Any]:
     fields: dict[str, Any] = {}
     for name, fv in doc.fields.items():
-        if fv.confidence >= threshold:
+        ref = f"{req.id}.{name}"
+        if fv.confidence < threshold:
+            facts.low_confidence.append(ref)
+            continue
+        if name not in req.types:           # not declared by the scheme: passed through unchanged
             fields[name] = fv.value
-        else:
-            low.append(f"{doc_id}.{name}")
+            continue
+        value, error = coerce(req.types[name], fv.value)
+        if error:
+            facts.invalid[ref] = error
+            continue
+        fields[name] = value
     return fields
+
+
+def missing_reason(expr: str, facts: CaseFacts) -> Optional[str]:
+    """Why an expression could not use a document field: invalid value or low confidence."""
+    def used(ref: str) -> bool:
+        doc_id, name = ref.split(".", 1)
+        return ref in expr or (name in ("area", "area_unit") and f"{doc_id}.area_sqm" in expr)
+    reasons = [f"{ref}: {why}" for ref, why in facts.invalid.items() if used(ref)]
+    reasons += [f"{ref}: below the confidence threshold" for ref in facts.low_confidence if used(ref)]
+    return "; ".join(reasons) or None
 
 
 def _add_area_sqm(fields: dict[str, Any]) -> None:
@@ -78,7 +100,7 @@ def build_facts(scheme: Scheme, case: CaseIn) -> CaseFacts:
             facts.names[req.id] = {"present": False}
             facts.missing_documents.append(req.id)
             continue
-        fields = _confident_fields(req.id, doc, scheme.confidence_threshold, facts.low_confidence)
+        fields = _confident_fields(req, doc, scheme.confidence_threshold, facts)
         _add_area_sqm(fields)
         if req.validity:
             facts.validity[req.id] = _validity(fields, req.validity, case.reference_date)

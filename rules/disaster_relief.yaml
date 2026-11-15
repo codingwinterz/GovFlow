@@ -8,18 +8,18 @@ confidence_threshold: 0.85
 # All amounts, thresholds and validity periods below are PLACEHOLDERS, not taken from any schedule.
 required_documents:
   - id: application
-    fields: [name]
+    fields: {name: text}
   - id: identity_proof
-    fields: [name, id_number, expiry_date]
+    fields: {name: text, id_number: text, expiry_date: date}
     validity:
       expiry_field: expiry_date
   - id: residence_proof            # e.g. house tax receipt or ration card
-    fields: [name, house_number, village, issue_date]
+    fields: {name: text, house_number: text, village: text, issue_date: date}
     validity:
       date_field: issue_date
       max_age_days: 365            # VERIFY: how recent the residence proof must be
   - id: damage_assessment          # issued by the revenue / panchayat officer after the event
-    fields: [house_number, village, damage_percent, notified_area, assessment_date]
+    fields: {house_number: text, village: text, damage_percent: number, notified_area: text, assessment_date: date}
     validity:
       date_field: assessment_date
       max_age_days: 90             # VERIFY: how long after assessment a claim may be filed

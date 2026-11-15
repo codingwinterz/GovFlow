@@ -8,6 +8,7 @@ from typing import Any, Literal, Optional
 import yaml
 from pydantic import BaseModel, ValidationError, model_validator
 
+from app.field_types import FIELD_TYPES
 from app.safe_eval import UnsafeExpression, check_expression
 
 RULES_DIR = Path(__file__).resolve().parent.parent / "rules"
@@ -34,7 +35,24 @@ class Validity(BaseModel):
 class RequiredDocument(BaseModel):
     id: str
     fields: list[str] = []            # what extraction must read; empty = not declared
+    types: dict[str, str] = {}        # field -> text | number | date | unit (a plain list means all text)
     validity: Optional[Validity] = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def _typed_fields(cls, data: Any) -> Any:
+        if isinstance(data, dict) and isinstance(data.get("fields"), dict):
+            declared = data["fields"]
+            data = {**data, "fields": list(declared), "types": {k: str(v) for k, v in declared.items()}}
+        return data
+
+    @model_validator(mode="after")
+    def _known_types(self) -> "RequiredDocument":
+        self.types = {f: self.types.get(f, "text") for f in self.fields}
+        for name, kind in self.types.items():
+            if kind not in FIELD_TYPES:
+                raise ValueError(f"{self.id}.{name}: unknown type {kind!r}; use one of {list(FIELD_TYPES)}")
+        return self
 
 
 # Message templates for the duplicate_claim built-in, with the placeholders each may use.
@@ -196,6 +214,10 @@ def _check_declared_fields(scheme: Scheme) -> None:
     for doc_id, field_name, used_by in needed:
         if doc_id in declared and field_name not in declared[doc_id]:
             raise RulesError(f"{doc_id}.{field_name} is used by {used_by} but not in its fields list")
+    types = {d.id: d.types for d in scheme.required_documents}
+    for doc_id, field_name, used_by in needed:
+        if used_by == "validity" and doc_id in declared and types[doc_id][field_name] != "date":
+            raise RulesError(f"{doc_id}.{field_name} is used by validity and must have type date")
 
 
 def _cross_check(scheme: Scheme) -> None:

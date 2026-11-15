@@ -11,7 +11,7 @@ from typing import Any, Literal, Optional
 from pydantic import BaseModel
 
 from app.case_model import CaseIn
-from app.facts import build_facts
+from app.facts import CaseFacts, build_facts, missing_reason
 from app.rules_loader import CompensationInput, Scheme, YearsBetween
 from app.safe_eval import UnknownName, evaluate, names_in
 
@@ -83,7 +83,11 @@ def _years_between(spec: YearsBetween, names: dict) -> tuple[float, str]:
     return days / DAYS_PER_YEAR, f"years_between({spec.start}={start}, {end_source}={end}) = {days}/{DAYS_PER_YEAR}"
 
 
-def _resolve(name: str, spec: CompensationInput, names: dict) -> InputValue:
+def _resolve(name: str, spec: CompensationInput, names: dict, facts: CaseFacts) -> InputValue:
+    exprs = [spec.from_] if spec.from_ else [spec.years_between.start, spec.years_between.end]
+    withheld = "; ".join(r for r in (missing_reason(e, facts) for e in exprs) if r)
+    if withheld:   # a document value was read but is unusable: never replace it with a default
+        raise _Missing(withheld)
     if spec.years_between:
         value, source = _years_between(spec.years_between, names)
         return InputValue(name=name, value=value, source=source)
@@ -98,7 +102,8 @@ def _resolve(name: str, spec: CompensationInput, names: dict) -> InputValue:
 
 def compute_compensation(scheme: Scheme, case: CaseIn) -> CompensationResult:
     comp = scheme.compensation
-    case_names = build_facts(scheme, case).names
+    facts = build_facts(scheme, case)
+    case_names = facts.names
     inputs: list[InputValue] = []
     missing: list[str] = []
     notes: list[str] = []
@@ -106,7 +111,7 @@ def compute_compensation(scheme: Scheme, case: CaseIn) -> CompensationResult:
 
     for name, spec in comp.inputs.items():
         try:
-            resolved = _resolve(name, spec, case_names)
+            resolved = _resolve(name, spec, case_names, facts)
         except _Missing as exc:
             missing.append(name)
             notes.append(f"{name}: {exc}")
@@ -121,6 +126,10 @@ def compute_compensation(scheme: Scheme, case: CaseIn) -> CompensationResult:
         except UnknownName as exc:
             missing.append(component.id)
             notes.append(f"{component.id}: needs {exc.args[0]}")
+            continue
+        except (TypeError, ValueError, ZeroDivisionError) as exc:   # e.g. an untyped officer input
+            missing.append(component.id)
+            notes.append(f"{component.id}: could not be computed ({exc})")
             continue
         used = ", ".join(f"{n}={_fmt(namespace[n])}" for n in names_in(component.formula))
         items.append(CompensationItem(component=component.id, amount=amount,

@@ -91,6 +91,8 @@ def _collect(check: VerificationCheck, facts: CaseFacts) -> tuple[dict[str, dict
             ref = f"{doc_id}.{f}"
             if f in doc:
                 values[f][doc_id] = doc[f]
+            elif ref in facts.invalid:
+                problems.append(f"{ref}: {facts.invalid[ref]}")
             elif ref in facts.low_confidence:
                 problems.append(f"{ref} is below the confidence threshold")
             else:
@@ -136,7 +138,7 @@ def _try(expr: Optional[str], facts: CaseFacts) -> Optional[object]:
         return None
     try:
         return evaluate(expr, facts.names)
-    except UnknownName:
+    except (UnknownName, TypeError, ValueError):
         return None
 
 
@@ -190,6 +192,8 @@ def _flags(checks: list[CheckResult], facts: CaseFacts, case: CaseIn) -> list[Fl
             flags.append(Flag(kind="validity_unknown", detail=f"{doc_id} date unreadable", severity="medium"))
     flags += [Flag(kind="low_confidence", detail=f"{ref} needs human review", severity="medium")
               for ref in facts.low_confidence]
+    flags += [Flag(kind="invalid_value", detail=f"{ref}: {why}; needs human review", severity="medium")
+              for ref, why in facts.invalid.items()]
     flags += [Flag(kind="extraction_unavailable", detail=f"{doc_id}: {EXTRACTION_UNAVAILABLE_MESSAGE}",
                    severity="high")
               for doc_id, doc in case.documents.items() if doc.extraction_unavailable]
