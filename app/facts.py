@@ -13,7 +13,7 @@ from typing import Any, Literal, Optional
 from app.case_model import CaseIn, DocumentIn
 from app.field_types import coerce
 from app.rules_loader import RequiredDocument, Scheme, Validity
-from app.units import UnknownUnit, to_sqm
+from app.units import to_sqm
 
 ValidityStatus = Literal["valid", "expired", "unknown"]
 
@@ -23,6 +23,7 @@ class CaseFacts:
     names: dict[str, Any]
     low_confidence: list[str] = field(default_factory=list)   # "doc_id.field"
     invalid: dict[str, str] = field(default_factory=dict)     # "doc_id.field" -> why it could not be coerced
+    derived_from: dict[str, list[str]] = field(default_factory=dict)   # "doc.derived" -> its source refs
     missing_documents: list[str] = field(default_factory=list)
     validity: dict[str, ValidityStatus] = field(default_factory=dict)
 
@@ -57,19 +58,19 @@ def _confident_fields(req: RequiredDocument, doc: DocumentIn, threshold: float, 
 def missing_reason(expr: str, facts: CaseFacts) -> Optional[str]:
     """Why an expression could not use a document field: invalid value or low confidence."""
     def used(ref: str) -> bool:
-        doc_id, name = ref.split(".", 1)
-        return ref in expr or (name in ("area", "area_unit") and f"{doc_id}.area_sqm" in expr)
+        return ref in expr or any(ref in sources and derived in expr
+                                  for derived, sources in facts.derived_from.items())
     reasons = [f"{ref}: {why}" for ref, why in facts.invalid.items() if used(ref)]
     reasons += [f"{ref}: below the confidence threshold" for ref in facts.low_confidence if used(ref)]
     return "; ".join(reasons) or None
 
 
-def _add_area_sqm(fields: dict[str, Any]) -> None:
-    if "area" in fields and "area_unit" in fields:
-        try:
-            fields["area_sqm"] = to_sqm(float(fields["area"]), str(fields["area_unit"]))
-        except (UnknownUnit, ValueError):
-            pass
+def _add_derived(req: RequiredDocument, fields: dict[str, Any], facts: CaseFacts) -> None:
+    """Fields the scheme YAML declares as derived (units were validated during coercion)."""
+    for name, d in req.derived.items():
+        facts.derived_from[f"{req.id}.{name}"] = [f"{req.id}.{d.convert}", f"{req.id}.{d.unit_field}"]
+        if d.convert in fields and d.unit_field in fields:
+            fields[name] = to_sqm(float(fields[d.convert]), str(fields[d.unit_field]))
 
 
 def _validity(fields: dict[str, Any], rule: Validity, ref: date) -> ValidityStatus:
@@ -102,7 +103,7 @@ def build_facts(scheme: Scheme, case: CaseIn) -> CaseFacts:
             facts.missing_documents.append(req.id)
             continue
         fields = _confident_fields(req, doc, scheme.confidence_threshold, facts)
-        _add_area_sqm(fields)
+        _add_derived(req, fields, facts)
         if req.validity:
             facts.validity[req.id] = _validity(fields, req.validity, case.reference_date)
         facts.names[req.id] = {"present": True, **fields}

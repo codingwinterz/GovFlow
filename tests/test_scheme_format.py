@@ -106,3 +106,58 @@ def test_notified_area_compares_case_insensitively(value, status):
     case.documents["damage_assessment"].fields["notified_area"].value = value
     result = assess_case(load_scheme_by_name("disaster_relief"), case, [])
     assert _rule(result, "residence_in_affected_area").status == status
+
+
+# --- 4. derived fields are declared per scheme ------------------------------------------------
+
+import ast as _ast
+
+from app.facts import build_facts
+
+
+def test_shared_facts_code_has_no_area_convention():
+    tree = _ast.parse((Path(__file__).resolve().parent.parent / "app" / "facts.py").read_text(encoding="utf-8"))
+    texts = {n.value for n in _ast.walk(tree) if isinstance(n, _ast.Constant) and isinstance(n.value, str)}
+    assert not texts & {"area", "area_unit", "area_sqm"}
+
+
+def test_land_yaml_declares_area_sqm():
+    for doc in ("ownership_record", "survey_sheet"):
+        (d,) = [x for x in _yaml("land_acquisition")["required_documents"] if x["id"] == doc]
+        assert d["derived"]["area_sqm"] == {"convert": "area", "unit_field": "area_unit", "to": "sqm"}
+
+
+def test_area_sqm_is_not_derived_unless_declared():
+    data = _yaml("land_acquisition")
+    for d in data["required_documents"]:
+        d.pop("derived", None)
+    scheme = parse_scheme(data)
+    facts = build_facts(scheme, _case("land_acquisition", 1))
+    assert "area_sqm" not in facts.names["ownership_record"]
+    assert assess_case(scheme, _case("land_acquisition", 1), []).compensation.status == "needs_review"
+
+
+def test_declared_derived_field_is_computed():
+    facts = build_facts(load_scheme_by_name("land_acquisition"), _case("land_acquisition", 1))
+    assert facts.names["ownership_record"]["area_sqm"] == pytest.approx(2500.0)    # 0.25 ha
+
+
+def test_bad_unit_reason_reaches_the_compensation_note_through_the_derived_field():
+    case = _case("land_acquisition", 1)
+    case.documents["ownership_record"].fields["area_unit"].value = "bigha"
+    result = assess_case(load_scheme_by_name("land_acquisition"), case, [])
+    assert any("ownership_record.area_unit" in n and "bigha" in n for n in result.compensation.review_notes)
+
+
+@pytest.mark.parametrize("derived, match", [
+    ({"convert": "acreage", "unit_field": "area_unit", "to": "sqm"}, "acreage"),
+    ({"convert": "survey_number", "unit_field": "area_unit", "to": "sqm"}, "number"),
+    ({"convert": "area", "unit_field": "issue_date", "to": "sqm"}, "unit"),
+    ({"convert": "area", "unit_field": "area_unit", "to": "furlong"}, "furlong"),
+])
+def test_bad_derived_declarations_fail_at_load(derived, match):
+    data = _yaml("land_acquisition")
+    (d,) = [x for x in data["required_documents"] if x["id"] == "ownership_record"]
+    d["derived"]["area_sqm"] = derived
+    with pytest.raises(RulesError, match=match):
+        parse_scheme(data)

@@ -10,6 +10,7 @@ confidence_threshold: 0.85
 # `fields` maps what extraction must read to its type: text | number | percent | date | unit.
 # number accepts plain digits or valid Indian/Western grouping (1,00,000 or 100,000);
 # percent also accepts a trailing % ("80%" -> 80).
+# `derived` declares computed fields, e.g. area_sqm from a number and a unit field.
 # Extracted strings are coerced once before any rule sees them; a value that cannot be
 # coerced ("80%", "eighty", "15/11/2026", "bigha") goes to human review with its reason.
 required_documents:
@@ -17,6 +18,8 @@ required_documents:
     fields: {name: text}
   - id: ownership_record          # Form I & XIV
     fields: {name: text, survey_number: text, area: number, area_unit: unit, issue_date: date}
+    derived:
+      area_sqm: {convert: area, unit_field: area_unit, to: sqm}
     validity:
       date_field: issue_date
       max_age_days: 180            # VERIFY: how recent the extract must be
@@ -26,6 +29,8 @@ required_documents:
       expiry_field: expiry_date
   - id: survey_sheet
     fields: {survey_number: text, area: number, area_unit: unit}
+    derived:
+      area_sqm: {convert: area, unit_field: area_unit, to: sqm}
   - id: mutation_record
     fields: {name: text, issue_date: date}
     validity:

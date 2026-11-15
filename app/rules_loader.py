@@ -33,10 +33,18 @@ class Validity(BaseModel):
         return self
 
 
+class Derived(BaseModel):
+    """A field computed from two read fields, e.g. area_sqm from area + area_unit."""
+    convert: str                      # a number field
+    unit_field: str                   # a unit field
+    to: Literal["sqm"]                # only square metres for now; factors live in app/units.py
+
+
 class RequiredDocument(BaseModel):
     id: str
     fields: list[str] = []            # what extraction must read; empty = not declared
-    types: dict[str, str] = {}        # field -> text | number | date | unit (a plain list means all text)
+    types: dict[str, str] = {}        # field -> text | number | percent | date | unit (plain list = text)
+    derived: dict[str, Derived] = {}
     validity: Optional[Validity] = None
 
     @model_validator(mode="before")
@@ -53,6 +61,12 @@ class RequiredDocument(BaseModel):
         for name, kind in self.types.items():
             if kind not in FIELD_TYPES:
                 raise ValueError(f"{self.id}.{name}: unknown type {kind!r}; use one of {list(FIELD_TYPES)}")
+        for name, d in self.derived.items():
+            if name in self.types:
+                raise ValueError(f"{self.id}.{name}: derived field clashes with a read field")
+            for source, kind in ((d.convert, "number"), (d.unit_field, "unit")):
+                if self.types.get(source) != kind:
+                    raise ValueError(f"{self.id}.{name}: {source!r} must be a declared {kind} field")
         return self
 
 
