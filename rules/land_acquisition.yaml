@@ -13,7 +13,7 @@ labels:                            # wording shown by the API and the officer da
 # The `application` document is the form typed in by the clerk (confidence 1.0).
 # `fields` maps what extraction must read to its type: text | number | percent | date | unit.
 # number accepts plain digits or valid Indian/Western grouping (1,00,000 or 100,000);
-# percent also accepts a trailing % ("80%" -> 80).
+# percent also accepts a trailing % ("80%" -> 80) and must be within 0-100 inclusive.
 # `derived` declares computed fields, e.g. area_sqm from a number and a unit field.
 # Extracted strings are coerced once before any rule sees them; a value that cannot be
 # coerced ("80%", "eighty", "15/11/2026", "bigha") goes to human review with its reason.

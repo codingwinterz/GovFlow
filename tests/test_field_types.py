@@ -215,3 +215,27 @@ def test_number_still_rejects_a_percent_sign():
 
 def test_damage_percent_is_declared_as_percent():
     assert DR.required_documents[3].types["damage_percent"] == "percent"
+
+
+# --- percent range: 0 to 100 inclusive -----------------------------------------------------------
+
+@pytest.mark.parametrize("raw, value", [("0", 0.0), ("0%", 0.0), ("100", 100.0), ("100%", 100.0), (55.5, 55.5)])
+def test_percent_accepts_zero_to_hundred_inclusive(raw, value):
+    assert coerce("percent", raw) == (value, None)
+
+
+@pytest.mark.parametrize("raw", ["100.01", "150%", "-5", "-0.1%", 101])
+def test_percent_outside_range_is_rejected(raw):
+    value, error = coerce("percent", raw)
+    assert value is None and "outside 0-100" in error
+
+
+@pytest.mark.parametrize("damage", ["120%", "-3"])
+def test_out_of_range_damage_goes_to_review_naming_the_field(damage):
+    result = assess_case(DR, _dr01(damage), [])
+    rule = next(r for r in result.eligibility.results if r.rule_id == "damage_category_eligible")
+    assert rule.status == "needs_review"
+    assert "damage_assessment.damage_percent" in rule.reason and "outside 0-100" in rule.reason
+    (flag,) = [f for f in result.verification.flags if f.kind == "invalid_value"]
+    assert "damage_assessment.damage_percent" in flag.detail and "outside 0-100" in flag.detail
+    assert result.compensation.status == "needs_review"

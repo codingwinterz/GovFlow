@@ -46,6 +46,8 @@ def _percent(value: Any) -> Coerced:
     number, error = _number(text) if text != "" else (None, "empty")
     if error:
         return None, f"{value!r} is not a percentage (a number with an optional trailing %)"
+    if not 0 <= number <= 100:
+        return None, f"{value!r} is outside 0-100"
     return number, None
 
 
