@@ -64,9 +64,8 @@ eligibility_rules:
     fail_reason: "The damaged house is not the applicant's residence or is outside the notified area."
   - id: damage_category_eligible
     clause: "<clause ref>"
-    # VERIFY: minimum damage for housing relief. Must equal partial_damage_threshold below
-    # (eligibility rules cannot read compensation parameters, so the number is repeated).
-    when: "damage_assessment.damage_percent >= 15"
+    # Minimum damage comes from the parameters below (one source of truth for rule and relief).
+    when: "damage_assessment.damage_percent >= params.partial_damage_threshold"
     fail_reason: "Assessed damage is below the minimum for housing relief."
   - id: documents_not_expired
     clause: "<clause ref>"

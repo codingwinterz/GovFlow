@@ -93,7 +93,8 @@ def _overall_validity(validity: dict[str, ValidityStatus]) -> Optional[bool]:
 
 
 def build_facts(scheme: Scheme, case: CaseIn) -> CaseFacts:
-    facts = CaseFacts(names={"case": dict(case.inputs), "reference_date": case.reference_date})
+    params = dict(scheme.compensation.parameters) if scheme.compensation else {}
+    facts = CaseFacts(names={"case": dict(case.inputs), "reference_date": case.reference_date, "params": params})
     for req in scheme.required_documents:
         doc = case.documents.get(req.id)
         if doc is None:

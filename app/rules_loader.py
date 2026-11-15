@@ -1,5 +1,6 @@
 """Load and validate a scheme YAML file. All scheme logic lives in the YAML."""
 
+import ast
 import re
 import string
 from pathlib import Path
@@ -220,7 +221,29 @@ def _check_declared_fields(scheme: Scheme) -> None:
             raise RulesError(f"{doc_id}.{field_name} is used by validity and must have type date")
 
 
+RESERVED_NAMES = ("params", "case", "reference_date", "all_documents_present", "all_documents_valid")
+
+
+def _params_used(expr: str) -> set[str]:
+    return {n.attr for n in ast.walk(ast.parse(expr, mode="eval"))
+            if isinstance(n, ast.Attribute) and isinstance(n.value, ast.Name) and n.value.id == "params"}
+
+
+def _check_params(scheme: Scheme) -> None:
+    """Rule and check expressions may read params.<name>; every name must be a declared parameter."""
+    known = set(scheme.compensation.parameters) if scheme.compensation else set()
+    exprs = [r.when for r in scheme.eligibility_rules if r.when]
+    exprs += [e for c in scheme.verification_checks for e in (c.key, c.claimed_area, c.total_area) if e]
+    for expr in exprs:
+        unknown = _params_used(expr) - known
+        if unknown:
+            raise RulesError(f"{expr!r} uses unknown parameters {sorted(unknown)}; declared: {sorted(known)}")
+
+
 def _cross_check(scheme: Scheme) -> None:
+    reserved = set(scheme.document_ids) & set(RESERVED_NAMES)
+    if reserved:
+        raise RulesError(f"Document ids {sorted(reserved)} are reserved names")
     check_ids = {c.id for c in scheme.verification_checks}
     for rule in scheme.eligibility_rules:
         unknown = set(rule.depends_on) - check_ids
@@ -237,6 +260,7 @@ def _cross_check(scheme: Scheme) -> None:
             check_expression(expr)
         except UnsafeExpression as exc:
             raise RulesError(str(exc)) from exc
+    _check_params(scheme)
 
 
 def parse_scheme(data: dict) -> Scheme:
