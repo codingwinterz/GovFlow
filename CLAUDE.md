@@ -49,19 +49,28 @@ Keep this section current: update it in the same commit as any change to what is
 Fuller detail is in `docs/KNOWN_LIMITATIONS.md`.
 
 ### Built
-- Two schemes from YAML only: land acquisition (16 synthetic cases) and disaster relief (14), with expected outcomes.
+- Two schemes from YAML only: land acquisition (17 synthetic cases) and disaster relief (15), with hand-derived
+  expected outcomes. LA-17 and DR-15 carry prompt-injection text at confidence 1.0 and must end in review.
 - Tools: rules engine, compensation, extraction (Gemini vision, Tesseract fallback), verification, SLA, analytics,
   self-check, rule simulator (read-only what-if over the synthetic set). Agent loop with a deterministic fallback.
-- API (FastAPI): staff roles clerk / officer / admin via demo headers, checked on the server per route; officer-only
-  decisions; append-only audit with masked identifiers; timestamps sent as UTC with `Z`; dates shown in India time.
-- Citizen tracking (`POST /public/status`): case reference plus a 6-digit HMAC code, the same 404 for any wrong pair,
-  rate-limited per client and per reference.
+- Injection defences: prompts call document text and tool results untrusted data; per-field `plausible` ranges in
+  the YAML; approval needs the officer's confirmation of every amount-driving field (derived from the YAML) at its
+  current value, whatever the confidence; explanations saying approved / rejected / sanctioned are flagged.
+- API (FastAPI): demo sign-in issues HMAC-signed, 8-hour role tokens (`GOVFLOW_AUTH_SECRET`); plain `X-Role`
+  only with `GOVFLOW_DEMO_INSECURE=1`; roles checked on the server per route; officer-only decisions; append-only
+  audit with masked identifiers; UTC timestamps with `Z`; dates in India time; 14 MB body cap; uploads must match
+  their file signature.
+- Citizen tracking (`POST /public/status`): reference plus a 6-digit HMAC code (`GOVFLOW_CITIZEN_SECRET`, no
+  built-in secret: 503 without it), the same 404 for any wrong pair, rate-limited per client and per reference.
+  The demo seed writes both secrets to `.env` on first run.
 - Web: landing page, citizen shell (home, self-check, track; en/hi/mr/kok; light theme by default) and officer shell
-  (queue, case, intake, analytics with one shared scale, simulator, audit, award letter).
+  (queue, case, intake, analytics with one shared scale, simulator, audit, award letter); plain loading / error /
+  empty states with Retry; 24 px touch targets; no sideways scroll at 390 px.
+- Demo database re-seeded 2026-11-16 after the backdating fix: Submitted and Days open agree for all 23 open cases.
 
 ### Tests (all green at commit time)
-- Python: 732 passed (`pytest -q`, about 3 minutes).
-- Frontend logic: 56 passed (`npm test`). Browser layout: 11 passed (`npm run test:layout`). `vite build` clean.
+- Python: 798 passed (`pytest -q`, about 4 minutes).
+- Frontend: 65 logic (`npm test`) + 25 browser (`npm run test:layout`); `npm run test:all` runs both. Build clean.
 
 ### Still marked VERIFY
 - Land acquisition (`rules/land_acquisition.yaml`): notification references (source); 60-day SLA; record-of-rights
@@ -85,3 +94,8 @@ Fuller detail is in `docs/KNOWN_LIMITATIONS.md`.
 - Goa rural multiplier: notified value unknown (default 1.0 above).
 - Current relief schedule for Goa: amounts follow the 2022-26 norms, labelled "to be confirmed".
 - 75% full-damage threshold: placeholder until an official definition is found.
+- Production hardening (see KNOWN_LIMITATIONS): government SSO instead of the passwordless demo sign-in; rate
+  limits behind a proxy, gentler lockout and separate self-check / tracking limits; separation of duties
+  (maker-checker) on decisions.
+- A case with no computable amount (DR-09, DR-15) stays *verified* and flagged; it never reaches the officer's
+  decision state, so it is found through the queue filters. Decide whether it should go to the officer to send back.
