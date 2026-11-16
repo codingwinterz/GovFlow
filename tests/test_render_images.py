@@ -29,3 +29,13 @@ def test_degraded_differs_from_clean_and_has_lower_contrast():
 def test_clean_render_is_black_text_on_white():
     lo, hi = render_document(TEXT, "clean").convert("L").getextrema()
     assert lo < 40 and hi > 240
+
+
+def test_la11_image_shows_the_damaged_paper_so_its_expected_flags_can_be_true():
+    """LA-11's labels expect low confidence and a name mismatch, so its image must show the damaged text."""
+    from pathlib import Path
+    from scripts.render_images import _source_text
+    folder = Path(__file__).resolve().parent.parent / "data" / "synthetic" / "land_acquisition" / "case_11"
+    assert not (folder / "documents" / "ownership_record.print.txt").exists()
+    text = _source_text(folder, "ownership_record")
+    assert "L?ta Sh1rodkar" in text and "9?0" in text
