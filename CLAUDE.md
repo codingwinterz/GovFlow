@@ -34,6 +34,7 @@ docs/           architecture diagram, demo script
 - Run API: `uvicorn app.main:app --reload`
 - Tests: `pytest -q`
 - Frontend: `cd web && npm run dev`
+- Frontend tests: `cd web && npm test` (logic) and `npm run test:layout` (browser checks; needs Google Chrome)
 
 ## Working style
 - Build and test tools first, then add the agent loop last.
