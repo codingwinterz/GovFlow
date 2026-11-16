@@ -32,7 +32,7 @@ def documents(name, survey, area, unit, total_area, total_unit, id_name=None, sh
             "issue_date": f("2026-10-01"),
         }},
         "identity_proof": {"fields": {
-            "name": f(id_name or name), "id_number": f(f"XXXX XXXX {id_last4}"), "expiry_date": f(id_expiry),
+            "name": f(id_name or name), "id_number": f(f"9999 0000 {id_last4}"), "expiry_date": f(id_expiry),
         }},
         "survey_sheet": {"fields": {
             "survey_number": f(sheet_survey or survey), "area": f(total_area), "area_unit": f(total_unit),

@@ -113,3 +113,24 @@ def test_intake_queue_case_page_analytics_and_audit(env):
     actions = {a["action"] for a in api("GET", f"/cases/{first}/audit")[1]}
     assert {"check_eligibility", "compute_compensation", "submit_to_officer"} <= actions
     assert api("POST", f"/cases/{first}/decision", {"decision": "approve"})[1]["status"] == "approved"
+
+
+@pytest.mark.parametrize("scheme", SCHEMES)
+def test_extracted_raw_identifier_is_masked_in_the_audit_log(scheme, tmp_path):
+    from app.extraction import ProviderField
+    from app.models import AuditLog
+    from app.providers.fake import FakeProvider
+    from app.tools import add_document, extract_document
+    case = next(c for c, _ in _cases(scheme) if "identity_proof" in c.documents)
+    raw = case.documents["identity_proof"].fields["id_number"].value
+    assert raw[:4].isdigit(), "the synthetic set must hold a raw id for this test to mean anything"
+    with make_session(make_engine("sqlite://")) as s:
+        seed_case(s, case)
+        path = tmp_path / "id.txt"
+        path.write_text("scan", encoding="utf-8")
+        doc = add_document(s, case.case_id, "identity_proof", str(path))
+        fields = [ProviderField(name=k, value=v.value, confidence=0.97, page=1)
+                  for k, v in case.documents["identity_proof"].fields.items()]
+        extract_document(s, doc.id, FakeProvider({(str(doc.id), "document"): fields}))
+        rows = [r.payload_json for r in s.query(AuditLog).filter_by(case_id=case.case_id)]
+    assert any(f"XXXX XXXX {raw[-4:]}" in r for r in rows) and not any(raw in r for r in rows)
