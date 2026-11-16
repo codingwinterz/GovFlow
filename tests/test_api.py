@@ -125,7 +125,14 @@ def test_run_with_llm_that_fails_to_start_falls_back(tmp_path):
     def broken():
         raise ProviderError("GEMINI_API_KEY is not set", kind="not_configured")
     env = Env(tmp_path, llm_factory=broken)
-    assert env("POST", "/cases/LA-01/run", headers=CLERK)[1]["used_fallback"]
+    status, run = env("POST", "/cases/LA-01/run", headers=CLERK)
+    assert status == 200 and run["used_fallback"] is True and run["llm"] == "none"
+    assert run["stopped_reason"] == "llm_unavailable" and run["final_status"] == "in_officer_review"
+    assert [s["tool"] for s in run["steps"]] == ["verify_documents", "check_eligibility", "compute_compensation",
+                                                 "submit_to_officer"]           # the deterministic pipeline ran
+    assert run["explanation"].startswith("Summary generated without the LLM (LLM unavailable).")
+    actions = [a["action"] for a in env("GET", "/cases/LA-01/audit", headers=OFFICER)[1]]
+    assert "agent_llm_unavailable" in actions and actions[-1] == "agent_explanation"
 
 
 def test_unknown_case_is_404(env):

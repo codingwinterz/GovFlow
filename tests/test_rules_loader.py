@@ -29,35 +29,35 @@ def test_fuzzy_tolerance_is_parsed():
 def test_rejects_unsafe_rule_expression():
     data = _base()
     data["eligibility_rules"][0]["when"] = "__import__('os')"
-    with pytest.raises(RulesError):
+    with pytest.raises(RulesError, match=r"Only \['lower'\] may be called"):
         parse_scheme(data)
 
 
 def test_rejects_unknown_dependency():
     data = _base()
     data["eligibility_rules"][1]["depends_on"] = ["no_such_check"]
-    with pytest.raises(RulesError):
+    with pytest.raises(RulesError, match=r"depends on unknown checks: \['no_such_check'\]"):
         parse_scheme(data)
 
 
 def test_rejects_check_across_undeclared_document():
     data = _base()
     data["verification_checks"][0]["across"] = ["application", "passport"]
-    with pytest.raises(RulesError):
+    with pytest.raises(RulesError, match=r"uses undeclared documents: \['passport'\]"):
         parse_scheme(data)
 
 
 def test_rejects_bad_tolerance():
     data = _base()
     data["verification_checks"][0]["tolerance"] = "roughly"
-    with pytest.raises(RulesError):
+    with pytest.raises(RulesError, match=r"tolerance must be 'exact' or 'fuzzy_<0\.\.1>'"):
         parse_scheme(data)
 
 
 def test_rejects_rule_with_neither_when_nor_depends_on():
     data = _base()
     data["eligibility_rules"][0].pop("when")
-    with pytest.raises(RulesError):
+    with pytest.raises(RulesError, match=r"needs `when`, `depends_on`, or both"):
         parse_scheme(data)
 
 

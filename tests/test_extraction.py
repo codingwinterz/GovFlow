@@ -108,3 +108,10 @@ def test_provider_failure_is_extraction_unavailable_not_low_confidence():
 def test_successful_extraction_has_status_ok():
     result, _, _ = _run([pf("name", "A", 0.9), pf("survey_number", "1", 0.9), pf("area", 1, 0.9)], with_ocr=False)
     assert result.status == "ok" and result.error is None and result.error_kind is None
+
+
+def test_extraction_at_exactly_the_threshold_is_not_low_confidence():
+    result, _, ocr = _run([pf("name", "Asha Naik", 0.85), pf("survey_number", "123/4", 0.8499), pf("area", 0.25, 0.95)],
+                          with_ocr=False)
+    assert result.low_confidence == ["survey_number"]                     # 0.85 passes; 0.8499 goes to review
+    assert _field(result, "name").confidence == 0.85

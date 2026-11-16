@@ -41,7 +41,10 @@ def test_knobs_list_parameters_and_input_defaults_with_current_values():
 def test_before_matches_the_hand_derived_expected_outcomes(scheme):
     name = knobs(load_scheme_by_name(scheme))[0].name
     result = simulate(scheme, name, knobs(load_scheme_by_name(scheme))[0].value)   # no actual change
-    for case_id, exp in _expected(scheme).items():
+    expected = _expected(scheme)
+    assert len(expected) == {"land_acquisition": 17, "disaster_relief": 15}[scheme]   # never an empty loop
+    assert {c.case_id for c in result.cases} == set(expected)
+    for case_id, exp in expected.items():
         row = _row(result, case_id)
         assert row.before.overall == exp["eligibility"]["overall"]
         assert row.before.total == (None if exp["compensation"]["total"] is None

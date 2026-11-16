@@ -8,7 +8,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "node --test \"src/lib/*.test.js\"",
-    "test:layout": "node --test e2e/layout.test.mjs"
+    "test:layout": "node --test e2e/layout.test.mjs",
+    "test:all": "npm test && npm run test:layout"
   },
   "dependencies": {
     "react": "19.3.1",

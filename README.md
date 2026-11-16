@@ -45,6 +45,7 @@ See `docs/DEMO_SCRIPT.md` for the jury walkthrough and `docs/KNOWN_LIMITATIONS.m
 .venv/Scripts/python -m pytest -q        # backend, no network
 cd web && npm test                       # frontend logic
 cd web && npm run test:layout            # browser checks (needs Google Chrome)
+cd web && npm run test:all               # both
 ```
 
 ## Not for production as is
