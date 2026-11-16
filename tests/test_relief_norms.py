@@ -41,7 +41,8 @@ def test_source_is_labelled_with_the_norms_and_their_status():
     (40, "pucca", "hilly", {"house_partial_pucca": 6500, **ITEMS}),        # partial amounts do not vary by area
     (15, "kutcha", "plain", {"house_partial_kutcha": 4000, **ITEMS}),      # 15% boundary is partial
     (60, "hut", "plain", {"hut": 8000, **ITEMS}),
-    (90, "hut", "hilly", {"hut": 8000, **ITEMS}),                          # a hut never gets the house amount
+    (90, "hut", "hilly", {"hut": 8000, **ITEMS}),                          # a hut never gets the house amount,
+    (80, "hut", "plain", {"hut": 8000, **ITEMS}),                          # in a hilly or a plain area
     (14.9, "pucca", "plain", {}),                                          # below the minimum: nothing
 ])
 def test_relief_amounts_by_category(damage, house, area, expected):
