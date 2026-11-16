@@ -100,17 +100,22 @@ button.link { background: none; border: none; color: var(--accent); padding: 0; 
 .case-head .actions { display: flex; gap: 16px; align-items: center; }
 .decision { border-color: var(--accent); }
 /* Analytics bars: every chart on the page uses one shared scale, with tick labels under the bars */
-.bars td { border-bottom: none; padding: 4px 8px; vertical-align: middle; }
+/* Fixed layout: column widths are exact percentages, so every chart's track has the same pixel width. */
+.bars { table-layout: fixed; }
+.bars td { border-bottom: none; padding: 4px 8px; vertical-align: middle; overflow-wrap: anywhere; }
 .bars .bar-label { width: 38%; }
-.bars .bar-cell { width: 52%; }
+.bars .bar-cell { width: 50%; }
+.bars td.num { width: 12%; }
 .bar-track { display: block; position: relative; height: 12px; background: var(--track); border-radius: 3px; }
 .bar { display: block; height: 100%; background: var(--accent); border-radius: 3px; min-width: 2px; }
 .bar.zero { min-width: 0; }
-.bars .axis { position: relative; height: 1.4em; padding: 0; }
-.bars .axis span { position: absolute; top: 2px; transform: translateX(-50%); font-size: 0.75rem; color: var(--muted);
+/* The axis cell has the bar cell's side padding, so tick 0 sits under the start of the track and the top tick under its end. */
+.bars .axis { padding: 0 8px; }
+.axis-track { display: block; position: relative; height: 1.4em; }
+.axis-track > span { position: absolute; top: 2px; transform: translateX(-50%); font-size: 0.75rem; color: var(--muted);
   font-variant-numeric: tabular-nums; }
-.bars .axis span:first-child { transform: none; }
-.bars .axis span:last-child { transform: translateX(-100%); }
+.axis-track > span:first-child { transform: none; }
+.axis-track > span:last-child { transform: translateX(-100%); }
 .decision-row td { font-weight: 600; }
 .citizen-view .line { margin: 6px 0; }
 .citizen-view .source { font-size: 0.85rem; color: var(--muted); margin-top: -2px; }

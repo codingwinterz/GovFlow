@@ -6,7 +6,7 @@ from typing import Any, Optional
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from app.models import AuditLog, Case
+from app.models import AuditLog, Case, iso_utc
 from app import sla
 from app.models import as_utc as _utc
 
@@ -40,9 +40,9 @@ def analytics(session: Session, stuck_days: float = 7, now: Optional[datetime] =
     moved = last_movement(session)
     cutoff = now - timedelta(days=stuck_days)
     stuck = sorted(({"case_id": c.id, "status": c.status, "scheme": c.scheme,
-                     "last_movement": moved[c.id].isoformat()}
+                     "last_movement": iso_utc(moved[c.id])}
                     for c in cases if c.status not in CLOSED and moved[c.id] <= cutoff),
-                   key=lambda s: s["last_movement"])
+                   key=lambda s: moved[s["case_id"]])   # sort on the instant, not its text
     decided = sla.decision_times(session)
     overdue = [{"case_id": c.id, "status": c.status, "scheme": c.scheme, **sla.sla_view(c, now, decided)}
                for c in cases if sla.sla_view(c, now, decided)["overdue"]]

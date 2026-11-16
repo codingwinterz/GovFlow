@@ -25,9 +25,9 @@ function Counts({ title, counts, scale, source, label }) {
             ))}
           </tbody>
           <tfoot>
-            <tr><td /><td className="axis" aria-hidden="true">
+            <tr><td /><td className="axis" aria-hidden="true"><span className="axis-track">
               {scale.ticks.map((tick) => <span key={tick} style={{ left: `${barPercent(tick, scale.top)}%` }}>{tick}</span>)}
-            </td><td /></tr>
+            </span></td><td /></tr>
           </tfoot>
         </table>
       )}

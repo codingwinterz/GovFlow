@@ -32,7 +32,7 @@ from app.citizen import citizen_secret as default_citizen_secret
 from app.extraction import EXTRACTION_UNAVAILABLE_MESSAGE, ProviderError
 from app.case_store import load_case
 from app.models import AuditLog, Case, CompensationItemRow, Document, ExtractedField, RuleResultRow
-from app.models import VerificationFlag, make_engine, queue_key
+from app.models import VerificationFlag, iso_utc, make_engine, queue_key
 from app.privacy import mask_identifiers
 from app.rules_engine import overall_from
 from app.self_check import NoSelfCheck, public_questions, self_check
@@ -127,8 +127,8 @@ def _require(actor: Actor, *roles: str) -> None:
 
 def _case_summary(c: Case, flags_count: Optional[int] = None) -> dict[str, Any]:
     out = {"case_id": c.id, "scheme": c.scheme, "status": c.status, "confidence_flag": c.confidence_flag,
-           "submitted_at": c.submitted_at.isoformat() if c.submitted_at else None, "officer_id": c.officer_id,
-           "created_at": c.created_at.isoformat() if c.created_at else None}
+           "submitted_at": iso_utc(c.submitted_at) if c.submitted_at else None, "officer_id": c.officer_id,
+           "created_at": iso_utc(c.created_at) if c.created_at else None}
     if flags_count is not None:
         out["flags_count"] = flags_count
     return out
@@ -157,7 +157,7 @@ def _latest_explanation(session: Session, case_id: str) -> Optional[dict[str, An
         return None
     p = json.loads(row.payload_json)
     return {"text": p.get("text", ""), "warnings": p.get("warnings", []), "used_fallback": p.get("used_fallback"),
-            "at": row.ts.isoformat()}
+            "at": iso_utc(row.ts)}
 
 
 def _detail(session: Session, case: Case) -> dict[str, Any]:
@@ -420,7 +420,7 @@ def create_app(engine: Optional[Engine] = None, agent_llm_factory: Optional[Call
                              for r in session.query(RuleResultRow).filter_by(case_id=case_id)],
             "items": [{"component": i.component, "amount": i.amount, "formula_note": i.formula_note} for i in items],
             "total": round(sum(i.amount for i in items), 2),
-            "generated_at": now().isoformat(),
+            "generated_at": iso_utc(now()),
         })
         log_action(session, case_id, actor.name, "award_letter_viewed", {"total": letter["total"]}, scheme.version)
         session.commit()
@@ -432,7 +432,7 @@ def create_app(engine: Optional[Engine] = None, agent_llm_factory: Optional[Call
         _require(actor, "officer")
         _get_case(session, case_id)
         rows = session.query(AuditLog).filter_by(case_id=case_id).order_by(AuditLog.id)
-        return mask_identifiers([{"id": r.id, "ts": r.ts.isoformat(), "actor": r.actor, "action": r.action,
+        return mask_identifiers([{"id": r.id, "ts": iso_utc(r.ts), "actor": r.actor, "action": r.action,
                                   "rules_version": r.rules_version, "payload": json.loads(r.payload_json)}
                                  for r in rows])
 

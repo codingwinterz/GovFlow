@@ -45,7 +45,8 @@ export function unavailableDocuments(detail) {
   return (detail.documents || []).filter((d) => d.current && d.extraction_status === "extraction_unavailable");
 }
 
-// The backend stores UTC and may send it without a zone suffix; read such values as UTC, not browser-local.
+// The API sends UTC with an explicit Z (app.models.iso_utc). A value without a zone is still read as UTC,
+// never browser-local, as a safety net for older saved responses.
 function parseUtc(iso) {
   const s = String(iso);
   return new Date(/[zZ]|[+-]\d{2}:\d{2}$/.test(s) || !s.includes("T") ? s : `${s}Z`);

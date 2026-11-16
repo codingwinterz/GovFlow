@@ -2,6 +2,7 @@
 
 import base64
 import json
+import re
 from pathlib import Path
 
 import pytest
@@ -304,3 +305,30 @@ def test_admin_role_reaches_only_the_simulator(env):
     assert env("GET", "/cases", headers=admin)[0] == 403
     assert env("GET", "/cases/LA-01", headers=admin)[0] == 403
     assert env("POST", "/cases/LA-01/decision", {"decision": "approve"}, admin)[0] == 403
+
+
+# --- timestamps carry their zone, so the browser never has to guess ---------------------------------
+
+def _timestamps(value, path=""):
+    """Every ISO date-time string in a JSON value (dates without a time are not timestamps)."""
+    if isinstance(value, dict):
+        return [t for k, v in value.items() for t in _timestamps(v, f"{path}.{k}")]
+    if isinstance(value, list):
+        return [t for i, v in enumerate(value) for t in _timestamps(v, f"{path}[{i}]")]
+    if isinstance(value, str) and re.match(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}", value):
+        return [(path, value)]
+    return []
+
+
+def test_every_api_timestamp_is_utc_with_an_explicit_z(env):
+    assert env("POST", "/cases/LA-01/run", headers=CLERK)[0] == 200
+    assert env("POST", "/cases/LA-01/decision", {"decision": "approve"}, OFFICER)[0] == 200
+    found = []
+    for path in ["/cases", "/cases/LA-01", "/cases/LA-01/audit", "/analytics?stuck_days=0", "/cases/LA-01/award"]:
+        status, body = env("GET", path, headers=OFFICER)
+        assert status == 200, path
+        found += [(path + p, v) for p, v in _timestamps(body)]
+    keys = {p.rsplit(".", 1)[-1] for p, _ in found}
+    assert {"submitted_at", "created_at", "at", "ts", "last_movement", "generated_at"} <= keys   # every kind is checked
+    bad = [(p, v) for p, v in found if not v.endswith("Z")]
+    assert not bad, bad[:5]

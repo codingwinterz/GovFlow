@@ -19,6 +19,11 @@ def as_utc(ts: datetime) -> datetime:
     return ts if ts.tzinfo else ts.replace(tzinfo=timezone.utc)
 
 
+def iso_utc(ts: datetime) -> str:
+    """API form of a timestamp: ISO 8601 in UTC with an explicit Z, so no client has to guess the zone."""
+    return as_utc(ts).astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
 def queue_key(case: "Case") -> tuple[bool, datetime]:
     """Officer queue order: flagged cases first, then oldest submission (or creation) first."""
     return (not case.confidence_flag, as_utc(case.submitted_at or case.created_at))

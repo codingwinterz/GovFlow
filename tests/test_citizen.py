@@ -77,6 +77,23 @@ def test_unknown_and_mismatched_references_get_the_same_answer(env):
     assert unknown == wrong_code == (404, {"detail": "not_found"})
 
 
+def test_reference_alone_never_returns_case_details(env):
+    _, lookup, _ = env
+    other_case_code = citizen_code("LA-02", SECRET)
+    assert other_case_code != citizen_code("LA-01", SECRET)
+    for code in ["", "   ", other_case_code]:                     # blank, or a valid code for a different case
+        assert lookup("LA-01", code=code) == (404, {"detail": "not_found"})
+    status, body = lookup("LA-01")                                  # the right pair still works
+    assert status == 200 and body["case_ref"] == "LA-01"
+
+
+def test_reference_without_a_code_field_is_rejected_without_details(env):
+    engine, _, _ = env
+    app = create_app(engine=engine, citizen_secret=SECRET)
+    status, body = call(app, "POST", "/public/status", {"case_ref": "LA-01"}, client="1.2.3.4")
+    assert status == 422 and "status" not in body and "amounts" not in json.dumps(body)
+
+
 def test_lookups_are_rate_limited_per_client(env):
     _, lookup, clock = env
     for i in range(10):                                         # distinct refs: only the client limit applies
