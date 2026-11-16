@@ -234,3 +234,30 @@ def test_with_the_secret_from_the_environment_lookups_work(env, tmp_path, monkey
     status, body = call(app, "POST", "/public/status", {"case_ref": "LA-01", "code": citizen_code("LA-01", SECRET)},
                         client="1.2.3.4")
     assert status == 200 and body["case_ref"] == "LA-01"
+
+
+# --- the limiter forgets old records (audit finding 20) ---------------------------------------------------------
+
+def test_limiter_drops_records_older_than_the_window():
+    from app.citizen import WINDOW_SECONDS, RateLimiter
+    clock = Clock()
+    limiter = RateLimiter(clock)
+    for i in range(500):                                            # one-off visitors, each a new address and reference
+        limiter.allow(f"10.1.{i // 250}.{i % 250}", f"XX-{i}")
+        limiter.failed(f"XX-{i}")
+    assert len(limiter.by_client) == 500 and len(limiter.failures_by_case) == 500
+    clock.now += WINDOW_SECONDS + 1
+    assert limiter.allow("10.9.9.9", "LA-01")                       # the next request sweeps
+    assert set(limiter.by_client) == {"10.9.9.9"} and set(limiter.failures_by_case) == {"LA-01"}
+
+
+def test_sweeping_keeps_limits_that_are_still_running():
+    from app.citizen import MAX_FAILURES_PER_CASE, WINDOW_SECONDS, RateLimiter
+    clock = Clock()
+    limiter = RateLimiter(clock)
+    clock.now = WINDOW_SECONDS - 10
+    for _ in range(MAX_FAILURES_PER_CASE):
+        limiter.allow("1.1.1.1", "LA-02")
+        limiter.failed("LA-02")
+    clock.now = WINDOW_SECONDS + 5                                   # a sweep runs; these failures are 15 s old
+    assert not limiter.allow("2.2.2.2", "LA-02")                   # still blocked: recent failures were kept

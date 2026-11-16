@@ -56,13 +56,25 @@ class RateLimiter:
         self.clock = clock
         self.by_client: dict[str, deque] = defaultdict(deque)
         self.failures_by_case: dict[str, deque] = defaultdict(deque)
+        self._last_sweep = clock()
 
     def _recent(self, q: deque) -> deque:
         while q and q[0] <= self.clock() - WINDOW_SECONDS:
             q.popleft()
         return q
 
+    def _sweep(self) -> None:
+        """Once per window, forget addresses and references with no attempt inside the window, so records from
+        one-off visitors (or an attacker rotating addresses and references) do not pile up in memory."""
+        if self.clock() - self._last_sweep < WINDOW_SECONDS:
+            return
+        self._last_sweep = self.clock()
+        for table in (self.by_client, self.failures_by_case):
+            for key in [k for k, q in table.items() if not self._recent(q)]:
+                del table[key]
+
     def allow(self, client: str, case_ref: str) -> bool:
+        self._sweep()
         attempts = self._recent(self.by_client[client])
         failures = self._recent(self.failures_by_case[case_ref])
         attempts.append(self.clock())

@@ -94,7 +94,11 @@ fieldset { border: 1px solid var(--border); border-radius: 6px; margin: 12px 0; 
 button { font: inherit; padding: 6px 14px; border-radius: 6px; border: 1px solid var(--accent); background: var(--accent);
   color: var(--surface); cursor: pointer; }
 button:disabled { opacity: 0.6; cursor: default; }
-button.link { background: none; border: none; color: var(--accent); padding: 0; text-decoration: underline; }
+button.link { background: none; border: none; color: var(--accent); padding: 2px 4px; min-height: 24px; text-decoration: underline; }
+/* Touch targets at least 24 x 24 px (WCAG 2.2, 2.5.8). Links inside a sentence are exempt and stay inline. */
+.actions a { display: inline-flex; align-items: center; min-height: 24px; padding: 2px 0; }
+.choices label, .confirm-item { min-height: 24px; align-items: center; }
+.choices input, .confirm-item input { width: 20px; height: 20px; margin: 0; }
 .filters { display: flex; gap: 16px; flex-wrap: wrap; }
 .filters label { min-width: 200px; }
 .case-head .actions { display: flex; gap: 16px; align-items: center; }
@@ -102,7 +106,7 @@ button.link { background: none; border: none; color: var(--accent); padding: 0; 
 /* Wide tables scroll inside their own box, so the page never scrolls sideways on a phone */
 .table-scroll { overflow-x: auto; max-width: 100%; }
 .confirm .confirm-item { display: flex; gap: 8px; align-items: center; margin: 6px 0; }
-.confirm .confirm-item input { width: auto; margin: 0; }
+.confirm .confirm-item input { width: 20px; height: 20px; margin: 0; flex: none; }
 /* Analytics bars: every chart on the page uses one shared scale, with tick labels under the bars */
 /* Fixed layout: column widths are exact percentages, so every chart's track has the same pixel width. */
 .bars { table-layout: fixed; }

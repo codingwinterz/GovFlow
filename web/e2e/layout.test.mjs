@@ -210,6 +210,45 @@ test("tracking inputs are required and the code accepts six digits", async () =>
   await close();
 });
 
+// --- touch targets and favicon (audit findings 14, 17) -------------------------------------------------------------
+
+const CASE = { case_id: "LA-01", scheme: "land_acquisition", status: "in_officer_review", confidence_flag: false,
+  officer_id: null, reference_date: "2026-11-15", submitted_at: "2026-11-10T06:00:00Z", created_at: "2026-11-01T06:00:00Z",
+  inputs: {}, rules_version: "0.1.0", labels: { title: "Land acquisition", amounts: "Compensation", total: "Total" }, terms: {},
+  documents: [], flags: [], rule_results: [], recommendation: "eligible", explanation: null,
+  compensation: { items: [{ component: "land_value", amount: 7500000, formula_note: "x" }], total: 7500000 },
+  confirm_fields: [{ ref: "ownership_record.area", value: 0.25 }, { ref: "ownership_record.area_unit", value: "hectare" }] };
+
+test("case page at 390px: every control is at least 24 x 24 px (links inside sentences excepted)", async () => {
+  const { page, close } = await open("#/officer/cases/LA-01", (url) => ({ json: url.endsWith("/cases/LA-01") ? CASE : [] }),
+    { login: OFFICER_LOGIN });
+  await page.locator("section.decision form").waitFor();
+  await page.getByLabel("Approve").check();                         // shows the confirmation checkboxes too
+  await page.locator(".confirm-item").first().waitFor();
+  const small = await page.evaluate(() => {
+    const box = (el) => el.getBoundingClientRect();
+    const targets = [...document.querySelectorAll("button, select, .actions a, .topbar nav a")]
+      .concat([...document.querySelectorAll("input[type=radio], input[type=checkbox]")].map((i) => i.closest("label") || i));
+    return targets.filter((el) => { const b = box(el); return b.width > 0 && (b.width < 24 || b.height < 24); })
+      .map((el) => `${el.tagName}:${el.textContent.trim().slice(0, 20)} ${Math.round(box(el).width)}x${Math.round(box(el).height)}`);
+  });
+  assert.deepEqual(small, []);
+  await close();
+});
+
+test("the landing page loads with no failed requests (favicon included)", async () => {
+  const context = await browser.newContext({ viewport: { width: 390, height: 900 } });
+  const page = await context.newPage();
+  const failed = [];
+  page.on("response", (r) => { if (r.status() >= 400) failed.push(`${r.status()} ${new URL(r.url()).pathname}`); });
+  await page.goto(new URL("#/", base).href);
+  await page.waitForLoadState("networkidle");
+  const icon = await page.locator("link[rel=icon]").getAttribute("href");
+  await context.close();
+  assert.deepEqual(failed, []);
+  assert.equal(icon, "/favicon.svg");
+});
+
 for (const hash of PAGES) {
   test(`${hash} at 390px: full width with no sideways scroll`, async () => {
     const m = await measure(390, hash, "light");

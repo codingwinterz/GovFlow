@@ -9,12 +9,20 @@ a screen or a test result as more than it is.
   `GOVFLOW_AUTH_SECRET`. The token stops a client from editing its role and makes sessions expire, but anyone
   who can reach the sign-in can still choose to be an officer. Do not expose the demo on a public network.
   Plain `X-Role` / `X-User` headers are refused unless `GOVFLOW_DEMO_INSECURE=1` (scripts only).
-- **Citizen verification codes are a demo mechanism.** A code is an HMAC of the case reference with a
-  server secret. Without `GOVFLOW_CITIZEN_SECRET` a built-in demo secret is used, so codes are predictable
-  to anyone who has the source. Real codes should be issued to the applicant at intake.
-- **Rate limiting is in memory.** Limits reset when the server restarts and are not shared between server
-  processes. Five wrong codes for one reference block lookups for that reference for 15 minutes, which also
-  locks out the genuine applicant for that time (a deliberate trade-off against guessing).
+- **Citizen verification codes are a demo mechanism.** A code is an HMAC of the case reference with
+  `GOVFLOW_CITIZEN_SECRET`. There is no built-in secret: without one, status lookups answer 503 (the demo seed
+  writes a random one to `.env`). Real codes should be issued to the applicant at intake and stored hashed.
+- **Rate limiting is in memory** (production hardening still open):
+  - Limits reset when the server restarts and are not shared between server processes.
+  - The client address is the direct peer. Behind a reverse proxy every citizen shares the proxy's address,
+    so the per-address limit becomes one limit for everyone; configure trusted proxy headers in production.
+  - Five wrong codes for one reference block that reference for 15 minutes, so anyone can lock out the
+    genuine applicant for that time (a trade-off against guessing; slowing down would be gentler).
+  - Self-check and tracking share the per-address limit, so ten self-checks also pause tracking.
+  - Records older than the window are dropped once per window, so memory does not grow without bound.
+- **No separation of duties** (production hardening still open). One officer can create a case, upload its
+  documents, run the agent and approve it. A real deployment should refuse a decision from the user who
+  created the case or uploaded its documents (maker-checker), using the audit log.
 - **Uploaded documents are stored unencrypted** on local disk under `uploads/` (gitignored).
 - **The audit log is append-only only inside SQLite** (triggers reject UPDATE and DELETE). Someone with
   direct access to the database file can drop the triggers. There are no backups and no external log sink.
@@ -36,6 +44,8 @@ None of these may be used for a real decision until checked against official sou
   it as a percentage); applying the 15% minimum to kutcha houses, huts and the clothing and utensils relief;
   the condition for clothing and utensils (the norms tie it to houses washed away, fully damaged or severely
   inundated); which Goa areas count as hilly; document ages (365 and 90 days); the 15-day SLA.
+- **Plausibility ranges** are placeholders, not legal values: land area 10 to 500,000 sq m per holding
+  (10 to 5,000,000 per survey number) and market value ₹100 to ₹1,00,000 per sq m.
 - **Notified area:** disaster relief relies on the damage assessment's own "notified area" certification;
   there is no list of notified villages per disaster event.
 
@@ -54,17 +64,27 @@ None of these may be used for a real decision until checked against official sou
   (1 of 28 requests answered in the last run). The only full numbers come from Tesseract and from recorded
   fake responses, which describe the recordings, not a model.
 - The Tesseract baseline's label parser knows the synthetic document layouts, so its accuracy is generous.
-- Gemini's confidence scores are self-reported, not calibrated; the 0.85 threshold depends on them.
-- The agent can be asked to explain only; it cannot decide. If its explanation quotes an amount no tool
-  produced, the amount is flagged, but other kinds of wrong wording are not detected.
+- Gemini's confidence scores are self-reported, not calibrated; the 0.85 threshold depends on them. So a
+  document cannot vouch for itself where it matters: the fields that drive an amount (land area and unit;
+  relief damage %, house type, area type) must be confirmed by the officer at their current value before
+  approval, whatever the confidence, and values outside the YAML's plausible range go to review.
+- **Prompt injection is reduced, not eliminated.** The prompts call document text and tool results untrusted
+  data, the agent has no decision tool, and explanations that quote an unknown amount or say approved /
+  rejected / sanctioned are flagged. Instruction-like text in other fields (a name, a remark) is not detected
+  as such; it reaches the officer as data. LA-17 and DR-15 are the injected test cases.
 
 ## Data and testing
-- **All data is synthetic.** 16 land-acquisition and 14 disaster-relief cases, hand-derived expected
-  outcomes, and 7 messy documents rendered as clean and degraded images from a computer font, not real scans.
+- **All data is synthetic.** 17 land-acquisition and 15 disaster-relief cases (two with injected text),
+  hand-derived expected outcomes, and 7 messy documents rendered as clean and degraded images from a computer
+  font, not real scans.
+- A case whose amount cannot be computed at all (for example DR-09, damage report missing) is flagged but
+  stays *verified*: it never reaches *awaiting officer decision*, so it is found through the queue filters.
 - The demo seed spreads intake dates over recent weeks by a fixed pattern so SLA flags appear; those dates
   are synthetic.
-- **No screen has been tested in a browser.** Frontend tests cover logic, translation files and source
-  guards (for example, that no page computes money); React components are not rendered in tests.
+- **Browser checks are scripted, not exhaustive.** `npm run test:layout` drives Chrome against the real
+  pages with the API mocked: layout at 390 and 1280 px, the shared analytics scale, loading / error / empty
+  states, tracking input checks and 24 px touch targets. There is no automated accessibility audit (axe),
+  and keyboard and screen-reader use have not been tested by hand.
 - The rule simulator runs over the synthetic set only, not over live cases.
 
 ## Product scope
