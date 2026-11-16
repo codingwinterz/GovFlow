@@ -38,8 +38,9 @@ class FieldRow(BaseModel):
     confidence: Optional[float]
     method: Optional[str]
     answered: bool        # False when the provider failed on this document (nothing was read)
-    accepted: bool        # at or above the confidence threshold, so the tools will use it
+    accepted: bool        # at or above the confidence threshold and not sent to review, so the tools will use it
     correct: bool
+    review_reason: Optional[str] = None   # e.g. "readers disagree" (cross-check)
 
 
 class ProviderFailure(BaseModel):
@@ -59,7 +60,10 @@ class ExtractionSummary(BaseModel):
     accepted: int
     accepted_correct: int
     accepted_wrong: int        # the dangerous number: confidently wrong
-    routed_to_review: int      # answered but below threshold or not found
+    routed_to_review: int      # answered but below threshold, not found, or readers disagree
+    cross_check_fired: int = 0          # fields the cross-check sent to review
+    cross_check_on_correct: int = 0     # ... although the first reading was right (the cost of the check)
+    cross_check_on_wrong: int = 0       # ... and the first reading was wrong (what the check is for)
     reading_errors: int        # answered fields that are wrong or missing
     correct: int               # value right, whatever its confidence
     accuracy: Optional[float]  # correct / fields_answered; None when nothing was answered
@@ -118,8 +122,9 @@ def _rows(case: str, doc_type: str, truth: dict, result: ExtractionResult, thres
         rows.append(FieldRow(case=case, doc_type=doc_type, field=name, truth=true_value,
                              value=f.value if f else None, confidence=f.confidence if f else None,
                              method=f.method if f else None, answered=answered,
-                             accepted=bool(f and f.confidence >= threshold),
-                             correct=bool(f and field_matches(name, f.value, true_value))))
+                             accepted=bool(f and f.confidence >= threshold and not f.review_reason),
+                             correct=bool(f and field_matches(name, f.value, true_value)),
+                             review_reason=f.review_reason if f else None))
     return rows
 
 
@@ -153,7 +158,10 @@ def _summary(rows: list[FieldRow], documents_total: int, documents_answered: int
     answered = [r for r in rows if r.answered]
     accepted = [r for r in answered if r.accepted]
     correct = sum(r.correct for r in answered)
+    fired = [r for r in answered if r.review_reason]
     return ExtractionSummary(
+        cross_check_fired=len(fired), cross_check_on_correct=sum(r.correct for r in fired),
+        cross_check_on_wrong=sum(not r.correct for r in fired),
         rows=rows, total=len(rows), documents_total=documents_total, documents_answered=documents_answered,
         fields_answered=len(answered), unavailable=len(rows) - len(answered), accepted=len(accepted),
         accepted_correct=sum(r.correct for r in accepted), accepted_wrong=sum(not r.correct for r in accepted),
@@ -163,7 +171,8 @@ def _summary(rows: list[FieldRow], documents_total: int, documents_answered: int
 
 
 def run_messy_eval(provider: Optional[ExtractionProvider] = None, ocr: Optional[OcrEngine] = None,
-                   variant: Variant = "text", on_document: Optional[OnDocument] = None) -> EvalReport:
+                   variant: Variant = "text", on_document: Optional[OnDocument] = None,
+                   cross_check: Optional[ExtractionProvider] = None) -> EvalReport:
     """variant="text" reads documents/*.txt; "clean"/"degraded" read the rendered images.
 
     provider=None replays recorded fake responses (text only); pass a real provider to measure it.
@@ -198,7 +207,7 @@ def run_messy_eval(provider: Optional[ExtractionProvider] = None, ocr: Optional[
             else:
                 doc_provider, doc_ocr = provider, ocr
             providers.add(doc_provider.name)
-            result = extract_document(session, doc.id, doc_provider, doc_ocr, actor="eval")
+            result = extract_document(session, doc.id, doc_provider, doc_ocr, actor="eval", cross_check=cross_check)
             label = f"{item['case']}.{item['doc_type']}"
             if result.status != "ok":
                 failures.append(ProviderFailure(document=label, kind=result.error_kind or "error",

@@ -10,6 +10,7 @@ class FieldValue(BaseModel):
     value: Any
     confidence: float = 1.0
     source_page: Optional[int] = None
+    review_reason: Optional[str] = None   # e.g. "readers disagree": withheld from the rules whatever the confidence
 
 
 class DocumentIn(BaseModel):

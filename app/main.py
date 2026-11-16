@@ -169,7 +169,8 @@ def _documents(session: Session, case_id: str, threshold: float) -> list[dict[st
     for d in docs:
         fields = [{"document_id": d.id, "document_type": d.doc_type, "field": f.field, "value": json.loads(f.value),
                    "confidence": f.confidence, "source_page": f.source_page, "method": f.method, "note": f.note,
-                   "needs_review": f.confidence < threshold}
+                   "review_reason": f.review_reason,
+                   "needs_review": f.confidence < threshold or bool(f.review_reason)}
                   for f in session.query(ExtractedField).filter_by(document_id=d.id)]
         unavailable = d.extraction_status == "extraction_unavailable"
         out.append({"id": d.id, "doc_type": d.doc_type, "current": latest[d.doc_type] == d.id,
@@ -213,6 +214,7 @@ def _detail(session: Session, case: Case) -> dict[str, Any]:
 
 def create_app(engine: Optional[Engine] = None, agent_llm_factory: Optional[Callable[[], Any]] = None,
                extraction_factory: Optional[Callable[[], Any]] = None,
+               cross_check_factory: Optional[Callable[[], Any]] = None,
                upload_dir: Optional[Path] = None, citizen_secret: Optional[str] = None,
                auth_secret: Optional[str] = None, demo_insecure: Optional[bool] = None,
                clock: Callable[[], float] = time.monotonic,
@@ -229,6 +231,13 @@ def create_app(engine: Optional[Engine] = None, agent_llm_factory: Optional[Call
         return actor_from(authorization, x_role, x_user, signing, insecure, now())
     state: dict[str, Any] = {"engine": engine}
     uploads = Path(upload_dir or DEFAULT_UPLOAD_DIR)
+
+    def second_reader() -> Any:
+        """The cross-check reader (Tesseract), or None when it is not available: extraction then runs without it."""
+        try:
+            return cross_check_factory() if cross_check_factory else None
+        except Exception:   # an optional second opinion must never block extraction
+            return None
 
     def session_dep() -> Iterator[Session]:
         if state["engine"] is None:
@@ -399,7 +408,7 @@ def create_app(engine: Optional[Engine] = None, agent_llm_factory: Optional[Call
             raise HTTPException(503, f"No extraction provider available ({exc.kind})") from None
         if provider is None:
             raise HTTPException(503, "No extraction provider configured")
-        result = tools.extract_document(session, document_id, provider, actor=actor.name)
+        result = tools.extract_document(session, document_id, provider, actor=actor.name, cross_check=second_reader())
         return mask_identifiers(result.model_dump(mode="json"))
 
     @app.post("/cases/{case_id}/run")
@@ -414,7 +423,8 @@ def create_app(engine: Optional[Engine] = None, agent_llm_factory: Optional[Call
             extraction = extraction_factory() if extraction_factory else None
         except ProviderError:
             extraction = None
-        return mask_identifiers(run_agent(session, case_id, llm, extraction=extraction).model_dump(mode="json"))
+        return mask_identifiers(run_agent(session, case_id, llm, extraction=extraction,
+                                          cross_check=second_reader() if extraction else None).model_dump(mode="json"))
 
     @app.post("/cases/{case_id}/decision")
     def decide(case_id: str, body: DecisionIn, actor: Actor = Depends(actor_dep),
@@ -501,6 +511,11 @@ def _default_llm() -> Any:
     return GeminiAgentLLM()
 
 
+def _default_cross_check() -> Any:
+    from app.providers.tesseract import TesseractBaselineProvider, tesseract_available
+    return TesseractBaselineProvider() if tesseract_available() else None
+
+
 def _default_extraction() -> Any:
     from app.env_file import load_env_file
     from app.providers.gemini import GeminiProvider
@@ -509,5 +524,6 @@ def _default_extraction() -> Any:
 
 
 app = create_app(agent_llm_factory=_default_llm, extraction_factory=_default_extraction,
+                 cross_check_factory=_default_cross_check,
                  citizen_secret=default_citizen_secret(DOTENV), auth_secret=env_value(AUTH_ENV, DOTENV),
                  demo_insecure=env_value(INSECURE_ENV, DOTENV) == "1")

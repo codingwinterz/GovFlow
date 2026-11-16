@@ -30,7 +30,8 @@
     "validity_unknown": "Document date unreadable",
     "low_confidence": "Low-confidence reading",
     "invalid_value": "Value could not be read",
-    "extraction_unavailable": "Document could not be read"
+    "extraction_unavailable": "Document could not be read",
+    "readers_disagree": "Readers disagree"
   },
   "severity": {
     "high": "High",

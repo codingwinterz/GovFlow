@@ -10,6 +10,8 @@ from typing import Any, Literal, Optional, Protocol
 
 from pydantic import BaseModel
 
+from app.cross_check import READERS_DISAGREE, readers_disagree
+
 Mode = Literal["document", "ocr_text"]
 Method = Literal["llm", "ocr_fallback"]
 
@@ -83,6 +85,7 @@ class ExtractedFieldOut(BaseModel):
     source_page: Optional[int]
     method: Method
     note: Optional[str] = None
+    review_reason: Optional[str] = None   # set by the cross-check: goes to review whatever the confidence
 
 
 class ExtractionResult(BaseModel):
@@ -92,6 +95,8 @@ class ExtractionResult(BaseModel):
     low_confidence: list[str]
     missing: list[str]
     used_fallback: bool
+    disagree: list[str] = []              # fields the cross-check reader read differently
+    cross_check: Optional[str] = None     # the second reader's name, or why it could not run
     provider: str
     ocr_engine: Optional[str]
     status: Literal["ok", "extraction_unavailable"] = "ok"
@@ -99,6 +104,7 @@ class ExtractionResult(BaseModel):
     error_kind: Optional[ErrorKind] = None
     error_details: dict[str, Any] = {}    # structured provider error (http_status, quota_id, retry delay)
     retryable: bool = False
+
 
 
 def _normalise_text(value: Any) -> str:
@@ -157,8 +163,29 @@ def _merge(name: str, primary: Optional[ProviderField], secondary: Optional[Prov
     return None
 
 
+def _cross_check(request: ExtractionRequest, out: list[ExtractedFieldOut], reader: ExtractionProvider,
+                 types: dict[str, str]) -> tuple[str, list[str]]:
+    """A second reader reads the same document; fields it reads differently go to review (see app.cross_check)."""
+    try:
+        second = _clean(reader.extract(request), request.fields)
+    except ProviderError as exc:
+        return f"{reader.name} unavailable ({exc.kind})", []
+    disagree = []
+    for f in out:
+        other = second.get(f.name)
+        if other is None:                                  # the second reader has nothing to say: no check
+            continue
+        if readers_disagree(types.get(f.name, "text"), f.value, other.value):
+            f.review_reason = READERS_DISAGREE
+            f.note = (f"{f.note}; " if f.note else "") + f"{reader.name} read {other.value!r}"
+            disagree.append(f.name)
+    return reader.name, disagree
+
+
 def extract_facts(document: DocumentInput, fields: list[str], threshold: float,
-                  provider: ExtractionProvider, ocr: Optional[OcrEngine] = None) -> ExtractionResult:
+                  provider: ExtractionProvider, ocr: Optional[OcrEngine] = None,
+                  cross_check: Optional[ExtractionProvider] = None,
+                  types: Optional[dict[str, str]] = None) -> ExtractionResult:
     base = {"document_id": document.document_id, "doc_type": document.doc_type,
             "provider": provider.name, "ocr_engine": ocr.name if ocr else None}
     request = ExtractionRequest(document_id=document.document_id, doc_type=document.doc_type,
@@ -174,10 +201,13 @@ def extract_facts(document: DocumentInput, fields: list[str], threshold: float,
                                 error_details=exc.details, retryable=exc.retryable, **base)
 
     out = [m for f in fields if (m := _merge(f, primary.get(f), secondary.get(f), threshold))]
+    checked, disagree = _cross_check(request, out, cross_check, types or {}) if cross_check else (None, [])
     return ExtractionResult(
         fields=out,
         low_confidence=[f.name for f in out if f.confidence < threshold],
         missing=[f for f in fields if f not in {o.name for o in out}],
         used_fallback=bool(weak and ocr),
+        disagree=disagree,
+        cross_check=checked,
         **base,
     )

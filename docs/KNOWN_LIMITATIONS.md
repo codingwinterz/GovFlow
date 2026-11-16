@@ -70,6 +70,11 @@ None of these may be used for a real decision until checked against official sou
 - **The model's confidence was 0.99 on every field**, clean or degraded, so the 0.85 threshold never sent a field
   to review. Treat model confidence as uninformative until it is shown to drop on hard documents.
 - The Tesseract baseline's label parser knows the synthetic document layouts, so its accuracy is generous.
+- **Cross-check (readers disagree).** When Tesseract is installed it reads each document again; a field it reads
+  differently from Gemini (after normalising case, spacing, digit grouping, dates and unit synonyms) goes to
+  review. It only speaks when Tesseract finds the field: its label parser knows the synthetic layouts, so on real
+  documents it will often find nothing and stay silent. It also over-flags: on the earlier degraded run it would
+  have sent 4 of 27 correct fields to review, all because Tesseract added trailing punctuation to names.
 - Gemini's confidence scores are self-reported, not calibrated; the 0.85 threshold depends on them. So a
   document cannot vouch for itself where it matters: the fields that drive an amount (land area and unit;
   relief damage %, house type, area type) must be confirmed by the officer at their current value before

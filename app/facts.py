@@ -23,6 +23,7 @@ class CaseFacts:
     names: dict[str, Any]
     low_confidence: list[str] = field(default_factory=list)   # "doc_id.field"
     invalid: dict[str, str] = field(default_factory=dict)     # "doc_id.field" -> why it could not be coerced
+    disagree: dict[str, str] = field(default_factory=dict)    # "doc_id.field" -> review reason (readers disagree)
     derived_from: dict[str, list[str]] = field(default_factory=dict)   # "doc.derived" -> its source refs
     missing_documents: list[str] = field(default_factory=list)
     validity: dict[str, ValidityStatus] = field(default_factory=dict)
@@ -44,6 +45,9 @@ def _confident_fields(req: RequiredDocument, doc: DocumentIn, threshold: float, 
         if fv.confidence < threshold:
             facts.low_confidence.append(ref)
             continue
+        if fv.review_reason:                # e.g. two readers disagree: withheld whatever the confidence
+            facts.disagree[ref] = fv.review_reason
+            continue
         if name not in req.types:           # not declared by the scheme: passed through unchanged
             fields[name] = fv.value
             continue
@@ -62,6 +66,7 @@ def missing_reason(expr: str, facts: CaseFacts) -> Optional[str]:
                                   for derived, sources in facts.derived_from.items())
     reasons = [f"{ref}: {why}" for ref, why in facts.invalid.items() if used(ref)]
     reasons += [f"{ref}: below the confidence threshold" for ref in facts.low_confidence if used(ref)]
+    reasons += [f"{ref}: {why}" for ref, why in facts.disagree.items() if used(ref)]
     return "; ".join(reasons) or None
 
 

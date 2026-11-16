@@ -112,6 +112,7 @@ class _Context(BaseModel, arbitrary_types_allowed=True):
     case_id: str
     extraction: Optional[Any] = None
     ocr: Optional[Any] = None
+    cross_check: Optional[Any] = None
     actor: str = "agent"
 
 
@@ -125,7 +126,8 @@ def _extract(ctx: _Context, args: dict[str, Any]) -> BaseModel:
     doc = ctx.session.get(Document, doc_id)
     if doc is None or doc.case_id != ctx.case_id:
         raise tools.ToolError(f"Document {doc_id} does not belong to case {ctx.case_id}")
-    return tools.extract_document(ctx.session, doc_id, ctx.extraction, ctx.ocr, actor=ctx.actor)
+    return tools.extract_document(ctx.session, doc_id, ctx.extraction, ctx.ocr, actor=ctx.actor,
+                                  cross_check=ctx.cross_check)
 
 
 RUNNERS: dict[str, Callable[[_Context, dict[str, Any]], BaseModel]] = {
@@ -223,9 +225,11 @@ def deterministic_summary(session: Session, case_id: str, reason: str) -> str:
 
 
 def run_pipeline(session: Session, case_id: str, extraction: Optional[ExtractionProvider] = None,
-                 ocr: Optional[OcrEngine] = None, actor: str = "pipeline") -> list[Step]:
+                 ocr: Optional[OcrEngine] = None, actor: str = "pipeline",
+                 cross_check: Optional[ExtractionProvider] = None) -> list[Step]:
     """The same tools in the standard order, without an LLM."""
-    ctx = _Context(session=session, case_id=case_id, extraction=extraction, ocr=ocr, actor=actor)
+    ctx = _Context(session=session, case_id=case_id, extraction=extraction, ocr=ocr, actor=actor,
+                   cross_check=cross_check)
     steps: list[Step] = []
     latest: dict[str, Document] = {}
     for doc in session.query(Document).filter_by(case_id=case_id).order_by(Document.id):
@@ -245,8 +249,10 @@ def run_pipeline(session: Session, case_id: str, extraction: Optional[Extraction
 # --- the loop ----------------------------------------------------------------------------------
 
 def run_agent(session: Session, case_id: str, llm: AgentLLM, extraction: Optional[ExtractionProvider] = None,
-              ocr: Optional[OcrEngine] = None, max_steps: int = MAX_STEPS, actor: str = "agent") -> AgentRun:
-    ctx = _Context(session=session, case_id=case_id, extraction=extraction, ocr=ocr, actor=actor)
+              ocr: Optional[OcrEngine] = None, max_steps: int = MAX_STEPS, actor: str = "agent",
+              cross_check: Optional[ExtractionProvider] = None) -> AgentRun:
+    ctx = _Context(session=session, case_id=case_id, extraction=extraction, ocr=ocr, actor=actor,
+                   cross_check=cross_check)
     if session.get(Case, case_id) is None:
         raise tools.ToolError(f"Unknown case {case_id}")
     version = _rules_version(ctx)
@@ -277,7 +283,7 @@ def run_agent(session: Session, case_id: str, llm: AgentLLM, extraction: Optiona
 
     used_fallback = stopped == "llm_unavailable"
     if used_fallback:
-        steps += run_pipeline(session, case_id, extraction, ocr, actor="pipeline")
+        steps += run_pipeline(session, case_id, extraction, ocr, actor="pipeline", cross_check=cross_check)
         explanation = deterministic_summary(session, case_id, "LLM unavailable")
         warnings: list[str] = []
     else:

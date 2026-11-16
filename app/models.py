@@ -79,6 +79,7 @@ class ExtractedField(Base):
     source_page: Mapped[Optional[int]]
     method: Mapped[str] = mapped_column(default="seed")  # llm | ocr_fallback | seed
     note: Mapped[Optional[str]]
+    review_reason: Mapped[Optional[str]]                 # e.g. "readers disagree": review whatever the confidence
 
 
 class VerificationFlag(Base):
@@ -128,9 +129,18 @@ for _op in ("UPDATE", "DELETE"):
     ))
 
 
+def _add_missing_columns(engine: Engine) -> None:
+    """Columns added after a database was created (no migrations in this prototype): add them, nullable."""
+    with engine.begin() as conn:
+        columns = {row[1] for row in conn.exec_driver_sql("PRAGMA table_info(extracted_fields)")}
+        if "review_reason" not in columns:
+            conn.exec_driver_sql("ALTER TABLE extracted_fields ADD COLUMN review_reason VARCHAR")
+
+
 def make_engine(url: str = "sqlite:///govflow.db") -> Engine:
     engine = create_engine(url)
     Base.metadata.create_all(engine)
+    _add_missing_columns(engine)
     return engine
 
 

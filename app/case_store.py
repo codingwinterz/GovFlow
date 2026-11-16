@@ -40,7 +40,8 @@ def load_case(session: Session, case_id: str) -> CaseIn:
         rows = session.query(ExtractedField).filter_by(document_id=doc.id)
         # latest upload of a document type wins
         documents[doc.doc_type] = DocumentIn(fields={
-            r.field: FieldValue(value=json.loads(r.value), confidence=r.confidence, source_page=r.source_page)
+            r.field: FieldValue(value=json.loads(r.value), confidence=r.confidence, source_page=r.source_page,
+                                review_reason=r.review_reason)
             for r in rows
         }, extraction_unavailable=doc.extraction_status == "extraction_unavailable")
     return CaseIn(case_id=case.id, scheme=case.scheme, status=case.status, reference_date=case.reference_date,

@@ -48,10 +48,11 @@ def _build(system: str):
     from app.providers.gemini import GeminiProvider
     from app.providers.tesseract import TesseractBaselineProvider, TesseractOcr
     if system == "tesseract_only":
-        return TesseractBaselineProvider(), None
+        return TesseractBaselineProvider(), None, None
     if system == "gemini":
-        return GeminiProvider(), None
-    return GeminiProvider(), TesseractOcr()
+        return GeminiProvider(), None, None
+    # combined: Gemini first, Tesseract OCR fallback for weak fields, and Tesseract as the cross-check reader
+    return GeminiProvider(), TesseractOcr(), TesseractBaselineProvider()
 
 
 def progress_line(label: str, result: ExtractionResult) -> str:
@@ -84,6 +85,8 @@ def report_lines(system: str, r: EvalReport) -> list[str]:
         f"{e.documents_total} docs)",
         f"  accepted {e.accepted}   accepted WRONG {e.accepted_wrong}   routed to review {e.routed_to_review}",
         f"  reading errors: {e.reading_errors} (answered fields wrong or not found)",
+        f"  cross-check fired {e.cross_check_fired} (on correct readings {e.cross_check_on_correct}, "
+        f"on wrong readings {e.cross_check_on_wrong})",
         f"  provider errors: {len(r.provider_errors)}"
         + (f" ({', '.join(f'{k} x{n}' for k, n in sorted(kinds.items()))})" if kinds else "")
         + f"   -> {e.unavailable} fields unavailable, not scored",
@@ -110,10 +113,10 @@ def main() -> None:
             summaries.append([f"{system}: SKIPPED: {skip}"])
             say(summaries[-1][0])
             continue
-        provider, ocr = _build(system)
+        provider, ocr, cross_check = _build(system)
         for variant in VARIANTS:
             say(f"\n{system} / {variant} ...")
-            report = run_messy_eval(provider=provider, ocr=ocr, variant=variant,
+            report = run_messy_eval(provider=provider, ocr=ocr, variant=variant, cross_check=cross_check,
                                     on_document=lambda label, result: say(progress_line(label, result)))
             summaries.append(report_lines(system, report))
             for line in summaries[-1]:

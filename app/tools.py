@@ -47,18 +47,20 @@ def _store_fields(session: Session, document_id: int, result: ExtractionResult) 
     for f in result.fields:
         session.add(ExtractedField(document_id=document_id, field=f.name, value=json.dumps(f.value),
                                    confidence=f.confidence, source_page=f.source_page, method=f.method,
-                                   note=f.note))
+                                   note=f.note, review_reason=f.review_reason))
 
 
 def extract_document(session: Session, document_id: int, provider: ExtractionProvider,
-                     ocr: Optional[OcrEngine] = None, actor: str = "system") -> ExtractionResult:
+                     ocr: Optional[OcrEngine] = None, actor: str = "system",
+                     cross_check: Optional[ExtractionProvider] = None) -> ExtractionResult:
     doc = session.get(Document, document_id)
     case = session.get(Case, doc.case_id)
     scheme = load_scheme_by_name(case.scheme)
     wanted = next(d.fields for d in scheme.required_documents if d.id == doc.doc_type)
     document = DocumentInput(document_id=str(doc.id), doc_type=doc.doc_type, pages=load_pages(doc.file_path))
 
-    result = extract_facts(document, wanted, scheme.confidence_threshold, provider, ocr)
+    types = next(d.types for d in scheme.required_documents if d.id == doc.doc_type)
+    result = extract_facts(document, wanted, scheme.confidence_threshold, provider, ocr, cross_check, types)
     doc.extraction_status, doc.extraction_error_kind = result.status, result.error_kind
     if result.status == "ok":
         _store_fields(session, doc.id, result)
