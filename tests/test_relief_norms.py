@@ -83,6 +83,40 @@ def test_one_of_needs_options_in_the_yaml():
         parse_scheme(data)
 
 
+def _synthetic(n):
+    return CaseIn.model_validate_json((DATA / f"case_{n}" / "case.json").read_text(encoding="utf-8"))
+
+
+COMPONENTS = list(ZERO)
+
+
+def test_dr09_no_assessment_means_no_relief_line_is_computed():
+    """No damage assessment: none of the three inputs exists, every component needs damage_percent,
+    so no line is computed and the total is withheld (never zero)."""
+    comp = assess_case(DR, _synthetic("09"), []).compensation
+    assert comp.status == "needs_review" and comp.items == [] and comp.total is None and comp.inputs == []
+    assert comp.missing == ["damage_percent", "house_type", "area_type", *COMPONENTS]
+    assert "damage_percent: damage_assessment.damage_percent unavailable" in comp.review_notes
+
+
+def test_dr14_low_confidence_damage_withholds_relief_but_not_the_other_inputs():
+    """damage_percent 60 read at confidence 0.6 (< 0.85): withheld; house_type and area_type still resolve."""
+    comp = assess_case(DR, _synthetic("14"), []).compensation
+    assert comp.status == "needs_review" and comp.items == [] and comp.total is None
+    assert {i.name: i.value for i in comp.inputs} == {"house_type": "pucca", "area_type": "plain"}
+    assert comp.missing == ["damage_percent", *COMPONENTS]
+    assert "damage_assessment.damage_percent: below the confidence threshold" in comp.review_notes[0]
+
+
+def test_dr14_once_the_damage_reading_is_confirmed_gets_partial_pucca_relief():
+    """Hand-derived: 60% pucca plain is >= 15 and < 75, so partial pucca 6500 + clothing 2500 + utensils 2500."""
+    case = _synthetic("14")
+    case.documents["damage_assessment"].fields["damage_percent"].confidence = 0.97
+    comp = assess_case(DR, case, []).compensation
+    assert {i.component: i.amount for i in comp.items} == {**ZERO, "house_partial_pucca": 6500, **ITEMS}
+    assert comp.total == 11500
+
+
 def test_norm_amounts_are_parameters():
     p = DR.compensation.parameters
     assert (p["full_house_plain"], p["full_house_hilly"], p["partial_pucca"], p["partial_kutcha"], p["hut"],
