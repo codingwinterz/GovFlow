@@ -17,7 +17,7 @@ from sqlalchemy.orm import Session
 from app.audit import log_action
 from app.case_store import load_case
 from app.facts import build_facts
-from app.models import AuditLog, Case, CompensationItemRow
+from app.models import AuditLog, Case, CompensationItemRow, india_date
 from app.privacy import mask_identifiers
 from app.rules_loader import load_scheme_by_name
 
@@ -85,7 +85,7 @@ def _decision(session: Session, case: Case) -> Optional[dict[str, str]]:
            .order_by(AuditLog.id.desc()).first())
     if row is None:
         return None
-    return {"decision": json.loads(row.payload_json)["decision"], "date": row.ts.date().isoformat()}
+    return {"decision": json.loads(row.payload_json)["decision"], "date": india_date(row.ts)}
 
 
 def _amounts(session: Session, case: Case, version: str) -> Optional[dict[str, Any]]:

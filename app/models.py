@@ -1,6 +1,6 @@
 """SQLite schema (SPEC section 3). audit_log is append-only, enforced by triggers."""
 
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from typing import Optional
 
 from sqlalchemy import DDL, Engine, ForeignKey, String, create_engine, event
@@ -22,6 +22,16 @@ def as_utc(ts: datetime) -> datetime:
 def iso_utc(ts: datetime) -> str:
     """API form of a timestamp: ISO 8601 in UTC with an explicit Z, so no client has to guess the zone."""
     return as_utc(ts).astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+# India Standard Time. A fixed offset is exact (no daylight saving since 1945) and needs no tz database,
+# which Windows Python lacks without the tzdata package.
+IST = timezone(timedelta(hours=5, minutes=30), "IST")
+
+
+def india_date(ts: datetime) -> str:
+    """The calendar date of a timestamp as people in India read it: a decision at 00:30 IST is that day."""
+    return as_utc(ts).astimezone(IST).date().isoformat()
 
 
 def queue_key(case: "Case") -> tuple[bool, datetime]:

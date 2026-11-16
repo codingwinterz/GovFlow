@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   formatRupees, maskIdentifiers, formatConfidence, formatDuration, fieldSource, validateDecision,
-  unavailableDocuments, formatDate, formatDay,
+  unavailableDocuments, formatDate, formatDay, todayInIndia,
 } from "./format.js";
 
 test("rupees use Indian grouping and are only formatted, never computed", () => {
@@ -72,4 +72,12 @@ test("a day is shown without a time", () => {
 test("timestamps without a zone are UTC (as the backend stores them), not browser-local", () => {
   assert.equal(formatDate("2026-09-07T07:07:35.808317"), formatDate("2026-09-07T07:07:35.808317Z"));
   assert.equal(formatDay("2026-09-07T23:30:00"), formatDay("2026-09-07T23:30:00+00:00"));
+});
+
+test("timestamps are shown in India time whatever the browser's zone: a decision at 00:30 IST", () => {
+  const ts = "2026-11-19T19:00:00Z";                       // 00:30 IST on 20 Nov
+  assert.match(formatDate(ts), /^20 Nov 2026, 12:30\s?am$/i);
+  assert.equal(formatDay(ts), "20 Nov 2026");
+  assert.equal(formatDay("2026-11-20"), "20 Nov 2026");    // a plain date stays that date
+  assert.equal(todayInIndia(new Date(ts)), "2026-11-20");  // intake's default reference date
 });

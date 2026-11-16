@@ -4,7 +4,7 @@ import pytest
 from sqlalchemy import text
 from sqlalchemy.exc import DatabaseError
 
-from app.models import AuditLog, Case, RuleResultRow, iso_utc, make_engine, make_session
+from app.models import AuditLog, Case, RuleResultRow, iso_utc, india_date, make_engine, make_session
 
 
 @pytest.fixture
@@ -56,3 +56,8 @@ def test_iso_utc_always_ends_in_z():
     ist = timezone(timedelta(hours=5, minutes=30))
     assert iso_utc(datetime(2026, 11, 16, 12, 21, 0, tzinfo=ist)) == "2026-11-16T06:51:00Z"    # converted, not relabelled
     assert iso_utc(datetime(2026, 11, 16, 6, 51, 0, 5, tzinfo=timezone.utc)) == "2026-11-16T06:51:00.000005Z"
+
+
+def test_india_date_rolls_over_at_ist_midnight():
+    assert india_date(datetime(2026, 11, 19, 18, 29)) == "2026-11-19"                       # 23:59 IST (naive = UTC)
+    assert india_date(datetime(2026, 11, 19, 19, 0, tzinfo=timezone.utc)) == "2026-11-20"   # 00:30 IST

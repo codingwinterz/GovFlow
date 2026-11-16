@@ -42,3 +42,43 @@ docs/           architecture diagram, demo script
 - Keep functions small and typed. No clever abstractions.
 - Never change expected outcomes in `data/synthetic/` to make a test pass. Fix the code or ask.
 - If a rule or legal formula is uncertain, mark it `# VERIFY: <what>` and tell the user instead of guessing.
+
+## Current state (2026-11-16)
+Keep this section current: update it in the same commit as any change to what is built, the test counts or a VERIFY item.
+Fuller detail is in `docs/KNOWN_LIMITATIONS.md`.
+
+### Built
+- Two schemes from YAML only: land acquisition (16 synthetic cases) and disaster relief (14), with expected outcomes.
+- Tools: rules engine, compensation, extraction (Gemini vision, Tesseract fallback), verification, SLA, analytics,
+  self-check, rule simulator (read-only what-if over the synthetic set). Agent loop with a deterministic fallback.
+- API (FastAPI): staff roles clerk / officer / admin via demo headers, checked on the server per route; officer-only
+  decisions; append-only audit with masked identifiers; timestamps sent as UTC with `Z`; dates shown in India time.
+- Citizen tracking (`POST /public/status`): case reference plus a 6-digit HMAC code, the same 404 for any wrong pair,
+  rate-limited per client and per reference.
+- Web: landing page, citizen shell (home, self-check, track; en/hi/mr/kok; light theme by default) and officer shell
+  (queue, case, intake, analytics with one shared scale, simulator, audit, award letter).
+
+### Tests (all green at commit time)
+- Python: 732 passed (`pytest -q`, about 3 minutes).
+- Frontend logic: 56 passed (`npm test`). Browser layout: 11 passed (`npm run test:layout`). `vite build` clean.
+
+### Still marked VERIFY
+- Land acquisition (`rules/land_acquisition.yaml`): notification references (source); 60-day SLA; record-of-rights
+  age 180 days; mutation extract age 365 days; rural multiplier default 1.0 (Goa's notified factor unconfirmed);
+  estimating to the reference date while the award or possession date is unrecorded; solatium and 12% section
+  numbers; whether the 12% base includes the multiplier (formula currently includes it).
+- `app/compensation.py`: actual/365 day count for the 12% additional amount.
+- Disaster relief (`rules/disaster_relief.yaml`): the SDRF/NDRF 2022-26 schedule in force in Goa; 15-day SLA;
+  residence proof age 365 days; claim window 90 days; which Goa areas count as hilly; relying on the assessment's
+  own "notified area" certification; 75% full-damage threshold (a placeholder: the norms give no percentage);
+  applying the 15% minimum to kutcha houses, huts, clothing and utensils; the condition for clothing and utensils.
+- `app/providers/gemini_agent.py`: Gemini function-calling wire format and default temperature (never run live).
+- Every rule's `<clause ref>` in both YAML files.
+
+### Open items
+- Gemini: free-tier quota exhausted during testing; the agent has never run against the live API.
+- Real-extraction accuracy is unmeasured (last real-image run: 1 of 28 requests answered before rate limits).
+- Hindi, Marathi and Konkani text needs native-speaker review.
+- Goa rural multiplier: notified value unknown (default 1.0 above).
+- Current relief schedule for Goa: amounts follow the 2022-26 norms, labelled "to be confirmed".
+- 75% full-damage threshold: placeholder until an official definition is found.

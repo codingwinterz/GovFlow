@@ -32,7 +32,7 @@ from app.citizen import citizen_secret as default_citizen_secret
 from app.extraction import EXTRACTION_UNAVAILABLE_MESSAGE, ProviderError
 from app.case_store import load_case
 from app.models import AuditLog, Case, CompensationItemRow, Document, ExtractedField, RuleResultRow
-from app.models import VerificationFlag, iso_utc, make_engine, queue_key
+from app.models import VerificationFlag, india_date, iso_utc, make_engine, queue_key
 from app.privacy import mask_identifiers
 from app.rules_engine import overall_from
 from app.self_check import NoSelfCheck, public_questions, self_check
@@ -414,7 +414,7 @@ def create_app(engine: Optional[Engine] = None, agent_llm_factory: Optional[Call
             "case_id": case.id, "scheme": case.scheme, "labels": scheme.labels, "terms": scheme.terms, "demo": True,
             "applicant_name": field("application", "name"), "applicant_id": field("identity_proof", "id_number"),
             "decision": {"decision": "approve", "officer_id": case.officer_id,
-                         "date": decision.ts.date().isoformat() if decision else None},
+                         "date": india_date(decision.ts) if decision else None},
             "rules_version": scheme.version,
             "rule_results": [{"rule_id": r.rule_id, "status": r.status, "clause": r.clause, "reason": r.reason}
                              for r in session.query(RuleResultRow).filter_by(case_id=case_id)],

@@ -1,6 +1,7 @@
 """Award letter / case summary: officer only, approved cases only, every value from stored results."""
 
 import json
+from datetime import datetime, timezone
 from pathlib import Path
 
 import pytest
@@ -102,3 +103,13 @@ def test_award_view_is_audited(env):
 def test_unknown_case_is_404(env):
     _, get = env
     assert get("/cases/LA-99/award")[0] == 404
+
+
+def test_award_decision_date_is_the_date_in_india(env):
+    engine, get = env
+    _decide(engine, "LA-01", "approve")
+    with Session(engine) as s:                     # one more decision row at 00:30 IST on 20 Nov (19:00 UTC on 19 Nov)
+        s.add(AuditLog(case_id="LA-01", actor="officer:O-7", action="officer_decision",
+                       ts=datetime(2026, 11, 19, 19, 0, tzinfo=timezone.utc), payload_json=json.dumps({"decision": "approve"})))
+        s.commit()
+    assert get("/cases/LA-01/award")[1]["decision"]["date"] == "2026-11-20"

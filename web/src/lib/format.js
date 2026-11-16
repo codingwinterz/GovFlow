@@ -52,7 +52,9 @@ function parseUtc(iso) {
   return new Date(/[zZ]|[+-]\d{2}:\d{2}$/.test(s) || !s.includes("T") ? s : `${s}Z`);
 }
 
-const DAY = { day: "numeric", month: "short", year: "numeric" };
+// Every date and time is shown in India time, whatever zone the viewer's browser is set to.
+const INDIA = "Asia/Kolkata";
+const DAY = { day: "numeric", month: "short", year: "numeric", timeZone: INDIA };
 
 export function formatDate(iso) {   // to the minute: "7 Sept 2026, 12:37 pm"
   return iso ? parseUtc(iso).toLocaleString("en-IN", { ...DAY, hour: "numeric", minute: "2-digit" }) : "—";
@@ -60,4 +62,8 @@ export function formatDate(iso) {   // to the minute: "7 Sept 2026, 12:37 pm"
 
 export function formatDay(iso) {    // "7 Sept 2026"
   return iso ? parseUtc(iso).toLocaleDateString("en-IN", DAY) : "—";
+}
+
+export function todayInIndia(now = new Date()) {   // "2026-11-20": YYYY-MM-DD for a date input
+  return now.toLocaleDateString("en-CA", { timeZone: INDIA });
 }

@@ -1,6 +1,7 @@
 """Public citizen status lookup: minimal data, verification code, rate limit, no internal detail."""
 
 import json
+from datetime import datetime, timezone
 from pathlib import Path
 
 import pytest
@@ -12,7 +13,7 @@ from app.case_model import CaseIn
 from app.case_store import seed_case
 from app.citizen import citizen_code
 from app.main import create_app
-from app.models import Base
+from app.models import AuditLog, Base
 from app.tools import (add_document, check_eligibility, compute_compensation, record_officer_decision,
                        submit_to_officer, verify_documents)
 from tests.asgi_client import call
@@ -183,3 +184,18 @@ def test_a_spoofed_forwarded_for_header_does_not_bypass_the_limit(tmp_path):
     status, _ = call(app, "POST", "/public/status", {"case_ref": "X", "code": "1"},
                      headers={"X-Forwarded-For": "6.6.6.6"}, client="7.7.7.7")
     assert status == 429
+
+
+def _decision_at(engine, case_id, ts):
+    """Append one more officer_decision row at a chosen instant (the audit log is append-only; the latest row wins)."""
+    with Session(engine) as s:
+        s.add(AuditLog(case_id=case_id, actor="officer:O-1", action="officer_decision", ts=ts,
+                       payload_json=json.dumps({"decision": "approve"})))
+        s.commit()
+
+
+def test_decision_date_is_the_date_in_india_not_utc(env):
+    engine, lookup, _ = env
+    _decide(engine, "LA-01", "approve")
+    _decision_at(engine, "LA-01", datetime(2026, 11, 19, 19, 0, tzinfo=timezone.utc))   # 00:30 IST on 20 Nov
+    assert lookup("LA-01")[1]["decision"]["date"] == "2026-11-20"

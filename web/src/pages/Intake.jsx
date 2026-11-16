@@ -3,9 +3,10 @@ import { api, readFileAsBase64 } from "../api.js";
 import { useApi } from "../useApi.jsx";
 import { href } from "../lib/router.js";
 import { termLabel } from "../lib/display.js";
+import { todayInIndia } from "../lib/format.js";
 
 function CreateCase({ schemes, onCreated }) {
-  const [form, setForm] = useState({ case_id: "", scheme: "", reference_date: new Date().toISOString().slice(0, 10) });
+  const [form, setForm] = useState({ case_id: "", scheme: "", reference_date: todayInIndia() });
   const [inputs, setInputs] = useState({});
   const [error, setError] = useState("");
   const scheme = schemes.find((s) => s.scheme === (form.scheme || schemes[0]?.scheme));
