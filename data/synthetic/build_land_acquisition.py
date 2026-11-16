@@ -179,6 +179,15 @@ CASES.append((documents("Ravi Kamat", "77/1", 0.5, "ha", 1, "ha", id_last4="0015
               expected("Co-owner claim, multiplier 2.0, interest over three years incl. leap day",
                        compensation=comp(15_000_000, 150_000, 15_150_000, 5_404_931.51))))
 
+# 16 rural multiplier 1.75 with assets. 0.3 ha = 3000 sqm (survey total 0.5 ha, no other claim)
+# land_value = 3000 x 2000 x 1.75 = 10,500,000; solatium = (10,500,000 + 250,000) x 1.0 = 10,750,000
+# interest: 2025-05-15 -> 2026-05-15 = 365 days (no 29 Feb), -> 2026-11-15 = +184 (31+30+31+31+30+31)
+#   = 549 days; 10,500,000 x 0.12 x 549/365 = 691,740,000/365 = 1,895,178.082.. -> 1,895,178.08
+CASES.append((documents("Sunita Gaude", "212/3", 0.3, "ha", 0.5, "ha", id_last4="0016"),
+              inputs(2000, 250_000, start="2025-05-15", multiplier=1.75),
+              expected("Rural multiplier 1.75 with assets; multiplier carried into solatium and interest",
+                       compensation=comp(10_500_000, 250_000, 10_750_000, 1_895_178.08))))
+
 
 def main() -> None:
     for i, (docs, case_inputs, exp) in enumerate(CASES, start=1):

@@ -57,7 +57,7 @@ None of these may be used for a real decision until checked against official sou
   produced, the amount is flagged, but other kinds of wrong wording are not detected.
 
 ## Data and testing
-- **All data is synthetic.** 15 land-acquisition and 14 disaster-relief cases, hand-derived expected
+- **All data is synthetic.** 16 land-acquisition and 14 disaster-relief cases, hand-derived expected
   outcomes, and 7 messy documents rendered as clean and degraded images from a computer font, not real scans.
 - The demo seed spreads intake dates over recent weeks by a fixed pattern so SLA flags appear; those dates
   are synthetic.
