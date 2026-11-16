@@ -23,7 +23,9 @@ a screen or a test result as more than it is.
 - **No separation of duties** (production hardening still open). One officer can create a case, upload its
   documents, run the agent and approve it. A real deployment should refuse a decision from the user who
   created the case or uploaded its documents (maker-checker), using the audit log.
-- **Uploaded documents are stored unencrypted** on local disk under `uploads/` (gitignored).
+- **Uploaded documents are stored unencrypted** on local disk under `uploads/` (gitignored). Requests over
+  14 MB are refused before they are read, files over 10 MB are refused, and a file's first bytes must match its
+  extension (PNG, JPEG, PDF; .txt must be UTF-8 text). There is no malware scanning and no check inside PDFs.
 - **The audit log is append-only only inside SQLite** (triggers reject UPDATE and DELETE). Someone with
   direct access to the database file can drop the triggers. There are no backups and no external log sink.
 

@@ -28,6 +28,8 @@ from app import sla
 from app.analytics import analytics
 from app.audit import log_action
 from app.auth import AUTH_ENV, INSECURE_ENV, issue_token, read_token
+from app.body_limit import MAX_BODY_BYTES, BodyLimit
+from app.upload_check import content_problem
 from app.citizen import RateLimiter, citizen_view, code_matches
 from app.env_file import env_value
 from app.citizen import citizen_secret as default_citizen_secret
@@ -53,6 +55,7 @@ def _all_schemes() -> list[Scheme]:
 ROLES = ("citizen", "clerk", "officer", "admin")   # admin: rule simulator only
 UPLOAD_TYPES = {".txt", ".png", ".jpg", ".jpeg", ".pdf"}
 MAX_UPLOAD_BYTES = 10 * 1024 * 1024
+MAX_BASE64_CHARS = 4 * -(-MAX_UPLOAD_BYTES // 3)   # base64 length of the largest allowed file
 DEFAULT_UPLOAD_DIR = Path(__file__).resolve().parent.parent / "uploads"   # gitignored: citizen documents
 DOTENV = Path(__file__).resolve().parent.parent / ".env"
 STATUS_NOT_CONFIGURED = ("Status lookup is not configured on this server: set GOVFLOW_CITIZEN_SECRET "
@@ -215,6 +218,7 @@ def create_app(engine: Optional[Engine] = None, agent_llm_factory: Optional[Call
                clock: Callable[[], float] = time.monotonic,
                now: Callable[[], datetime] = lambda: datetime.now(timezone.utc)) -> FastAPI:
     app = FastAPI(title="GovFlow", version="0.1.0")
+    app.add_middleware(BodyLimit, max_bytes=MAX_BODY_BYTES)   # 413 before any handler reads an oversized body
     secret = citizen_secret or default_citizen_secret()   # None: status lookups answer 503, never a weak default
     signing = auth_secret or env_value(AUTH_ENV)          # None: sign-in answers 503 and no token is accepted
     insecure = demo_insecure if demo_insecure is not None else env_value(INSECURE_ENV) == "1"
@@ -365,12 +369,17 @@ def create_app(engine: Optional[Engine] = None, agent_llm_factory: Optional[Call
         suffix = Path(body.filename).suffix.lower()
         if suffix not in UPLOAD_TYPES:
             raise HTTPException(400, f"Unsupported file type {suffix or '(none)'}; use {sorted(UPLOAD_TYPES)}")
+        if len(body.content_base64) > MAX_BASE64_CHARS:                # refuse before decoding
+            raise HTTPException(400, "File too large (max 10 MB)")
         try:
             content = base64.b64decode(body.content_base64, validate=True)
         except (binascii.Error, ValueError):
             raise HTTPException(400, "content_base64 is not valid base64") from None
         if len(content) > MAX_UPLOAD_BYTES:
             raise HTTPException(400, "File too large (max 10 MB)")
+        problem = content_problem(suffix, content)
+        if problem:
+            raise HTTPException(400, problem)
         path = uploads / case_id / f"{uuid.uuid4().hex}{suffix}"   # server-chosen name: no path from the client
         doc = tools.add_document(session, case_id, body.doc_type, str(path), actor.name)
         path.parent.mkdir(parents=True, exist_ok=True)
