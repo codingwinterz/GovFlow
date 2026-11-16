@@ -1,17 +1,8 @@
 import { useEffect, useState } from "react";
-import { getLogin, setLogin } from "./api.js";
-import { href, parseRoute } from "./lib/router.js";
-import Login from "./pages/Login.jsx";
-import Queue from "./pages/Queue.jsx";
-import CasePage from "./pages/CasePage.jsx";
-import Audit from "./pages/Audit.jsx";
-import Analytics from "./pages/Analytics.jsx";
-import Intake from "./pages/Intake.jsx";
-import StatusLookup from "./pages/StatusLookup.jsx";
-import Track from "./pages/Track.jsx";
-import SelfCheck from "./pages/SelfCheck.jsx";
-import Simulator from "./pages/Simulator.jsx";
-import Award from "./pages/Award.jsx";
+import { parseRoute } from "./lib/router.js";
+import Landing from "./shells/Landing.jsx";
+import CitizenShell from "./shells/CitizenShell.jsx";
+import OfficerShell from "./shells/OfficerShell.jsx";
 
 function useRoute() {
   const [route, setRoute] = useState(parseRoute(window.location.hash));
@@ -23,55 +14,10 @@ function useRoute() {
   return route;
 }
 
-function Page({ route, login }) {
-  if (login.role === "citizen") return <Track />;   // citizens see only the public status page
-  if (login.role === "admin") return <Simulator />;  // admins: rule simulator only
-  switch (route.page) {
-    case "queue": return <Queue />;
-    case "case": return <CasePage id={route.id} login={login} />;
-    case "audit": return login.role === "officer" ? <Audit id={route.id} /> : <p>Only officers can view the audit trail.</p>;
-    case "award": return login.role === "officer" ? <Award id={route.id} /> : <p>Only officers can view award letters.</p>;
-    case "analytics": return <Analytics />;
-    case "intake": return <Intake />;
-    case "status": return <StatusLookup />;
-    case "simulator": return login.role === "officer" ? <Simulator /> : <p>Only officers and admins can use the simulator.</p>;
-    default: return <p>Page not found. <a href={href("queue")}>Back to the queue</a></p>;
-  }
-}
-
+// The route decides the shell. The citizen shell never renders officer navigation, and vice versa.
 export default function App() {
   const route = useRoute();
-  const [login, setLoginState] = useState(getLogin());
-  const signIn = (value) => { setLogin(value); setLoginState(value); };
-
-  return (
-    <div className="app">
-      <header className="topbar no-print">
-        <a className="brand" href={href("queue")}>GovFlow</a>
-        <span className="badge demo" title="Identity comes from X-Role / X-User headers; not real authentication">
-          DEMO MODE
-        </span>
-        {login && !["citizen", "admin"].includes(login.role) && (
-          <nav>
-            <a href={href("queue")}>Queue</a>
-            <a href={href("intake")}>Intake</a>
-            <a href={href("analytics")}>Analytics</a>
-            <a href={href("status")}>Status lookup</a>
-            {login.role === "officer" && <a href={href("simulator")}>Simulator</a>}
-          </nav>
-        )}
-        <a href={href("track")}>Track an application</a>
-        <a href={href("self-check")}>Check before you apply</a>
-        {login && (
-          <span className="who">
-            {login.role}: {login.user} <button className="link" onClick={() => signIn(null)}>switch user</button>
-          </span>
-        )}
-      </header>
-      <main>
-        {route.page === "track" ? <Track /> : route.page === "self-check" ? <SelfCheck />
-          : login ? <Page route={route} login={login} /> : <Login onLogin={signIn} />}
-      </main>
-    </div>
-  );
+  if (route.shell === "citizen") return <CitizenShell route={route} />;
+  if (route.shell === "officer") return <OfficerShell route={route} />;
+  return <Landing notFound={route.page === "notfound"} />;
 }

@@ -15,7 +15,6 @@ export default function Login({ onLogin }) {
           <select value={role} onChange={(e) => setRole(e.target.value)}>
             <option value="officer">officer (decides cases)</option>
             <option value="clerk">clerk (intake, runs the agent)</option>
-            <option value="citizen">citizen (status only)</option>
             <option value="admin">admin (rule simulator only)</option>
           </select>
         </label>

@@ -137,7 +137,7 @@ def main() -> None:
     print(f"Seeded {summary['cases']} synthetic cases into {summary['db']}")
     for status, n in summary["by_status"].items():
         print(f"  {status:<18}{n}")
-    print("Demo citizen verification codes (public page #/track):")
+    print("Demo citizen verification codes (public page #/citizen/track):")
     for ref, code in summary["citizen_codes"].items():
         print(f"  {ref}: {code}")
 

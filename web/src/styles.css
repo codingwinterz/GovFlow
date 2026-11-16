@@ -15,11 +15,23 @@
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); }
 a { color: var(--accent); }
-.app { max-width: 1200px; margin: 0 auto; padding: 0 16px 48px; }
-.topbar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; padding: 14px 0; border-bottom: 1px solid var(--border); }
+/* Shells: a full-width top bar, content centred with a max width */
+.topbar { border-bottom: 1px solid var(--border); background: var(--surface); }
+.topbar-inner { max-width: 1200px; margin: 0 auto; padding: 12px 16px; display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; }
+.citizen .topbar-inner { max-width: 880px; }
 .brand { font-weight: 700; font-size: 1.2rem; text-decoration: none; color: var(--text); }
+.brand-sub { font-weight: 500; font-size: 0.9rem; color: var(--muted); margin-left: 4px; }
 .topbar nav { display: flex; gap: 16px; flex-wrap: wrap; }
 .who { margin-left: auto; color: var(--muted); }
+.content { margin: 0 auto; padding: 8px 16px 48px; }
+.wide-content { max-width: 1200px; }
+.narrow-content { max-width: 880px; }
+.big-brand { font-size: 2rem; margin: 48px 0 16px; }
+.entry-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin: 16px 0; }
+a.entry { display: block; text-decoration: none; color: var(--text); margin: 0; }
+a.entry h2 { color: var(--accent); }
+a.entry p { color: var(--muted); }
+.entry-go { color: var(--accent); font-weight: 600; }
 h1 { font-size: 1.5rem; margin: 24px 0 8px; }
 h2 { font-size: 1.1rem; margin: 0 0 12px; }
 h3 { font-size: 1rem; margin: 16px 0 8px; }
