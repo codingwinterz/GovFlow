@@ -1,7 +1,7 @@
 # GovFlow jury demo (3 minutes)
 
-All data is synthetic. The screen always shows the **DEMO MODE** badge: logins are demo headers, not real
-authentication (see [KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md)).
+All data is synthetic. The screen always shows the **DEMO MODE** badge: the staff sign-in has no password
+(it issues a signed token), so it is not real authentication (see [KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md)).
 
 Steps marked **LIVE GEMINI** call the Gemini API. If Gemini is slow, out of quota or offline, use the
 **Fallback** line; every fallback is a real feature (GovFlow is designed to keep working without the LLM).

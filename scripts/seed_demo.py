@@ -26,7 +26,9 @@ from sqlalchemy.orm import Session
 from app.agent import run_agent
 from app.case_model import CaseIn
 from app.case_store import seed_case
-from app.citizen import SECRET_ENV, citizen_code, citizen_secret
+from app.auth import AUTH_ENV
+from app.citizen import SECRET_ENV, citizen_code
+from app.env_file import env_value
 from app.evaluation import SET_DIR, _fake_for
 from app.extraction import ProviderError
 from app.models import Case, make_engine
@@ -96,16 +98,16 @@ def _backdate_submissions(session: Session) -> None:
     session.commit()
 
 
-def ensure_citizen_secret(dotenv: Path) -> tuple[str, bool]:
-    """The citizen code secret for the demo: the configured one, else a new random one appended to `dotenv`
-    (gitignored). Returns (secret, created). Random per machine, so nobody can derive codes from the source."""
-    existing = citizen_secret(dotenv)
+def ensure_dotenv_secret(dotenv: Path, name: str) -> tuple[str, bool]:
+    """A demo secret (citizen codes, sign-in tokens): the configured one, else a new random one appended to
+    `dotenv` (gitignored). Returns (secret, created). Random per machine, never in the source."""
+    existing = env_value(name, dotenv)
     if existing:
         return existing, False
     secret = secrets.token_urlsafe(32)
     text = dotenv.read_text(encoding="utf-8") if dotenv.is_file() else ""
     sep = "" if not text or text.endswith("\n") else "\n"
-    dotenv.write_text(f"{text}{sep}{SECRET_ENV}={secret}\n", encoding="utf-8")
+    dotenv.write_text(f"{text}{sep}{name}={secret}\n", encoding="utf-8")
     return secret, True
 
 
@@ -149,13 +151,15 @@ def main() -> None:
     parser.add_argument("--reset", action="store_true", help="replace an existing .db file")
     parser.add_argument("--no-decisions", action="store_true", help="do not record seeded officer decisions")
     args = parser.parse_args()
-    secret, created = ensure_citizen_secret(ROOT / ".env")
+    secret, created = ensure_dotenv_secret(ROOT / ".env", SECRET_ENV)
+    _, auth_created = ensure_dotenv_secret(ROOT / ".env", AUTH_ENV)
     summary = seed(Path(args.db), reset=args.reset, with_decisions=not args.no_decisions, code_secret=secret)
     print(f"Seeded {summary['cases']} synthetic cases into {summary['db']}")
     for status, n in summary["by_status"].items():
         print(f"  {status:<18}{n}")
-    if created:
-        print(f"Wrote a new random {SECRET_ENV} to .env (gitignored); the API reads it at start-up.")
+    for made, name in ((created, SECRET_ENV), (auth_created, AUTH_ENV)):
+        if made:
+            print(f"Wrote a new random {name} to .env (gitignored); the API reads it at start-up.")
     print("Demo citizen verification codes (public page #/citizen/track):")
     for ref, code in summary["citizen_codes"].items():
         print(f"  {ref}: {code}")

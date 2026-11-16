@@ -88,16 +88,17 @@ def test_seed_lists_demo_citizen_codes_that_work(seeded):
     assert all(code == citizen_code(ref, CODE_SECRET) for ref, code in codes.items())
 
 
-def test_seed_writes_a_random_secret_to_dotenv_once_and_then_reuses_it(tmp_path, monkeypatch):
-    from scripts.seed_demo import ensure_citizen_secret
-    monkeypatch.delenv("GOVFLOW_CITIZEN_SECRET", raising=False)
+@pytest.mark.parametrize("name", ["GOVFLOW_CITIZEN_SECRET", "GOVFLOW_AUTH_SECRET"])
+def test_seed_writes_a_random_secret_to_dotenv_once_and_then_reuses_it(tmp_path, monkeypatch, name):
+    from scripts.seed_demo import ensure_dotenv_secret
+    monkeypatch.delenv(name, raising=False)
     dotenv = tmp_path / ".env"
     dotenv.write_text("GEMINI_API_KEY=keep-me", encoding="utf-8")       # no trailing newline
-    first, created = ensure_citizen_secret(dotenv)
+    first, created = ensure_dotenv_secret(dotenv, name)
     assert created and len(first) >= 40
-    assert dotenv.read_text(encoding="utf-8") == f"GEMINI_API_KEY=keep-me\nGOVFLOW_CITIZEN_SECRET={first}\n"
-    assert ensure_citizen_secret(dotenv) == (first, False)               # reused, file unchanged
-    assert ensure_citizen_secret(tmp_path / "other.env")[0] != first      # random per machine, not in the source
+    assert dotenv.read_text(encoding="utf-8") == f"GEMINI_API_KEY=keep-me\n{name}={first}\n"
+    assert ensure_dotenv_secret(dotenv, name) == (first, False)          # reused, file unchanged
+    assert ensure_dotenv_secret(tmp_path / "other.env", name)[0] != first  # random per machine, not in the source
 
 
 def test_seed_spreads_intake_dates_so_some_cases_are_overdue(seeded):

@@ -15,6 +15,7 @@ from app.models import AuditLog, Base
 from app.rules_loader import RULES_DIR, load_scheme_by_name
 from app.simulator import knobs, simulate
 from tests.asgi_client import call
+from tests.auth_headers import staff
 
 DATA = Path(__file__).resolve().parent.parent / "data" / "synthetic"
 
@@ -87,7 +88,7 @@ def api(tmp_path):
     Base.metadata.create_all(engine)
     app = create_app(engine=engine, upload_dir=tmp_path)
     return engine, lambda method, path, body=None, role="officer": call(app, method, path, body,
-                                                                         headers={"X-Role": role, "X-User": "U-1"})
+                                                                         headers=staff(role, "U-1"))
 
 
 @pytest.mark.parametrize("role, status", [("officer", 200), ("admin", 200), ("clerk", 403), ("citizen", 403)])

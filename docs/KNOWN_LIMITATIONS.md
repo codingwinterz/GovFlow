@@ -4,9 +4,11 @@ GovFlow is a hackathon prototype. This list is meant to be read before anyone tr
 a screen or a test result as more than it is.
 
 ## Security and access
-- **No real authentication.** Identity is the `X-Role` / `X-User` request headers, trusted as sent
-  (*DEMO MODE*). Anyone who can reach the API can claim to be an officer. Replace with real
-  authentication and authorisation before any deployment.
+- **No real authentication. Production needs the government single sign-on (SSO).** The demo sign-in
+  (`POST /auth/demo-login`) has no password: it issues an HMAC-signed token (role, user, 8-hour expiry) with
+  `GOVFLOW_AUTH_SECRET`. The token stops a client from editing its role and makes sessions expire, but anyone
+  who can reach the sign-in can still choose to be an officer. Do not expose the demo on a public network.
+  Plain `X-Role` / `X-User` headers are refused unless `GOVFLOW_DEMO_INSECURE=1` (scripts only).
 - **Citizen verification codes are a demo mechanism.** A code is an HMAC of the case reference with a
   server secret. Without `GOVFLOW_CITIZEN_SECRET` a built-in demo secret is used, so codes are predictable
   to anyone who has the source. Real codes should be issued to the applicant at intake.

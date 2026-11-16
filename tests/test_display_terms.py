@@ -5,6 +5,7 @@ import yaml
 
 from app.rules_loader import RULES_DIR, RulesError, known_terms, load_scheme_by_name, parse_scheme, term_label
 from tests.asgi_client import call
+from tests.auth_headers import staff
 
 SCHEMES = sorted(p.stem for p in RULES_DIR.glob("*.yaml"))
 
@@ -71,7 +72,7 @@ def test_schemes_and_case_detail_return_the_terms(tmp_path):
     with Session(engine) as s:
         seed_case(s, _cases("land_acquisition")[0][0])
     app = create_app(engine=engine, upload_dir=tmp_path)
-    officer = {"X-Role": "officer", "X-User": "O-1"}
+    officer = staff("officer", "O-1")
     (la,) = [s for s in call(app, "GET", "/schemes", None, officer)[1] if s["scheme"] == "land_acquisition"]
     assert la["terms"] == load_scheme_by_name("land_acquisition").terms
     assert call(app, "GET", "/cases/LA-01", None, officer)[1]["terms"]["solatium"] == la["terms"]["solatium"]

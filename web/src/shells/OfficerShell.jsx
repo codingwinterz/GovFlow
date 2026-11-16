@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { getLogin, setLogin } from "../api.js";
+import { useEffect, useState } from "react";
+import { SIGNED_OUT, getLogin, setLogin } from "../api.js";
 import { allowed, homePage, officerNav } from "../lib/nav.js";
 import { href } from "../lib/router.js";
 import Login from "../pages/Login.jsx";
@@ -31,6 +31,11 @@ function Page({ route, login }) {
 export default function OfficerShell({ route }) {
   const [login, setLoginState] = useState(getLogin());
   const signIn = (value) => { setLogin(value); setLoginState(value); };
+  useEffect(() => {                                   // the server refused the token (expired): back to sign-in
+    const signedOut = () => setLoginState(null);
+    window.addEventListener(SIGNED_OUT, signedOut);
+    return () => window.removeEventListener(SIGNED_OUT, signedOut);
+  }, []);
   const staff = login && STAFF.includes(login.role) ? login : null;
   const active = CASE_PAGES.includes(route.page) ? "queue" : route.page;
   const start = staff && homePage(staff.role);
@@ -40,7 +45,7 @@ export default function OfficerShell({ route }) {
       <header className="topbar no-print">
         <div className="topbar-inner">
           <a className="brand" href={href(start || "queue")}>GovFlow <span className="brand-sub">Staff</span></a>
-          <span className="badge demo" title="Identity comes from X-Role / X-User headers; not real authentication">DEMO MODE</span>
+          <span className="badge demo" title="Demo sign-in without a password; a real deployment needs single sign-on">DEMO MODE</span>
           {staff && (
             <nav aria-label="Staff">
               {officerNav(staff.role).map((n) => (

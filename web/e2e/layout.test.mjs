@@ -62,7 +62,8 @@ const ANALYTICS = {
 for (const width of [1280, 390]) {
   test(`analytics at ${width}px: every chart draws the shared scale at the same pixel width, ticks on the track`, async () => {
     const context = await browser.newContext({ viewport: { width, height: 900 } });
-    await context.addInitScript(() => localStorage.setItem("govflow-demo-login", JSON.stringify({ role: "officer", user: "demo-officer" })));
+    await context.addInitScript(() => localStorage.setItem("govflow-demo-login", JSON.stringify({ role: "officer", user: "demo-officer", token: "mocked",
+      expires_at: "2099-01-01T00:00:00Z" })));
     await context.route("**/api/**", (r) => r.fulfill({ json: r.request().url().includes("/analytics") ? ANALYTICS : [] }));
     const page = await context.newPage();
     await page.goto(new URL("#/officer/analytics", base).href);

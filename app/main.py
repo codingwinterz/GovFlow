@@ -14,7 +14,7 @@ import time
 import uuid
 from datetime import date, datetime, timezone
 from pathlib import Path
-from typing import Any, Callable, Iterator, Optional
+from typing import Any, Callable, Iterator, Literal, Optional
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Request
 from fastapi.responses import JSONResponse
@@ -27,7 +27,9 @@ from app.agent import AgentReply, run_agent
 from app import sla
 from app.analytics import analytics
 from app.audit import log_action
+from app.auth import AUTH_ENV, INSECURE_ENV, issue_token, read_token
 from app.citizen import RateLimiter, citizen_view, code_matches
+from app.env_file import env_value
 from app.citizen import citizen_secret as default_citizen_secret
 from app.extraction import EXTRACTION_UNAVAILABLE_MESSAGE, ProviderError
 from app.case_store import load_case
@@ -99,6 +101,11 @@ class SimulateIn(BaseModel):
     value: float
 
 
+class DemoLogin(BaseModel):
+    role: Literal["clerk", "officer", "admin"]
+    user: str = Field(pattern=r"^[A-Za-z0-9_.-]{1,64}$")
+
+
 class DecisionIn(BaseModel):
     decision: str
     comment: str = ""
@@ -116,10 +123,24 @@ class _NoLLM:
         raise ProviderError(self.reason, kind="not_configured")
 
 
-def _actor(x_role: Optional[str] = Header(None), x_user: Optional[str] = Header(None)) -> Actor:
-    if x_role not in ROLES or not x_user:
-        raise HTTPException(401, "Send X-Role (citizen, clerk or officer) and X-User headers")
-    return Actor(role=x_role, user=x_user)
+SIGN_IN_NOT_CONFIGURED = ("Sign-in is not configured on this server: set GOVFLOW_AUTH_SECRET "
+                          "(the demo seed writes one to .env).")
+PLAIN_HEADERS_REFUSED = ("Sign in first (POST /auth/demo-login) and send Authorization: Bearer <token>. "
+                         "Plain X-Role headers are accepted only when GOVFLOW_DEMO_INSECURE=1.")
+
+
+def actor_from(authorization: Optional[str], x_role: Optional[str], x_user: Optional[str],
+               auth_secret: Optional[str], insecure: bool, at: datetime) -> Actor:
+    """Who is calling: a signed, unexpired token; plain X-Role / X-User only in insecure demo mode."""
+    if authorization:
+        scheme, _, token = authorization.partition(" ")
+        claims = read_token(token, auth_secret, at) if auth_secret and scheme.lower() == "bearer" else None
+        if claims is None or claims[0] not in ROLES:
+            raise HTTPException(401, "Sign-in expired or not valid; sign in again")
+        return Actor(role=claims[0], user=claims[1])
+    if insecure and x_role in ROLES and x_user:
+        return Actor(role=x_role, user=x_user)
+    raise HTTPException(401, PLAIN_HEADERS_REFUSED)
 
 
 def _require(actor: Actor, *roles: str) -> None:
@@ -190,11 +211,18 @@ def _detail(session: Session, case: Case) -> dict[str, Any]:
 def create_app(engine: Optional[Engine] = None, agent_llm_factory: Optional[Callable[[], Any]] = None,
                extraction_factory: Optional[Callable[[], Any]] = None,
                upload_dir: Optional[Path] = None, citizen_secret: Optional[str] = None,
+               auth_secret: Optional[str] = None, demo_insecure: Optional[bool] = None,
                clock: Callable[[], float] = time.monotonic,
                now: Callable[[], datetime] = lambda: datetime.now(timezone.utc)) -> FastAPI:
     app = FastAPI(title="GovFlow", version="0.1.0")
     secret = citizen_secret or default_citizen_secret()   # None: status lookups answer 503, never a weak default
+    signing = auth_secret or env_value(AUTH_ENV)          # None: sign-in answers 503 and no token is accepted
+    insecure = demo_insecure if demo_insecure is not None else env_value(INSECURE_ENV) == "1"
     limiter = RateLimiter(clock)
+
+    def actor_dep(authorization: Optional[str] = Header(None), x_role: Optional[str] = Header(None),
+                  x_user: Optional[str] = Header(None)) -> Actor:
+        return actor_from(authorization, x_role, x_user, signing, insecure, now())
     state: dict[str, Any] = {"engine": engine}
     uploads = Path(upload_dir or DEFAULT_UPLOAD_DIR)
 
@@ -229,6 +257,16 @@ def create_app(engine: Optional[Engine] = None, agent_llm_factory: Optional[Call
     @app.get("/health")
     def health() -> dict[str, str]:
         return {"status": "ok"}
+
+    @app.post("/auth/demo-login")
+    def demo_login(body: DemoLogin, session: Session = Depends(session_dep)) -> dict[str, Any]:
+        """DEMO sign-in: no password. Issues a signed role token that expires. Production uses SSO instead."""
+        if not signing:
+            raise HTTPException(503, SIGN_IN_NOT_CONFIGURED)
+        token, expires = issue_token(body.role, body.user, signing, now())
+        log_action(session, None, f"{body.role}:{body.user}", "demo_sign_in", {"expires_at": iso_utc(expires)})
+        session.commit()
+        return {"token": token, "role": body.role, "user": body.user, "expires_at": iso_utc(expires)}
 
     @app.post("/public/status")
     def public_status(body: StatusLookup, request: Request,
@@ -267,7 +305,7 @@ def create_app(engine: Optional[Engine] = None, agent_llm_factory: Optional[Call
             raise HTTPException(400, str(exc)) from None
 
     @app.get("/cases")
-    def list_cases(status: Optional[str] = None, scheme: Optional[str] = None, actor: Actor = Depends(_actor),
+    def list_cases(status: Optional[str] = None, scheme: Optional[str] = None, actor: Actor = Depends(actor_dep),
                    session: Session = Depends(session_dep)) -> list[dict[str, Any]]:
         _require(actor, "clerk", "officer")
         query = session.query(Case)
@@ -284,43 +322,43 @@ def create_app(engine: Optional[Engine] = None, agent_llm_factory: Optional[Call
                  **sla.sla_view(c, at, decided)} for c in cases]
 
     @app.get("/analytics")
-    def get_analytics(stuck_days: float = 7, actor: Actor = Depends(_actor),
+    def get_analytics(stuck_days: float = 7, actor: Actor = Depends(actor_dep),
                       session: Session = Depends(session_dep)) -> dict[str, Any]:
         _require(actor, "clerk", "officer")
         return analytics(session, stuck_days=stuck_days, now=now())
 
     @app.get("/schemes")
-    def schemes(actor: Actor = Depends(_actor)) -> list[dict[str, Any]]:
+    def schemes(actor: Actor = Depends(actor_dep)) -> list[dict[str, Any]]:
         return [{"scheme": s.scheme, "version": s.version, "documents": [d.id for d in s.required_documents],
                  "officer_inputs": officer_inputs(s), "labels": s.labels, "terms": s.terms} for s in _all_schemes()]
 
     @app.post("/cases", status_code=201)
-    def create_case(body: CreateCase, actor: Actor = Depends(_actor),
+    def create_case(body: CreateCase, actor: Actor = Depends(actor_dep),
                     session: Session = Depends(session_dep)) -> dict[str, Any]:
         _require(actor, "clerk", "officer")
         case = tools.create_case(session, body.case_id, body.scheme, body.reference_date, body.inputs, actor.name)
         return _case_summary(case)
 
     @app.get("/cases/{case_id}")
-    def case_detail(case_id: str, actor: Actor = Depends(_actor),
+    def case_detail(case_id: str, actor: Actor = Depends(actor_dep),
                     session: Session = Depends(session_dep)) -> dict[str, Any]:
         _require(actor, "clerk", "officer")
         return _detail(session, _get_case(session, case_id))
 
     @app.get("/cases/{case_id}/status")
-    def case_status(case_id: str, actor: Actor = Depends(_actor),
+    def case_status(case_id: str, actor: Actor = Depends(actor_dep),
                     session: Session = Depends(session_dep)) -> dict[str, Any]:
         _require(actor, "clerk", "officer")   # blockers name internal flags: staff only
         return mask_identifiers(tools.get_case_status(session, case_id, actor=actor.name).model_dump())
 
     @app.put("/cases/{case_id}/inputs")
-    def set_inputs(case_id: str, body: Inputs, actor: Actor = Depends(_actor),
+    def set_inputs(case_id: str, body: Inputs, actor: Actor = Depends(actor_dep),
                    session: Session = Depends(session_dep)) -> dict[str, Any]:
         _require(actor, "clerk", "officer")
         return {"case_id": case_id, "inputs": tools.update_inputs(session, case_id, body.inputs, actor.name)}
 
     @app.post("/cases/{case_id}/documents", status_code=201)
-    def upload(case_id: str, body: Upload, actor: Actor = Depends(_actor),
+    def upload(case_id: str, body: Upload, actor: Actor = Depends(actor_dep),
                session: Session = Depends(session_dep)) -> dict[str, Any]:
         _require(actor, "clerk", "officer")
         _get_case(session, case_id)
@@ -340,7 +378,7 @@ def create_app(engine: Optional[Engine] = None, agent_llm_factory: Optional[Call
         return {"id": doc.id, "case_id": case_id, "doc_type": doc.doc_type}
 
     @app.post("/cases/{case_id}/documents/{document_id}/extract")
-    def extract(case_id: str, document_id: int, actor: Actor = Depends(_actor),
+    def extract(case_id: str, document_id: int, actor: Actor = Depends(actor_dep),
                 session: Session = Depends(session_dep)) -> dict[str, Any]:
         _require(actor, "clerk", "officer")
         doc = session.get(Document, document_id)
@@ -356,7 +394,7 @@ def create_app(engine: Optional[Engine] = None, agent_llm_factory: Optional[Call
         return mask_identifiers(result.model_dump(mode="json"))
 
     @app.post("/cases/{case_id}/run")
-    def run(case_id: str, actor: Actor = Depends(_actor), session: Session = Depends(session_dep)) -> dict[str, Any]:
+    def run(case_id: str, actor: Actor = Depends(actor_dep), session: Session = Depends(session_dep)) -> dict[str, Any]:
         _require(actor, "clerk", "officer")
         _get_case(session, case_id)
         try:
@@ -370,7 +408,7 @@ def create_app(engine: Optional[Engine] = None, agent_llm_factory: Optional[Call
         return mask_identifiers(run_agent(session, case_id, llm, extraction=extraction).model_dump(mode="json"))
 
     @app.post("/cases/{case_id}/decision")
-    def decide(case_id: str, body: DecisionIn, actor: Actor = Depends(_actor),
+    def decide(case_id: str, body: DecisionIn, actor: Actor = Depends(actor_dep),
                session: Session = Depends(session_dep)) -> dict[str, Any]:
         _require(actor, "officer")
         return tools.record_officer_decision(session, case_id, role=actor.role, officer_id=actor.user,
@@ -382,7 +420,7 @@ def create_app(engine: Optional[Engine] = None, agent_llm_factory: Optional[Call
             raise HTTPException(404, f"Unknown scheme {name!r}")
 
     @app.get("/simulate/{scheme}")
-    def simulator_knobs(scheme: str, actor: Actor = Depends(_actor)) -> dict[str, Any]:
+    def simulator_knobs(scheme: str, actor: Actor = Depends(actor_dep)) -> dict[str, Any]:
         _require(actor, "officer", "admin")
         _known_scheme(scheme)
         s = load_scheme_by_name(scheme)
@@ -390,7 +428,7 @@ def create_app(engine: Optional[Engine] = None, agent_llm_factory: Optional[Call
                 "knobs": [k.model_dump() for k in knobs(s)]}
 
     @app.post("/simulate")
-    def run_simulation(body: SimulateIn, actor: Actor = Depends(_actor),
+    def run_simulation(body: SimulateIn, actor: Actor = Depends(actor_dep),
                        session: Session = Depends(session_dep)) -> dict[str, Any]:
         """Read-only what-if over the synthetic set. Never edits the YAML."""
         _require(actor, "officer", "admin")
@@ -406,7 +444,7 @@ def create_app(engine: Optional[Engine] = None, agent_llm_factory: Optional[Call
         return result.model_dump()
 
     @app.get("/cases/{case_id}/award")
-    def award(case_id: str, actor: Actor = Depends(_actor), session: Session = Depends(session_dep)) -> dict[str, Any]:
+    def award(case_id: str, actor: Actor = Depends(actor_dep), session: Session = Depends(session_dep)) -> dict[str, Any]:
         """Award letter / case summary for an approved case. Every value comes from stored results."""
         _require(actor, "officer")
         case = _get_case(session, case_id)
@@ -435,7 +473,7 @@ def create_app(engine: Optional[Engine] = None, agent_llm_factory: Optional[Call
         return letter
 
     @app.get("/cases/{case_id}/audit")
-    def audit(case_id: str, actor: Actor = Depends(_actor),
+    def audit(case_id: str, actor: Actor = Depends(actor_dep),
               session: Session = Depends(session_dep)) -> list[dict[str, Any]]:
         _require(actor, "officer")
         _get_case(session, case_id)
@@ -462,4 +500,5 @@ def _default_extraction() -> Any:
 
 
 app = create_app(agent_llm_factory=_default_llm, extraction_factory=_default_extraction,
-                 citizen_secret=default_citizen_secret(DOTENV))
+                 citizen_secret=default_citizen_secret(DOTENV), auth_secret=env_value(AUTH_ENV, DOTENV),
+                 demo_insecure=env_value(INSECURE_ENV, DOTENV) == "1")

@@ -72,6 +72,7 @@
     "add_document": "Document added",
     "agent_explanation": "Explanation written",
     "agent_llm_unavailable": "Language model unavailable",
+    "demo_sign_in": "Demo sign-in",
     "agent_run_started": "Agent run started",
     "agent_tool_call": "Agent tool call",
     "agent_tool_refused": "Agent tool call refused",

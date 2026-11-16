@@ -1,16 +1,27 @@
 import { useState } from "react";
+import { signIn } from "../api.js";
 
 export default function Login({ onLogin }) {
   const [role, setRole] = useState("officer");
   const [user, setUser] = useState("O-1");
+  const [error, setError] = useState("");
+  const submit = async (e) => {
+    e.preventDefault();
+    if (!user.trim()) return setError("Enter a user id.");
+    try {
+      onLogin(await signIn(role, user.trim()));
+    } catch (err) {
+      setError(err.message);
+    }
+  };
   return (
     <section className="card narrow">
       <h1>Demo sign-in</h1>
       <p className="muted">
-        Demo mode: there is no password. The role and user id are sent as headers and trusted by the backend.
-        Replace with real authentication before any deployment.
+        Demo mode: there is no password. The server signs your role and user id into a token that lasts 8 hours.
+        A real deployment needs the government single sign-on instead.
       </p>
-      <form onSubmit={(e) => { e.preventDefault(); if (user.trim()) onLogin({ role, user: user.trim() }); }}>
+      <form onSubmit={submit}>
         <label>Role
           <select value={role} onChange={(e) => setRole(e.target.value)}>
             <option value="officer">officer (decides cases)</option>
@@ -19,6 +30,7 @@ export default function Login({ onLogin }) {
           </select>
         </label>
         <label>User id <input value={user} onChange={(e) => setUser(e.target.value)} /></label>
+        {error && <p className="error" role="alert">{error}</p>}
         <button type="submit">Continue</button>
       </form>
     </section>

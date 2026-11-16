@@ -17,12 +17,13 @@ from app.models import Base, make_engine, make_session
 from app.rules_loader import RULES_DIR, load_scheme_by_name
 from app.tools import check_eligibility, compute_compensation, verify_documents
 from tests.asgi_client import call
+from tests.auth_headers import staff
 
 DATA = Path(__file__).resolve().parent.parent / "data" / "synthetic"
 SCHEMES = sorted(p.name for p in DATA.iterdir() if p.is_dir() and list(p.glob("case_*"))
                  and (RULES_DIR / f"{p.name}.yaml").is_file())
-OFFICER = {"X-Role": "officer", "X-User": "O-1"}
-CLERK = {"X-Role": "clerk", "X-User": "C-1"}
+OFFICER = staff("officer", "O-1")
+CLERK = staff("clerk", "C-1")
 
 
 def _cases(scheme):

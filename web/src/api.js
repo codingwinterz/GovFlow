@@ -1,10 +1,13 @@
-// API client. DEMO MODE: identity is the X-Role / X-User headers, trusted by the backend as sent.
+// API client. Staff identity is the signed token from the demo sign-in (lib/session.js). DEMO sign-in, no password.
+import { authHeaders, isCurrent } from "./lib/session.js";
 
 const KEY = "govflow-demo-login";
+export const SIGNED_OUT = "govflow-signed-out";   // window event: the server refused the token; show sign-in
 
 export function getLogin() {
   try {
-    return JSON.parse(localStorage.getItem(KEY)) || null;
+    const login = JSON.parse(localStorage.getItem(KEY)) || null;
+    return isCurrent(login) ? login : null;   // expired, or saved before tokens: sign in again
   } catch {
     return null;
   }
@@ -26,12 +29,22 @@ export class ApiError extends Error {
   }
 }
 
+export async function signIn(role, user) {
+  const response = await fetch("/api/auth/demo-login", { method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ role, user }) });
+  const data = await response.json().catch(() => null);
+  if (!response.ok) throw new ApiError(response.status, response.status === 422 ? "Use letters, digits, dot, dash or underscore for the user id." : data?.detail ?? response.statusText);
+  return data;   // { token, role, user, expires_at }
+}
+
 export async function api(method, path, body) {
-  const login = getLogin();
-  const headers = { "Content-Type": "application/json" };
-  if (login) Object.assign(headers, { "X-Role": login.role, "X-User": login.user });
+  const headers = { "Content-Type": "application/json", ...authHeaders(getLogin()) };
   const response = await fetch(`/api${path}`, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
   const data = response.status === 204 ? null : await response.json().catch(() => null);
+  if (response.status === 401) {
+    setLogin(null);
+    window.dispatchEvent(new Event(SIGNED_OUT));
+  }
   if (!response.ok) throw new ApiError(response.status, data?.detail ?? response.statusText);
   return data;
 }

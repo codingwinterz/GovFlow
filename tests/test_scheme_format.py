@@ -193,12 +193,13 @@ def test_api_serves_labels_in_scheme_list_and_case_detail(tmp_path):
     from app.main import create_app
     from app.models import Base
     from tests.asgi_client import call
+    from tests.auth_headers import staff
     engine = create_engine("sqlite://", poolclass=StaticPool, connect_args={"check_same_thread": False})
     Base.metadata.create_all(engine)
     with Session(engine) as s:
         seed_case(s, _case("disaster_relief", 1))
     app = create_app(engine=engine, upload_dir=tmp_path)
-    officer = {"X-Role": "officer", "X-User": "O-1"}
+    officer = staff("officer", "O-1")
     schemes = {s["scheme"]: s for s in call(app, "GET", "/schemes", headers=officer)[1]}
     assert schemes["disaster_relief"]["labels"]["total"] == "Total relief"
     assert schemes["land_acquisition"]["labels"]["total"] == "Total compensation"

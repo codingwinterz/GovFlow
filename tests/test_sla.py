@@ -16,10 +16,11 @@ from app.models import AuditLog, Base, Case
 from app.rules_loader import RULES_DIR, RulesError, load_scheme_by_name, parse_scheme
 from app.tools import amount_field_values, check_eligibility, compute_compensation, record_officer_decision, submit_to_officer, verify_documents
 from tests.asgi_client import call
+from tests.auth_headers import staff
 
 DATA = Path(__file__).resolve().parent.parent / "data" / "synthetic"
 NOW = datetime(2026, 12, 31, 12, 0, tzinfo=timezone.utc)
-OFFICER = {"X-Role": "officer", "X-User": "O-1"}
+OFFICER = staff("officer", "O-1", at=NOW)   # minted on the app's fixed clock
 
 
 def test_each_scheme_declares_sla_days():

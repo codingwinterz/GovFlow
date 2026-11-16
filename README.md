@@ -30,6 +30,8 @@ cd web && npm run dev                                 # dashboard on http://127.
 | Setting | What it does |
 |---|---|
 | `GOVFLOW_CITIZEN_SECRET` | Secret for citizen tracking codes. **The seed writes a random one on its first run** and reuses it after that. Without it, `POST /public/status` answers 503: there is no built-in secret, because one in the source would make every code predictable. |
+| `GOVFLOW_AUTH_SECRET` | Signs the staff sign-in tokens (8 hours). **Also written by the seed on its first run.** Without it, sign-in answers 503. |
+| `GOVFLOW_DEMO_INSECURE` | `1` also accepts plain `X-Role` / `X-User` headers (old scripts). Off by default; never in a shared deployment. |
 | `GEMINI_API_KEY` | Optional. Live extraction and agent. |
 
 A real environment variable always wins over `.env`. Start the API after the first seed so it picks up the
@@ -47,4 +49,7 @@ cd web && npm run test:layout            # browser checks (needs Google Chrome)
 
 ## Not for production as is
 
-Sign-in is a demo mechanism and documents are stored unencrypted. Read `docs/KNOWN_LIMITATIONS.md`.
+**Production needs the government single sign-on (SSO).** The staff sign-in here has no password: it issues a
+signed, expiring role token, so a client cannot edit its role, but anyone who can reach the sign-in can choose
+one. Do not expose the demo on a public network. Documents are stored unencrypted. Read
+`docs/KNOWN_LIMITATIONS.md`.

@@ -16,6 +16,7 @@ from app.models import AuditLog, Base, CompensationItemRow, RuleResultRow
 from app.tools import (amount_field_values, check_eligibility, compute_compensation, record_officer_decision, submit_to_officer,
                        verify_documents)
 from tests.asgi_client import call
+from tests.auth_headers import staff
 
 DATA = Path(__file__).resolve().parent.parent / "data" / "synthetic"
 
@@ -29,7 +30,7 @@ def env(tmp_path):
             for p in sorted((DATA / scheme).glob("case_*/case.json")):
                 seed_case(s, CaseIn.model_validate_json(p.read_text(encoding="utf-8")))
     app = create_app(engine=engine, upload_dir=tmp_path)
-    return engine, lambda path, role="officer": call(app, "GET", path, headers={"X-Role": role, "X-User": "O-7"})
+    return engine, lambda path, role="officer": call(app, "GET", path, headers=staff(role, "O-7"))
 
 
 def _to_review(engine, case_id):

@@ -18,11 +18,12 @@ from app.main import create_app
 from app.models import Base, Document
 from app.providers.fake import FailingProvider, FakeProvider, ScriptedAgentLLM
 from tests.asgi_client import call
+from tests.auth_headers import staff
 
 SET_DIR = Path(__file__).resolve().parent.parent / "data" / "synthetic" / "land_acquisition"
-OFFICER = {"X-Role": "officer", "X-User": "O-1"}
-CLERK = {"X-Role": "clerk", "X-User": "C-1"}
-CITIZEN = {"X-Role": "citizen", "X-User": "P-1"}
+OFFICER = staff("officer", "O-1")
+CLERK = staff("clerk", "C-1")
+CITIZEN = staff("citizen", "P-1")
 
 
 def _script():
@@ -69,7 +70,7 @@ def test_missing_role_is_401(env):
 
 
 def test_unknown_role_is_401(env):
-    assert env("GET", "/cases", headers={"X-Role": "superuser", "X-User": "x"})[0] == 401
+    assert env("GET", "/cases", headers=staff("superuser", "x"))[0] == 401
 
 
 def test_citizen_role_gets_no_staff_endpoints(env):
@@ -307,7 +308,7 @@ def test_schemes_list_officer_inputs_from_the_yaml(env):
 
 
 def test_admin_role_reaches_only_the_simulator(env):
-    admin = {"X-Role": "admin", "X-User": "A-1"}
+    admin = staff("admin", "A-1")
     assert env("GET", "/cases", headers=admin)[0] == 403
     assert env("GET", "/cases/LA-01", headers=admin)[0] == 403
     assert env("POST", "/cases/LA-01/decision", {"decision": "approve"}, admin)[0] == 403
