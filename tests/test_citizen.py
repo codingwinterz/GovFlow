@@ -14,7 +14,7 @@ from app.case_store import seed_case
 from app.citizen import citizen_code
 from app.main import create_app
 from app.models import AuditLog, Base
-from app.tools import (add_document, check_eligibility, compute_compensation, record_officer_decision,
+from app.tools import (add_document, amount_field_values, check_eligibility, compute_compensation, record_officer_decision,
                        submit_to_officer, verify_documents)
 from tests.asgi_client import call
 
@@ -54,7 +54,8 @@ def _decide(engine, case_id, decision, comment=""):
         check_eligibility(s, case_id)
         compute_compensation(s, case_id)
         submit_to_officer(s, case_id)
-        record_officer_decision(s, case_id, role="officer", officer_id="O-1", decision=decision, comment=comment)
+        record_officer_decision(s, case_id, role="officer", officer_id="O-1", decision=decision, comment=comment,
+                                confirmed=amount_field_values(s, case_id))
 
 
 def test_code_is_deterministic_six_digits_and_secret_dependent():

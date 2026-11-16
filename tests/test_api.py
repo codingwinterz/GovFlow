@@ -51,6 +51,12 @@ def env(tmp_path):
     return Env(tmp_path, llm_factory=lambda: ScriptedAgentLLM(_script()))
 
 
+def _approval(env, case_id="LA-01"):
+    """What the officer screen sends: approve, with each amount-driving value as shown on the case page."""
+    detail = env("GET", f"/cases/{case_id}", headers=OFFICER)[1]
+    return {"decision": "approve", "confirmed_fields": {f["ref"]: f["value"] for f in detail["confirm_fields"]}}
+
+
 def _upload(env, case_id="LA-01", doc_type="identity_proof", text="Name: Asha Naik", filename="id.txt"):
     return env("POST", f"/cases/{case_id}/documents", {"doc_type": doc_type, "filename": filename,
                "content_base64": base64.b64encode(text.encode()).decode()}, CLERK)
@@ -82,7 +88,7 @@ def test_health_needs_no_role(env):
 def test_run_agent_then_officer_approves(env):
     status, run = env("POST", "/cases/LA-01/run", headers=CLERK)
     assert status == 200 and run["final_status"] == "in_officer_review" and not run["used_fallback"]
-    status, decided = env("POST", "/cases/LA-01/decision", {"decision": "approve"}, OFFICER)
+    status, decided = env("POST", "/cases/LA-01/decision", _approval(env), OFFICER)
     assert status == 200 and decided["status"] == "approved"
     _, audit = env("GET", "/cases/LA-01/audit", headers=OFFICER)
     (row,) = [a for a in audit if a["action"] == "officer_decision"]
@@ -98,7 +104,7 @@ def test_only_officer_can_decide(env, headers):
 
 
 def test_decision_in_wrong_state_is_409(env):
-    status, body = env("POST", "/cases/LA-01/decision", {"decision": "approve"}, OFFICER)
+    status, body = env("POST", "/cases/LA-01/decision", _approval(env), OFFICER)
     assert status == 409 and "in_officer_review" in body["detail"]
 
 
@@ -250,7 +256,7 @@ def test_queue_shows_flag_count_and_filters_by_scheme(env):
     env("POST", "/cases/LA-07/run", headers=CLERK)
     _, queue = env("GET", "/cases?scheme=land_acquisition", headers=OFFICER)
     by_id = {c["case_id"]: c for c in queue}
-    assert len(queue) == 16 and by_id["LA-07"]["flags_count"] >= 1 and by_id["LA-03"]["flags_count"] == 0
+    assert len(queue) == 17 and by_id["LA-07"]["flags_count"] >= 1 and by_id["LA-03"]["flags_count"] == 0
     # the queue names each flag's kind and severity (so it can show the reason), never the detail text
     assert {"kind": "missing_document", "severity": "high"} in by_id["LA-07"]["flags"]
     assert len(by_id["LA-07"]["flags"]) == by_id["LA-07"]["flags_count"] and by_id["LA-03"]["flags"] == []
@@ -260,11 +266,11 @@ def test_queue_shows_flag_count_and_filters_by_scheme(env):
 
 def test_analytics_counts_status_scheme_and_processing_time(env):
     env("POST", "/cases/LA-01/run", headers=CLERK)
-    env("POST", "/cases/LA-01/decision", {"decision": "approve"}, OFFICER)
+    env("POST", "/cases/LA-01/decision", _approval(env), OFFICER)
     status, a = env("GET", "/analytics", headers=OFFICER)
     assert status == 200
-    assert a["by_status"]["approved"] == 1 and a["by_status"]["received"] == 15
-    assert a["per_scheme"] == {"land_acquisition": 16}
+    assert a["by_status"]["approved"] == 1 and a["by_status"]["received"] == 16
+    assert a["per_scheme"] == {"land_acquisition": 17}
     assert a["decided_cases"] == 1 and a["average_processing_seconds"] >= 0
     assert a["average_processing_source"] == "case created_at to officer_decision audit entry"
 
@@ -276,10 +282,10 @@ def test_analytics_has_no_average_when_nothing_decided(env):
 
 def test_stuck_cases_use_last_audit_movement(env):
     env("POST", "/cases/LA-01/run", headers=CLERK)
-    env("POST", "/cases/LA-01/decision", {"decision": "approve"}, OFFICER)
+    env("POST", "/cases/LA-01/decision", _approval(env), OFFICER)
     stuck_now = env("GET", "/analytics?stuck_days=0", headers=OFFICER)[1]["stuck_cases"]
     assert "LA-01" not in {c["case_id"] for c in stuck_now}             # closed cases are never stuck
-    assert len(stuck_now) == 15 and all("last_movement" in c and "status" in c for c in stuck_now)
+    assert len(stuck_now) == 16 and all("last_movement" in c and "status" in c for c in stuck_now)
     assert env("GET", "/analytics?stuck_days=30", headers=OFFICER)[1]["stuck_cases"] == []
 
 
@@ -322,7 +328,7 @@ def _timestamps(value, path=""):
 
 def test_every_api_timestamp_is_utc_with_an_explicit_z(env):
     assert env("POST", "/cases/LA-01/run", headers=CLERK)[0] == 200
-    assert env("POST", "/cases/LA-01/decision", {"decision": "approve"}, OFFICER)[0] == 200
+    assert env("POST", "/cases/LA-01/decision", _approval(env), OFFICER)[0] == 200
     found = []
     for path in ["/cases", "/cases/LA-01", "/cases/LA-01/audit", "/analytics?stuck_days=0", "/cases/LA-01/award"]:
         status, body = env("GET", path, headers=OFFICER)

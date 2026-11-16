@@ -18,6 +18,8 @@ labels:                            # wording shown by the API and the officer da
 # `derived` declares computed fields, e.g. area_sqm from a number and a unit field.
 # Extracted strings are coerced once before any rule sees them; a value that cannot be
 # coerced ("80%", "eighty", "15/11/2026", "bigha") goes to human review with its reason.
+# `plausible` gives [min, max] for a number, percent or derived field. A value outside goes to human review
+# whatever confidence the extraction reported (a document cannot vouch for itself).
 required_documents:
   - id: application
     fields: {name: text}
@@ -25,6 +27,8 @@ required_documents:
     fields: {name: text, survey_number: text, area: number, area_unit: unit, issue_date: date}
     derived:
       area_sqm: {convert: area, unit_field: area_unit, to: sqm}
+    plausible:
+      area_sqm: [10, 500000]       # VERIFY: 10 sqm to 50 hectares for one holding (placeholder sanity range)
     validity:
       date_field: issue_date
       max_age_days: 180            # VERIFY: how recent the extract must be
@@ -36,6 +40,8 @@ required_documents:
     fields: {survey_number: text, area: number, area_unit: unit}
     derived:
       area_sqm: {convert: area, unit_field: area_unit, to: sqm}
+    plausible:
+      area_sqm: [10, 5000000]      # VERIFY: a whole survey number, up to 500 hectares (placeholder sanity range)
   - id: mutation_record
     fields: {name: text, issue_date: date}
     validity:
@@ -111,6 +117,7 @@ compensation:
       from: ownership_record.area_sqm
     market_value_per_sqm:
       from: case.market_value_per_sqm
+      range: [100, 100000]         # VERIFY: Rs per sqm sanity range for Goa (placeholder); outside -> review
     assets_total:
       from: case.assets_total
     multiplier:

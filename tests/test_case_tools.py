@@ -11,7 +11,7 @@ from app.models import AuditLog, CompensationItemRow, Document, RuleResultRow, m
 from app.models import Case as CaseRow
 from app.providers.fake import FailingProvider
 from app.tools import (
-    ToolError, add_document, check_eligibility, compute_compensation, extract_document, get_case_status,
+    ToolError, add_document, amount_field_values, check_eligibility, compute_compensation, extract_document, get_case_status,
     record_officer_decision, submit_to_officer, verify_documents,
 )
 
@@ -166,7 +166,8 @@ def test_only_officer_role_can_decide(session, role):
                                               ("send_back", "needs_info")])
 def test_officer_decision_sets_status_and_is_audited(session, decision, status):
     _to_review(session)
-    record_officer_decision(session, "LA-01", role="officer", officer_id="O-7", decision=decision, comment="checked")
+    record_officer_decision(session, "LA-01", role="officer", officer_id="O-7", decision=decision, comment="checked",
+                            confirmed=amount_field_values(session, "LA-01"))
     case = session.get(CaseRow, "LA-01")
     assert case.status == status and case.officer_id == "O-7"
     (row,) = _audits(session, "LA-01", "officer_decision")

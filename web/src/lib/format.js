@@ -35,10 +35,17 @@ export function fieldSource(f, terms) {
   return parts.join(" · ");
 }
 
-export function validateDecision(decision, comment) {
+export function validateDecision(decision, comment, confirmFields = [], checked = {}) {
   if (!["approve", "reject", "send_back"].includes(decision)) return "Choose approve, reject or send back.";
   if (decision !== "approve" && !String(comment || "").trim()) return "A comment is required to reject or send back.";
+  if (decision === "approve" && confirmFields.some((f) => !checked[f.ref]))
+    return "Tick each value below once you have checked it against the document.";
   return null;
+}
+
+// What approval sends: each field that drives an amount, at the value the officer saw and ticked (the server re-checks).
+export function confirmedFields(confirmFields = [], checked = {}) {
+  return Object.fromEntries(confirmFields.filter((f) => checked[f.ref]).map((f) => [f.ref, f.value]));
 }
 
 export function unavailableDocuments(detail) {

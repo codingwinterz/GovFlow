@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  formatRupees, maskIdentifiers, formatConfidence, formatDuration, fieldSource, validateDecision,
+  formatRupees, maskIdentifiers, formatConfidence, formatDuration, fieldSource, validateDecision, confirmedFields,
   unavailableDocuments, formatDate, formatDay, todayInIndia,
 } from "./format.js";
 
@@ -44,6 +44,16 @@ test("reject and send back need a comment; approve does not", () => {
   assert.match(validateDecision("send_back", ""), /comment/);
   assert.equal(validateDecision("reject", "survey mismatch"), null);
   assert.match(validateDecision("", "x"), /Choose/);
+});
+
+test("approving needs every amount-driving value ticked; the ticked values are what is sent", () => {
+  const fields = [{ ref: "ownership_record.area", value: 0.25 }, { ref: "ownership_record.area_unit", value: "hectare" }];
+  assert.match(validateDecision("approve", "", fields, { "ownership_record.area": true }), /Tick each value/);
+  assert.equal(validateDecision("approve", "", fields, { "ownership_record.area": true, "ownership_record.area_unit": true }), null);
+  assert.equal(validateDecision("reject", "wrong area", fields, {}), null);            // only approval needs the ticks
+  assert.deepEqual(confirmedFields(fields, { "ownership_record.area": true, "ownership_record.area_unit": true }),
+    { "ownership_record.area": 0.25, "ownership_record.area_unit": "hectare" });
+  assert.deepEqual(confirmedFields(fields, { "ownership_record.area": true }), { "ownership_record.area": 0.25 });
 });
 
 test("retry banner lists only current documents whose extraction is unavailable", () => {

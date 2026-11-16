@@ -30,7 +30,7 @@ from app.evaluation import SET_DIR, _fake_for
 from app.extraction import ProviderError
 from app.models import Case, make_engine
 from app.providers.fake import FailingProvider
-from app.tools import add_document, extract_document, record_officer_decision
+from app.tools import add_document, amount_field_values, extract_document, record_officer_decision
 
 ROOT = Path(__file__).resolve().parent.parent
 DATA = ROOT / "data" / "synthetic"
@@ -119,7 +119,8 @@ def seed(db_path: Path, reset: bool = False, with_decisions: bool = True) -> dic
             for case_id, decision, comment in DECISIONS:
                 if session.get(Case, case_id).status == "in_officer_review":
                     record_officer_decision(session, case_id, role="officer", officer_id="seed-demo",
-                                            decision=decision, comment=comment)
+                                            decision=decision, comment=comment,   # demo: values match the documents
+                                            confirmed=amount_field_values(session, case_id))
         statuses = [c.status for c in session.query(Case)]
     engine.dispose()
     return {"db": str(db_path), "cases": len(statuses),

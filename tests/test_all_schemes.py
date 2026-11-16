@@ -112,7 +112,10 @@ def test_intake_queue_case_page_analytics_and_audit(env):
     assert analytics["per_scheme"][scheme] == len(_cases(scheme)) + 1
     actions = {a["action"] for a in api("GET", f"/cases/{first}/audit")[1]}
     assert {"check_eligibility", "compute_compensation", "submit_to_officer"} <= actions
-    assert api("POST", f"/cases/{first}/decision", {"decision": "approve"})[1]["status"] == "approved"
+    confirmed = {f["ref"]: f["value"] for f in detail["confirm_fields"]}
+    assert set(confirmed) and api("POST", f"/cases/{first}/decision", {"decision": "approve"})[0] == 409   # must confirm
+    approved = api("POST", f"/cases/{first}/decision", {"decision": "approve", "confirmed_fields": confirmed})
+    assert approved[1]["status"] == "approved"
 
 
 @pytest.mark.parametrize("scheme", SCHEMES)

@@ -27,7 +27,7 @@ from app.extraction import (
 from app.models import Case, CompensationItemRow, queue_key, Document, ExtractedField, RuleResultRow, VerificationFlag
 from app.rules_engine import EligibilityResult, overall_from
 from app.rules_engine import check_eligibility as check_eligibility_pure
-from app.rules_loader import RULES_DIR, Scheme, load_scheme_by_name
+from app.rules_loader import RULES_DIR, Scheme, amount_fields, load_scheme_by_name
 
 _MEDIA_TYPES = {".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".pdf": "application/pdf"}
 
@@ -239,9 +239,30 @@ def get_case_status(session: Session, case_id: str, actor: str = "system") -> Ca
     return result
 
 
+def amount_field_values(session: Session, case_id: str) -> dict[str, Any]:
+    """Current values of the document fields that drive an amount (from the scheme YAML), as read from the
+    case's latest documents. The officer confirms exactly these values before approving."""
+    case, scheme = _case(session, case_id)
+    docs = load_case(session, case_id).documents
+    out: dict[str, Any] = {}
+    for ref in amount_fields(scheme):
+        doc_id, name = ref.split(".", 1)
+        if doc_id in docs and name in docs[doc_id].fields:
+            out[ref] = docs[doc_id].fields[name].value
+    return out
+
+
+def _unconfirmed(session: Session, case_id: str, confirmed: dict[str, Any]) -> list[str]:
+    """Amount-driving fields the officer has not confirmed at their current value."""
+    return [ref for ref, value in amount_field_values(session, case_id).items()
+            if ref not in confirmed or confirmed[ref] != value]
+
+
 def record_officer_decision(session: Session, case_id: str, role: str, officer_id: str, decision: str,
-                            comment: str = "") -> DecisionResult:
-    """The only way a case is approved, rejected or sent back. Not exposed to the agent."""
+                            comment: str = "", confirmed: Optional[dict[str, Any]] = None) -> DecisionResult:
+    """The only way a case is approved, rejected or sent back. Not exposed to the agent.
+    Approval needs `confirmed`: the officer's check of every amount-driving field at its current value, however
+    confident the extraction was (a document must not be able to vouch for itself)."""
     if role != "officer":
         raise PermissionError("Only the officer role can approve, reject or send back a case")
     case, scheme = _case(session, case_id)
@@ -251,10 +272,15 @@ def record_officer_decision(session: Session, case_id: str, role: str, officer_i
         raise ToolError(f"Case {case_id} is {case.status}; a decision needs status in_officer_review")
     if decision != "approve" and not comment.strip():
         raise ToolError(f"A {decision} decision needs a comment explaining why")
+    confirmed = dict(confirmed or {})
+    if decision == "approve":
+        missing = _unconfirmed(session, case_id, confirmed)
+        if missing:
+            raise ToolError(f"Confirm these values against the documents before approving: {', '.join(missing)}")
     case.status, case.officer_id = DECISION_STATUS[decision], officer_id
     result = DecisionResult(case_id=case_id, decision=decision, status=case.status, officer_id=officer_id)
     log_action(session, case_id, f"officer:{officer_id}", "officer_decision",
-               {**result.model_dump(), "comment": comment}, scheme.version)
+               {**result.model_dump(), "comment": comment, "confirmed_fields": confirmed}, scheme.version)
     session.commit()
     return result
 

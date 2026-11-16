@@ -73,6 +73,15 @@ def _add_derived(req: RequiredDocument, fields: dict[str, Any], facts: CaseFacts
             fields[name] = to_sqm(float(fields[d.convert]), str(fields[d.unit_field]))
 
 
+def _check_plausible(req: RequiredDocument, fields: dict[str, Any], facts: CaseFacts) -> None:
+    """Withhold a value outside the YAML's plausible range, as for an unreadable one: rules that need it go to
+    review. Confidence is irrelevant here, so a document cannot talk its way past the check."""
+    for name, (lo, hi) in req.plausible.items():
+        if name in fields and not lo <= float(fields[name]) <= hi:
+            facts.invalid[f"{req.id}.{name}"] = f"outside the plausible range {lo:g} to {hi:g}"
+            del fields[name]
+
+
 def _validity(fields: dict[str, Any], rule: Validity, ref: date) -> ValidityStatus:
     if rule.expiry_field:
         expiry = _parse_date(fields.get(rule.expiry_field))
@@ -104,6 +113,7 @@ def build_facts(scheme: Scheme, case: CaseIn) -> CaseFacts:
             continue
         fields = _confident_fields(req, doc, scheme.confidence_threshold, facts)
         _add_derived(req, fields, facts)
+        _check_plausible(req, fields, facts)
         if req.validity:
             facts.validity[req.id] = _validity(fields, req.validity, case.reference_date)
         facts.names[req.id] = {"present": True, **fields}

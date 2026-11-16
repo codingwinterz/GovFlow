@@ -131,6 +131,7 @@ def test_area_sqm_is_not_derived_unless_declared():
     data = _yaml("land_acquisition")
     for d in data["required_documents"]:
         d.pop("derived", None)
+        d.pop("plausible", None)        # its bounds are on the derived field, which no longer exists
     scheme = parse_scheme(data)
     facts = build_facts(scheme, _case("land_acquisition", 1))
     assert "area_sqm" not in facts.names["ownership_record"]

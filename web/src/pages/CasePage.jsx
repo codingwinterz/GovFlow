@@ -2,7 +2,7 @@ import { useState } from "react";
 import { api } from "../api.js";
 import { Loading, useApi } from "../useApi.jsx";
 import {
-  fieldSource, formatConfidence, formatDate, formatRupees, maskIdentifiers, unavailableDocuments, validateDecision,
+  fieldSource, formatConfidence, formatDate, formatRupees, maskIdentifiers, unavailableDocuments, validateDecision, confirmedFields,
 } from "../lib/format.js";
 import { href } from "../lib/router.js";
 import { appLabel, flagLabel, readable, readableFormula, termLabel } from "../lib/display.js";
@@ -134,16 +134,18 @@ function Explanation({ explanation, terms }) {
   );
 }
 
-function DecisionPanel({ caseId, onDone }) {
+function DecisionPanel({ caseId, confirmFields = [], terms, onDone }) {
   const [decision, setDecision] = useState("");
   const [comment, setComment] = useState("");
+  const [checked, setChecked] = useState({});
   const [error, setError] = useState("");
   const submit = async (e) => {
     e.preventDefault();
-    const problem = validateDecision(decision, comment);
+    const problem = validateDecision(decision, comment, confirmFields, checked);
     if (problem) return setError(problem);
+    const body = { decision, comment, confirmed_fields: decision === "approve" ? confirmedFields(confirmFields, checked) : {} };
     try {
-      await api("POST", `/cases/${encodeURIComponent(caseId)}/decision`, { decision, comment });
+      await api("POST", `/cases/${encodeURIComponent(caseId)}/decision`, body);
       setError("");
       onDone();
     } catch (err) {
@@ -161,6 +163,20 @@ function DecisionPanel({ caseId, onDone }) {
               onChange={() => setDecision(value)} /> {label}</label>
           ))}
         </div>
+        {decision === "approve" && confirmFields.length > 0 && (
+          <fieldset className="confirm">
+            <legend>Check these values against the documents</legend>
+            <p className="muted small">They decide the amount. Tick each one after reading it on the document itself,
+              whatever confidence the extraction reported.</p>
+            {confirmFields.map((f) => (
+              <label key={f.ref} className="confirm-item">
+                <input type="checkbox" checked={!!checked[f.ref]}
+                  onChange={(e) => setChecked({ ...checked, [f.ref]: e.target.checked })} />
+                {termLabel(terms, f.ref)}: <strong>{String(f.value)}</strong>
+              </label>
+            ))}
+          </fieldset>
+        )}
         <label>Comment {decision && decision !== "approve" && <span className="muted">(required)</span>}
           <textarea value={comment} onChange={(e) => setComment(e.target.value)} rows={3} />
         </label>
@@ -225,7 +241,7 @@ export default function CasePage({ id, login }) {
               <tr key={k}><td>{termLabel(d.terms, k)}</td><td>{maskIdentifiers(v)}</td><td className="small muted">source: case inputs (officer/clerk)</td></tr>
             ))}</tbody></table>
           </section>
-          {login.role === "officer" && d.status === "in_officer_review" && <DecisionPanel caseId={d.case_id} onDone={detail.reload} />}
+          {login.role === "officer" && d.status === "in_officer_review" && <DecisionPanel caseId={d.case_id} confirmFields={d.confirm_fields} terms={d.terms} onDone={detail.reload} />}
         </>
       )}
     </section>

@@ -22,9 +22,9 @@ def seeded(tmp_path):
 def test_seed_covers_the_dashboard_states(seeded):
     summary, s = seeded
     statuses = {c.id: c.status for c in s.query(Case)}
-    assert len(statuses) == 30 and {c.scheme for c in s.query(Case)} == {"land_acquisition", "disaster_relief"}
+    assert len(statuses) == 32 and {c.scheme for c in s.query(Case)} == {"land_acquisition", "disaster_relief"}
     assert {"in_officer_review", "received", "approved", "needs_info"} <= set(statuses.values())
-    assert summary["cases"] == 30 and summary["by_status"] == {
+    assert summary["cases"] == 32 and summary["by_status"] == {
         k: list(statuses.values()).count(k) for k in set(statuses.values())}
 
 
@@ -67,7 +67,7 @@ def test_seed_refuses_to_overwrite_without_reset(tmp_path):
     seed(db)
     with pytest.raises(FileExistsError):
         seed(db)
-    assert seed(db, reset=True)["cases"] == 30
+    assert seed(db, reset=True)["cases"] == 32
 
 
 def test_reset_only_deletes_database_files(tmp_path):

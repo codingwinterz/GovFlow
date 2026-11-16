@@ -32,6 +32,8 @@ required_documents:
       area_type: {one_of: [plain, hilly]}    # VERIFY: which Goa areas count as hilly under the norms
       notified_area: text
       assessment_date: date
+    plausible:
+      damage_percent: [0, 100]     # explicit: a document cannot claim more than 100% damage
     validity:
       date_field: assessment_date
       max_age_days: 90             # VERIFY: how long after assessment a claim may be filed

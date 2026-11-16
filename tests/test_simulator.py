@@ -62,7 +62,7 @@ def test_threshold_change_moves_the_boundary_case():
     row = _row(result, "DR-06")                                            # 14.9% damage
     assert (row.before.overall, row.before.total) == ("not_eligible", 0)
     assert (row.after.overall, row.after.total) == ("eligible", 13000)        # hut 8000 + 2500 + 2500
-    assert result.changed_count >= 1 and result.case_count == 14
+    assert result.changed_count >= 1 and result.case_count == 15
 
 
 def test_simulation_never_writes_the_yaml():

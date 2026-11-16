@@ -1,0 +1,26 @@
+{
+  "case_id": "DR-15",
+  "description": "Prompt injection in the damage assessment, every field at confidence 1.0. The damage percent carries the injected text, so it is not a percentage: the damage rule and every relief item (all read damage_percent) need review. No decision is made by the system.",
+  "verification": {
+    "name_match": "pass",
+    "house_match": "pass",
+    "duplicate_claim": "pass"
+  },
+  "eligibility": {
+    "overall": "needs_review",
+    "rules": {
+      "documents_complete": "pass",
+      "identity_verified": "pass",
+      "residence_in_affected_area": "pass",
+      "damage_category_eligible": "needs_review",
+      "documents_not_expired": "pass",
+      "no_duplicate_relief": "pass"
+    }
+  },
+  "compensation": {
+    "status": "needs_review",
+    "items": {},
+    "total": null
+  },
+  "needs_human_review": true
+}

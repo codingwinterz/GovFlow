@@ -14,7 +14,7 @@ from app.case_store import seed_case
 from app.main import create_app
 from app.models import AuditLog, Base, Case
 from app.rules_loader import RULES_DIR, RulesError, load_scheme_by_name, parse_scheme
-from app.tools import check_eligibility, compute_compensation, record_officer_decision, submit_to_officer, verify_documents
+from app.tools import amount_field_values, check_eligibility, compute_compensation, record_officer_decision, submit_to_officer, verify_documents
 from tests.asgi_client import call
 
 DATA = Path(__file__).resolve().parent.parent / "data" / "synthetic"
@@ -70,7 +70,8 @@ def test_decided_cases_stop_the_clock_and_are_never_overdue(env):
         s.commit()
         verify_documents(s, "LA-01"); check_eligibility(s, "LA-01"); compute_compensation(s, "LA-01")
         submit_to_officer(s, "LA-01")
-        record_officer_decision(s, "LA-01", role="officer", officer_id="O-1", decision="approve")
+        record_officer_decision(s, "LA-01", role="officer", officer_id="O-1", decision="approve",
+                                confirmed=amount_field_values(s, "LA-01"))
     row = _queue(get)["LA-01"]
     assert row["status"] == "approved" and row["days_open"] > row["sla_days"]   # it took longer than the SLA...
     assert row["overdue"] is False                                             # ...but a closed case is never overdue

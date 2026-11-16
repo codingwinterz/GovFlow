@@ -99,6 +99,7 @@ class SimulateIn(BaseModel):
 class DecisionIn(BaseModel):
     decision: str
     comment: str = ""
+    confirmed_fields: dict[str, Any] = {}   # approve: each amount-driving field at the value the officer checked
 
 
 class _NoLLM:
@@ -177,6 +178,7 @@ def _detail(session: Session, case: Case) -> dict[str, Any]:
                                    for i in items],
                          "total": round(sum(i.amount for i in items), 2) if items else None},
         "explanation": _latest_explanation(session, case.id),
+        "confirm_fields": [{"ref": ref, "value": value} for ref, value in tools.amount_field_values(session, case.id).items()],
     })
 
 
@@ -367,7 +369,8 @@ def create_app(engine: Optional[Engine] = None, agent_llm_factory: Optional[Call
                session: Session = Depends(session_dep)) -> dict[str, Any]:
         _require(actor, "officer")
         return tools.record_officer_decision(session, case_id, role=actor.role, officer_id=actor.user,
-                                             decision=body.decision, comment=body.comment).model_dump()
+                                             decision=body.decision, comment=body.comment,
+                                             confirmed=body.confirmed_fields).model_dump()
 
     def _known_scheme(name: str) -> None:
         if not tools.SCHEME_NAME.match(name) or not (RULES_DIR / f"{name}.yaml").is_file():

@@ -13,7 +13,7 @@ from app.case_model import CaseIn
 from app.case_store import seed_case
 from app.main import create_app
 from app.models import AuditLog, Base, CompensationItemRow, RuleResultRow
-from app.tools import (check_eligibility, compute_compensation, record_officer_decision, submit_to_officer,
+from app.tools import (amount_field_values, check_eligibility, compute_compensation, record_officer_decision, submit_to_officer,
                        verify_documents)
 from tests.asgi_client import call
 
@@ -41,7 +41,8 @@ def _to_review(engine, case_id):
 def _decide(engine, case_id, decision, comment="ok"):
     _to_review(engine, case_id)
     with Session(engine) as s:
-        record_officer_decision(s, case_id, role="officer", officer_id="O-7", decision=decision, comment=comment)
+        record_officer_decision(s, case_id, role="officer", officer_id="O-7", decision=decision, comment=comment,
+                                confirmed=amount_field_values(s, case_id))
 
 
 def test_award_for_an_approved_case(env):

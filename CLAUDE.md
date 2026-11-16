@@ -75,6 +75,8 @@ Fuller detail is in `docs/KNOWN_LIMITATIONS.md`.
   applying the 15% minimum to kutcha houses, huts, clothing and utensils; the condition for clothing and utensils.
 - `app/providers/gemini_agent.py`: Gemini function-calling wire format and default temperature (never run live).
 - Every rule's `<clause ref>` in both YAML files.
+- Plausibility ranges (placeholders, not legal values): land `area_sqm` 10 to 500,000 (holding) and 10 to 5,000,000
+  (survey number); `market_value_per_sqm` Rs 100 to 1,00,000.
 
 ### Open items
 - Gemini: free-tier quota exhausted during testing; the agent has never run against the live API.

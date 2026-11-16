@@ -47,6 +47,9 @@ class RequiredDocument(BaseModel):
     options: dict[str, list[str]] = {}   # one_of fields: the allowed values
     derived: dict[str, Derived] = {}
     validity: Optional[Validity] = None
+    # Plausible [min, max] for number, percent or derived fields. A value outside goes to human review
+    # (withheld like an unreadable value), whatever confidence the extraction reported. Never clamped.
+    plausible: dict[str, tuple[float, float]] = {}
 
     @model_validator(mode="before")
     @classmethod
@@ -72,6 +75,11 @@ class RequiredDocument(BaseModel):
             for source, kind in ((d.convert, "number"), (d.unit_field, "unit")):
                 if self.types.get(source) != kind:
                     raise ValueError(f"{self.id}.{name}: {source!r} must be a declared {kind} field")
+        for name, (lo, hi) in self.plausible.items():
+            if self.types.get(name) not in ("number", "percent") and name not in self.derived:
+                raise ValueError(f"{self.id}.{name}: plausible bounds need a number, percent or derived field")
+            if lo > hi:
+                raise ValueError(f"{self.id}.{name}: plausible range {[lo, hi]} has min above max")
         return self
 
 
@@ -335,6 +343,30 @@ def _check_self_check(scheme: Scheme) -> None:
         outside = (names - docs - {"params"}) | {r for r in refs if r.split(".")[0] in docs and r not in asked}
         if outside:
             raise RulesError(f"self_check rule {rule_id!r} reads {sorted(outside)}, which are not questions")
+
+
+def amount_fields(scheme: Scheme) -> list[str]:
+    """Document fields that drive an amount: every doc.field a compensation input reads, with derived fields
+    replaced by the fields they come from. An officer must confirm these before approving, whatever the
+    extraction confidence. Read from the YAML, so a new scheme needs no code."""
+    if scheme.compensation is None:
+        return []
+    docs = {d.id: d for d in scheme.required_documents}
+    out: list[str] = []
+    for inp in scheme.compensation.inputs.values():
+        exprs = [inp.from_] if inp.from_ else []
+        if inp.years_between:
+            yb = inp.years_between
+            exprs += [e for e in (yb.start, yb.end, yb.end_default_from, *yb.end_earliest_of) if e]
+        for expr in exprs:
+            for ref in sorted(_refs(expr)[1]):
+                doc_id, name = ref.split(".", 1)
+                if doc_id not in docs:
+                    continue
+                derived = docs[doc_id].derived.get(name)
+                sources = [derived.convert, derived.unit_field] if derived else [name]
+                out += [f"{doc_id}.{s}" for s in sources]
+    return list(dict.fromkeys(out))
 
 
 def case_input_names(scheme: Scheme) -> list[str]:
