@@ -12,6 +12,7 @@ from pydantic import BaseModel
 
 from app.case_model import CaseIn
 from app.facts import CaseFacts, build_facts, missing_reason
+from app.field_types import coerce
 from app.rules_loader import CompensationInput, Scheme, YearsBetween
 from app.safe_eval import UnknownName, evaluate, names_in
 
@@ -68,23 +69,64 @@ def _lookup(expr: str, names: dict) -> Any:
         raise _Missing(f"{expr} unavailable") from exc
 
 
+def _earliest_end(spec: YearsBetween, names: dict) -> tuple[date, str]:
+    """The earliest recorded date; a date not recorded yet is assumed not to have happened, so the
+    reference date stands in for it (an estimate, marked VERIFY)."""
+    found: list[tuple[date, str]] = []
+    unrecorded: list[str] = []
+    for expr in spec.end_earliest_of:
+        try:
+            found.append((_as_date(evaluate(expr, names), expr), expr))
+        except UnknownName:
+            unrecorded.append(expr.split(".")[-1])
+    if unrecorded:
+        if spec.end_default_from is None:
+            raise _Missing(f"{', '.join(unrecorded)} unavailable")
+        found.append((_as_date(_lookup(spec.end_default_from, names), spec.end_default_from), spec.end_default_from))
+    end = min(d for d, _ in found)
+    listed = ", ".join(f"{expr}={d}" for d, expr in found)
+    note = (f"; {', '.join(unrecorded)} not recorded, assumed not yet happened, estimated to "
+            f"{spec.end_default_from} (VERIFY)") if unrecorded else ""
+    return end, f"earliest of [{listed}]{note}"
+
+
 def _years_between(spec: YearsBetween, names: dict) -> tuple[float, str]:
     start = _as_date(_lookup(spec.start, names), spec.start)
-    try:
-        end, end_source = _as_date(evaluate(spec.end, names), spec.end), spec.end
-    except UnknownName:
-        if spec.end_default_from is None:
-            raise _Missing(f"{spec.end} unavailable")
-        end = _as_date(_lookup(spec.end_default_from, names), spec.end_default_from)
-        end_source = f"{spec.end_default_from} (default, VERIFY)"
+    if spec.end_earliest_of:
+        end, end_source = _earliest_end(spec, names)
+    else:
+        try:
+            end, end_source = _as_date(evaluate(spec.end, names), spec.end), spec.end
+        except UnknownName:
+            if spec.end_default_from is None:
+                raise _Missing(f"{spec.end} unavailable")
+            end = _as_date(_lookup(spec.end_default_from, names), spec.end_default_from)
+            end_source = f"{spec.end_default_from} (default, VERIFY)"
     if end < start:
         raise _Missing(f"end date {end} is before start date {start}")
     days = (end - start).days
     return days / DAYS_PER_YEAR, f"years_between({spec.start}={start}, {end_source}={end}) = {days}/{DAYS_PER_YEAR}"
 
 
+def _in_range(name: str, spec: CompensationInput, resolved: InputValue) -> InputValue:
+    if spec.range is None:
+        return resolved
+    value, error = coerce("number", resolved.value)
+    if error:
+        raise _Missing(f"{name}: {error}")
+    lo, hi = spec.range
+    if not lo <= value <= hi:
+        raise _Missing(f"{name}: {value:g} is outside {lo:g}-{hi:g}")
+    return resolved.model_copy(update={"value": value})
+
+
 def _resolve(name: str, spec: CompensationInput, names: dict, facts: CaseFacts) -> InputValue:
-    exprs = [spec.from_] if spec.from_ else [spec.years_between.start, spec.years_between.end]
+    return _in_range(name, spec, _resolve_value(name, spec, names, facts))
+
+
+def _resolve_value(name: str, spec: CompensationInput, names: dict, facts: CaseFacts) -> InputValue:
+    exprs = [spec.from_] if spec.from_ else [spec.years_between.start, spec.years_between.end or "",
+                                              *spec.years_between.end_earliest_of]
     withheld = "; ".join(r for r in (missing_reason(e, facts) for e in exprs) if r)
     if withheld:   # a document value was read but is unusable: never replace it with a default
         raise _Missing(withheld)

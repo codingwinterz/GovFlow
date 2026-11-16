@@ -27,7 +27,7 @@ def test_any_flag_routes_to_human_review():
 
 def test_compensation_gap_routes_to_human_review():
     case = _with_inputs(_case())
-    del case.inputs["interest_start_date"]
+    del case.inputs["sia_notification_date"]
     result = assess_case(SCHEME, case)
     assert result.eligibility.overall == "eligible"
     assert result.needs_human_review is True

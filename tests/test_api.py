@@ -292,7 +292,7 @@ def test_schemes_lists_every_rules_file_with_its_documents(env):
 def test_schemes_list_officer_inputs_from_the_yaml(env):
     (la,) = [s for s in env("GET", "/schemes", headers=CLERK)[1] if s["scheme"] == "land_acquisition"]
     assert la["officer_inputs"] == ["market_value_per_sqm", "assets_total", "multiplier",
-                                    "interest_start_date", "interest_end_date"]
+                                    "sia_notification_date", "award_date", "possession_date"]
 
 
 def test_admin_role_reaches_only_the_simulator(env):

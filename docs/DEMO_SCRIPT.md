@@ -37,7 +37,7 @@ cd web && npm run dev                                   # terminal 2, open http:
 ### 1. Intake (0:00, ~25 s)
 - **Login:** role `clerk`, user `C-1`.
 - **Click:** Intake → case id `LA-50`, scheme *Land acquisition compensation*, reference date today,
-  `market_value_per_sqm` `3000`, `assets_total` `0`, `interest_start_date` `2024-11-15` → Create case →
+  `market_value_per_sqm` `3000`, `assets_total` `0`, `sia_notification_date` `2024-11-15`, `award_date` `2026-11-15` → Create case →
   upload `identity_proof.txt` as *identity_proof*.
 - **Say:** "A clerk opens a case. The form's inputs come from the scheme's YAML, not from code."
 - **LIVE GEMINI:** reading the uploaded document.

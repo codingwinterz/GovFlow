@@ -49,7 +49,7 @@
   "component.land_acquisition.land_value": "भूमि का मूल्य (क्षेत्रफल × बाज़ार दर × गुणक): {amount}",
   "component.land_acquisition.assets_value": "भूमि पर संपत्तियों का मूल्य (भवन, पेड़ आदि): {amount}",
   "component.land_acquisition.solatium": "सोलेशियम (अनिवार्य अधिग्रहण के लिए अतिरिक्त मुआवज़ा): {amount}",
-  "component.land_acquisition.interest": "ब्याज: {amount}",
+  "component.land_acquisition.interest": "अधिसूचना से अवार्ड या कब्ज़े तक, जो पहले हो, बारह प्रतिशत वार्षिक की अतिरिक्त राशि: {amount}",
   "component.disaster_relief.house_full": "पूरी तरह क्षतिग्रस्त घर के लिए सहायता: {amount}",
   "component.disaster_relief.house_partial": "आंशिक रूप से क्षतिग्रस्त घर के लिए सहायता: {amount}",
   "component.disaster_relief.household_items": "घरेलू सामान (कपड़े और बर्तन) के लिए सहायता: {amount}"

@@ -49,7 +49,7 @@
   "component.land_acquisition.land_value": "जमिनीचे मूल्य (क्षेत्रफळ × बाजारभाव × गुणक): {amount}",
   "component.land_acquisition.assets_value": "जमिनीवरील मालमत्तेचे मूल्य (इमारती, झाडे इत्यादी): {amount}",
   "component.land_acquisition.solatium": "सोलेशियम (सक्तीच्या संपादनासाठी अतिरिक्त भरपाई): {amount}",
-  "component.land_acquisition.interest": "व्याज: {amount}",
+  "component.land_acquisition.interest": "अधिसूचनेपासून निवाडा किंवा ताबा, जे आधी होईल तोपर्यंत, दरवर्षी बारा टक्के अतिरिक्त रक्कम: {amount}",
   "component.disaster_relief.house_full": "पूर्णपणे नुकसान झालेल्या घरासाठी मदत: {amount}",
   "component.disaster_relief.house_partial": "अंशतः नुकसान झालेल्या घरासाठी मदत: {amount}",
   "component.disaster_relief.household_items": "घरगुती वस्तूंसाठी (कपडे आणि भांडी) मदत: {amount}"

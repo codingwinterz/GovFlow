@@ -1,6 +1,6 @@
 {
   "case_id": "LA-03",
-  "description": "Similar but different surname on identity proof: review band",
+  "description": "Similar but different surname on identity proof: review band; possession before award",
   "verification": {
     "name_match": "needs_review",
     "survey_no_match": "pass",
@@ -22,9 +22,9 @@
       "land_value": 3200000,
       "assets_value": 100000,
       "solatium": 3300000,
-      "interest": 768000
+      "interest": 384000
     },
-    "total": 7368000
+    "total": 6984000
   },
   "needs_human_review": true
 }

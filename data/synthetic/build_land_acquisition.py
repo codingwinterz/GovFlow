@@ -41,12 +41,15 @@ def documents(name, survey, area, unit, total_area, total_unit, id_name=None, sh
     }
 
 
-def inputs(mv, assets, start="2024-11-15", end="2026-11-15", **extra):
+def inputs(mv, assets, start="2024-11-15", end="2026-11-15", possession=None, **extra):
+    """start = SIA notification date, end = award date, possession = date possession was taken."""
     out = {"market_value_per_sqm": mv, "assets_total": assets, **extra}
     if start:
-        out["interest_start_date"] = start
+        out["sia_notification_date"] = start
     if end:
-        out["interest_end_date"] = end
+        out["award_date"] = end
+    if possession:
+        out["possession_date"] = possession
     return out
 
 
@@ -83,12 +86,14 @@ CASES.append((documents("Prakash Kamat", "56/1", 1200, "sqm", 3000, "sqm", id_na
                        compensation=comp(3_000_000, 50_000, 3_050_000, 360_000))))
 
 # 03 name similarity 0.889: between confidence threshold 0.85 and fuzzy 0.9
+# possession 2025-11-15 is earlier than the award 2026-11-15, so the 12% additional amount stops at
+# possession: 2024-11-15 -> 2025-11-15 = 365 days = 1 year; 3,200,000 x 0.12 x 1 = 384,000
 CASES.append((documents("Santosh Parab", "88/2", 800, "sqm", 2000, "sqm", id_name="Santosh Prabhu"),
-              inputs(4000, 100_000),
-              expected("Similar but different surname on identity proof: review band",
+              inputs(4000, 100_000, possession="2025-11-15"),
+              expected("Similar but different surname on identity proof: review band; possession before award",
                        checks={"name_match": "needs_review"}, rules={"valid_ownership": "needs_review"},
                        overall="needs_review", review=True,
-                       compensation=comp(3_200_000, 100_000, 3_300_000, 768_000))))
+                       compensation=comp(3_200_000, 100_000, 3_300_000, 384_000))))
 
 # 04 identity proof belongs to a different person
 CASES.append((documents("Maria Fernandes", "12/3", 1000, "sqm", 2500, "sqm", id_name="Vinod Shetty"),

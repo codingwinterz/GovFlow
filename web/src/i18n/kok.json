@@ -49,7 +49,7 @@
   "component.land_acquisition.land_value": "जमनीचें मोल (वाठार × बाजार दर × गुणक): {amount}",
   "component.land_acquisition.assets_value": "जमनीर आशिल्ल्या मालमत्तेचें मोल (इमारती, झाडां आदी): {amount}",
   "component.land_acquisition.solatium": "सोलेशियम (सक्तीच्या संपादनाखातीर आनीक भरपाय): {amount}",
-  "component.land_acquisition.interest": "व्याज: {amount}",
+  "component.land_acquisition.interest": "अधिसूचने सावन निवाडो वा ताबो, जें आदीं जाता तें मेरेन, वर्साक बारा टक्के आनीक रक्कम: {amount}",
   "component.disaster_relief.house_full": "पुराय लुकसाण जाल्ल्या घराखातीर मदत: {amount}",
   "component.disaster_relief.house_partial": "थोडें लुकसाण जाल्ल्या घराखातीर मदत: {amount}",
   "component.disaster_relief.household_items": "घरगुती वस्तूंखातीर (कपडे आनी भांडीं) मदत: {amount}"

@@ -49,7 +49,7 @@
   "component.land_acquisition.land_value": "Land value (area × market rate × multiplier): {amount}",
   "component.land_acquisition.assets_value": "Value of assets on the land (buildings, trees and so on): {amount}",
   "component.land_acquisition.solatium": "Solatium (additional compensation for compulsory acquisition): {amount}",
-  "component.land_acquisition.interest": "Interest: {amount}",
+  "component.land_acquisition.interest": "Additional amount at twelve per cent a year, from the notification to the award or possession, whichever is earlier: {amount}",
   "component.disaster_relief.house_full": "Relief for a fully damaged house: {amount}",
   "component.disaster_relief.house_partial": "Relief for a partially damaged house: {amount}",
   "component.disaster_relief.household_items": "Relief for household items (clothing and utensils): {amount}"

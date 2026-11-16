@@ -98,6 +98,6 @@
   "inputs": {
     "market_value_per_sqm": 1000,
     "assets_total": 0,
-    "interest_end_date": "2026-11-15"
+    "award_date": "2026-11-15"
   }
 }

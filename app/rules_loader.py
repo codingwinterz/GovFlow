@@ -151,14 +151,22 @@ class EligibilityRule(BaseModel):
 
 class YearsBetween(BaseModel):
     start: str
-    end: str
-    end_default_from: Optional[str] = None
+    end: Optional[str] = None
+    end_earliest_of: list[str] = []        # the earliest of several dates (e.g. award, possession)
+    end_default_from: Optional[str] = None  # stands in for a date not recorded yet (assumed not yet happened)
+
+    @model_validator(mode="after")
+    def _one_end(self) -> "YearsBetween":
+        if (self.end is None) == (not self.end_earliest_of):
+            raise ValueError("years_between needs exactly one of `end` or `end_earliest_of`")
+        return self
 
 
 class CompensationInput(BaseModel):
     from_: Optional[str] = None
     default: Optional[float] = None
     years_between: Optional[YearsBetween] = None
+    range: Optional[tuple[float, float]] = None   # allowed [min, max]; outside -> needs review, never clamped
 
     model_config = {"populate_by_name": True}
 
@@ -173,6 +181,12 @@ class CompensationInput(BaseModel):
     def _one_source(self) -> "CompensationInput":
         if (self.from_ is None) == (self.years_between is None):
             raise ValueError("compensation input needs exactly one of `from` or `years_between`")
+        if self.range is not None:
+            lo, hi = self.range
+            if lo > hi:
+                raise ValueError(f"range {list(self.range)} has min above max")
+            if self.default is not None and not lo <= self.default <= hi:
+                raise ValueError(f"default {self.default} is outside range {list(self.range)}")
         return self
 
 
@@ -243,7 +257,7 @@ def _expressions(scheme: Scheme) -> list[str]:
                 exprs.append(inp.from_)
             if inp.years_between:
                 yb = inp.years_between
-                exprs += [e for e in (yb.start, yb.end, yb.end_default_from) if e]
+                exprs += [e for e in (yb.start, yb.end, yb.end_default_from, *yb.end_earliest_of) if e]
     return exprs
 
 

@@ -98,7 +98,7 @@
   "inputs": {
     "market_value_per_sqm": 2000,
     "assets_total": 75000,
-    "interest_start_date": "2024-11-15",
-    "interest_end_date": "2026-11-15"
+    "sia_notification_date": "2024-11-15",
+    "award_date": "2026-11-15"
   }
 }
