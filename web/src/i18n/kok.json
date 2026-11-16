@@ -75,5 +75,7 @@
   "self.rules": "नेम आवृत्ती: {version}",
   "outcome.likely_eligible": "बहुतेक पात्र",
   "outcome.likely_not_eligible": "बहुतेक पात्र न्हय",
-  "outcome.need_more_information": "आनीक माहिती जाय"
+  "outcome.need_more_information": "आनीक माहिती जाय",
+  "theme.to_dark": "काळी थीम",
+  "theme.to_light": "उजळ थीम"
 }

@@ -75,5 +75,7 @@
   "self.rules": "Rules version: {version}",
   "outcome.likely_eligible": "Likely eligible",
   "outcome.likely_not_eligible": "Likely not eligible",
-  "outcome.need_more_information": "Need more information"
+  "outcome.need_more_information": "Need more information",
+  "theme.to_dark": "Dark theme",
+  "theme.to_light": "Light theme"
 }

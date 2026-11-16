@@ -75,5 +75,7 @@
   "self.rules": "नियम संस्करण: {version}",
   "outcome.likely_eligible": "संभवतः पात्र",
   "outcome.likely_not_eligible": "संभवतः पात्र नहीं",
-  "outcome.need_more_information": "और जानकारी चाहिए"
+  "outcome.need_more_information": "और जानकारी चाहिए",
+  "theme.to_dark": "गहरी थीम",
+  "theme.to_light": "हल्की थीम"
 }

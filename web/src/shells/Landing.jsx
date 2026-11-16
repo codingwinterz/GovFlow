@@ -3,7 +3,7 @@ import { href } from "../lib/router.js";
 // Two entry points, nothing else: citizens and staff never share a navigation bar.
 export default function Landing({ notFound = false }) {
   return (
-    <div className="shell landing">
+    <div className="shell landing" data-theme="light">
       <main className="content narrow-content">
         <p className="brand big-brand">GovFlow</p>
         {notFound && <p className="banner warn">That page does not exist. Choose where to go:</p>}

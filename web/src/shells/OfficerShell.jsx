@@ -36,7 +36,7 @@ export default function OfficerShell({ route }) {
   const start = staff && homePage(staff.role);
 
   return (
-    <div className="shell officer">
+    <div className="shell officer" data-theme="system">
       <header className="topbar no-print">
         <div className="topbar-inner">
           <a className="brand" href={href(start || "queue")}>GovFlow <span className="brand-sub">Staff</span></a>

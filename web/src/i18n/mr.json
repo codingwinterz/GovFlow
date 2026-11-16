@@ -75,5 +75,7 @@
   "self.rules": "नियम आवृत्ती: {version}",
   "outcome.likely_eligible": "बहुधा पात्र",
   "outcome.likely_not_eligible": "बहुधा पात्र नाही",
-  "outcome.need_more_information": "अधिक माहिती हवी"
+  "outcome.need_more_information": "अधिक माहिती हवी",
+  "theme.to_dark": "गडद थीम",
+  "theme.to_light": "फिकट थीम"
 }
