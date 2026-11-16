@@ -16,7 +16,7 @@ from app.field_types import coerce
 from app.rules_loader import CompensationInput, Scheme, YearsBetween
 from app.safe_eval import UnknownName, evaluate, names_in
 
-DAYS_PER_YEAR = 365  # VERIFY: day-count convention for s.30(3) interest (actual/365 assumed)
+DAYS_PER_YEAR = 365  # VERIFY: day-count convention for the 12% additional amount (actual/365 assumed)
 
 
 class InputValue(BaseModel):
