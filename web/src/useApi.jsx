@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { api } from "./api.js";
+import { errorMessage, retryable } from "./lib/states.js";
 
 // Load one API resource; `reload` re-fetches after an action.
 export function useApi(path) {
@@ -15,8 +16,15 @@ export function useApi(path) {
   return { ...state, reload: load };
 }
 
-export function Loading({ state }) {
-  if (state.loading && !state.data) return <p className="muted">Loading…</p>;
-  if (state.error) return <p className="error">Error {state.error.status}: {state.error.message}</p>;
+// Announced to screen readers: loading as a status, failure as an alert with a plain message.
+export function Loading({ state, back }) {
+  if (state.loading && !state.data) return <p className="muted" role="status">Loading…</p>;
+  if (state.error) return (
+    <div className="banner warn" role="alert">
+      <p>{errorMessage(state.error)}</p>
+      {retryable(state.error) && <button type="button" onClick={state.reload}>Retry</button>}
+      {state.error.status === 404 && back}
+    </div>
+  );
   return null;
 }

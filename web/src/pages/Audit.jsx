@@ -10,9 +10,9 @@ export default function Audit({ id }) {
       <h1>Audit trail: {id}</h1>
       <p className="muted">Append-only. Every tool call, rule result and officer action, with the rules version used.
         <a href={href("case", id)}> Back to case</a></p>
-      <Loading state={audit} />
+      <Loading state={audit} back={<a href={href("queue")}>Back to the queue</a>} />
       {audit.data && (
-        <table>
+        <div className="table-scroll"><table>
           <thead><tr><th>#</th><th>Time</th><th>Actor</th><th>Action</th><th>Rules version</th><th>Details (as stored)</th></tr></thead>
           <tbody>
             {audit.data.map((a) => (
@@ -23,7 +23,7 @@ export default function Audit({ id }) {
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></div>
       )}
     </section>
   );

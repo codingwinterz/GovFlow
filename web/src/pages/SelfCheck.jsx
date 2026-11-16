@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { t } from "../lib/i18n.js";
 import { readable, termLabel } from "../lib/display.js";
+import { readList } from "../lib/states.js";
 
 class CheckError extends Error {}
 
@@ -19,14 +20,18 @@ export default function SelfCheck({ dict }) {
   const [answers, setAnswers] = useState({});
   const [result, setResult] = useState(null);
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
   const say = (keyOrText) => (keyOrText in dict ? t(dict, keyOrText) : keyOrText);
 
-  useEffect(() => {
-    fetch("/api/public/self-check").then((r) => r.json()).then((list) => {
+  const load = () => {
+    setLoading(true);
+    setError("");
+    fetch("/api/public/self-check").then(readList).then((list) => {
       setSchemes(list);
       setScheme(list[0] || null);
-    }).catch(() => setError("self.load_error"));
-  }, []);
+    }).catch(() => setError("self.load_error")).finally(() => setLoading(false));
+  };
+  useEffect(load, []);
 
   const run = async (e) => {
     e.preventDefault();
@@ -43,7 +48,14 @@ export default function SelfCheck({ dict }) {
     <section className="card">
       <h1>{t(dict, "nav.self_check")}</h1>
       {scheme && <p className="banner warn"><strong>{scheme.guide_label}</strong></p>}
-      {schemes.length === 0 && !error && <p className="muted">{t(dict, "self.none")}</p>}
+      {loading && <p className="muted" role="status">{t(dict, "self.loading")}</p>}
+      {!loading && schemes.length === 0 && !error && <p className="muted">{t(dict, "self.none")}</p>}
+      {error === "self.load_error" && (
+        <div className="banner warn" role="alert">
+          <p>{t(dict, "self.load_error")}</p>
+          <button type="button" onClick={load}>{t(dict, "self.retry")}</button>
+        </div>
+      )}
       {scheme && (
         <form onSubmit={run}>
           <label>{t(dict, "self.scheme")}
@@ -67,7 +79,7 @@ export default function SelfCheck({ dict }) {
           <button type="submit">{t(dict, "self.submit")}</button>
         </form>
       )}
-      {error && <p className="error">{say(error)}</p>}
+      {error && error !== "self.load_error" && <p className="error" role="alert">{say(error)}</p>}
       {result && (
         <div className="citizen-view">
           <h2>{t(dict, `outcome.${result.outcome}`)}</h2>

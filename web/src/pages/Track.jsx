@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { citizenLines, t } from "../lib/i18n.js";
+import { trackProblem } from "../lib/states.js";
 
 const ERRORS = { 404: "track.not_found", 429: "track.too_many" };
 
@@ -13,6 +14,8 @@ export default function Track({ dict }) {
   const submit = async (e) => {
     e.preventDefault();
     setView(null);
+    const problem = trackProblem(ref, code);
+    if (problem) return setError(problem);              // checked here: a typo does not use up an attempt
     setError("");
     try {
       const response = await fetch("/api/public/status", {
@@ -30,12 +33,13 @@ export default function Track({ dict }) {
     <section className="card track">
       <h1>{t(dict, "track.title")}</h1>
       <form onSubmit={submit}>
-        <label>{t(dict, "track.case_ref")} <input value={ref} onChange={(e) => setRef(e.target.value)} autoComplete="off" /></label>
-        <label>{t(dict, "track.code")} <input value={code} onChange={(e) => setCode(e.target.value)} inputMode="numeric" autoComplete="off" /></label>
+        <label>{t(dict, "track.case_ref")} <input value={ref} onChange={(e) => setRef(e.target.value)} autoComplete="off" required maxLength={64} /></label>
+        <label>{t(dict, "track.code")} <input value={code} onChange={(e) => setCode(e.target.value)} inputMode="numeric" autoComplete="off"
+          required maxLength={6} pattern="[0-9]{6}" /></label>
         <button type="submit">{t(dict, "track.submit")}</button>
       </form>
       <p className="muted small">{t(dict, "track.demo_hint")}</p>
-      {error && <p className="error">{t(dict, error)}</p>}
+      {error && <p className="error" role="alert">{t(dict, error)}</p>}
       {view && (
         <div className="citizen-view">
           {citizenLines(view, dict).map((line, i) =>

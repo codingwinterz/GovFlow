@@ -99,6 +99,8 @@ button.link { background: none; border: none; color: var(--accent); padding: 0; 
 .filters label { min-width: 200px; }
 .case-head .actions { display: flex; gap: 16px; align-items: center; }
 .decision { border-color: var(--accent); }
+/* Wide tables scroll inside their own box, so the page never scrolls sideways on a phone */
+.table-scroll { overflow-x: auto; max-width: 100%; }
 .confirm .confirm-item { display: flex; gap: 8px; align-items: center; margin: 6px 0; }
 .confirm .confirm-item input { width: auto; margin: 0; }
 /* Analytics bars: every chart on the page uses one shared scale, with tick labels under the bars */

@@ -48,7 +48,9 @@ export default function Analytics() {
     <section>
       <h1>Analytics</h1>
       <Loading state={a} />
-      {d && <p className="muted">Every bar chart below uses the same scale, 0 to {scale.top} cases, so bar lengths compare across charts.</p>}
+      {d && (d.total_cases === 0
+        ? <p className="muted">No cases yet. The charts fill in once cases are created at intake.</p>
+        : <p className="muted">Every bar chart below uses the same scale, 0 to {scale.top} cases, so bar lengths compare across charts.</p>)}
       {d && (
         <div className="grid">
           <Counts title="Cases by status" counts={d.by_status} scale={scale} label={status}

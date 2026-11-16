@@ -77,5 +77,9 @@
   "outcome.likely_not_eligible": "Likely not eligible",
   "outcome.need_more_information": "Need more information",
   "theme.to_dark": "Dark theme",
-  "theme.to_light": "Light theme"
+  "theme.to_light": "Light theme",
+  "track.invalid_ref": "Enter the application reference exactly as it is printed on your receipt.",
+  "track.invalid_code": "The verification code has six digits.",
+  "self.loading": "Loading the questions…",
+  "self.retry": "Try again"
 }

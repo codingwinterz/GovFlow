@@ -77,5 +77,9 @@
   "outcome.likely_not_eligible": "बहुतेक पात्र न्हय",
   "outcome.need_more_information": "आनीक माहिती जाय",
   "theme.to_dark": "काळी थीम",
-  "theme.to_light": "उजळ थीम"
+  "theme.to_light": "उजळ थीम",
+  "track.invalid_ref": "अर्जाचो संदर्भ तुमच्या पावतीचेर छापला तसोच बरयात.",
+  "track.invalid_code": "पडताळणी कोड स अंकांचो आसता.",
+  "self.loading": "प्रस्न लोड जातात…",
+  "self.retry": "परत यत्न करात"
 }

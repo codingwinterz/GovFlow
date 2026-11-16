@@ -207,7 +207,7 @@ export default function CasePage({ id, login }) {
 
   return (
     <section>
-      <Loading state={detail} />
+      <Loading state={detail} back={<a href={href("queue")}>Back to the queue</a>} />
       {d && (
         <>
           <div className="case-head">

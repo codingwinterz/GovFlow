@@ -50,7 +50,7 @@ export default function Queue() {
       <Loading state={cases} />
       {cases.data && (
         cases.data.length === 0 ? <p className="muted">No cases match these filters.</p> : (
-          <table>
+          <div className="table-scroll"><table>
             <thead>
               <tr><th>#</th><th>Case</th><th>Scheme</th><th>Status</th><th>Reason for review</th><th className="num">Days open</th><th>Submitted</th></tr>
             </thead>
@@ -69,7 +69,7 @@ export default function Queue() {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         )
       )}
     </section>

@@ -77,5 +77,9 @@
   "outcome.likely_not_eligible": "संभवतः पात्र नहीं",
   "outcome.need_more_information": "और जानकारी चाहिए",
   "theme.to_dark": "गहरी थीम",
-  "theme.to_light": "हल्की थीम"
+  "theme.to_light": "हल्की थीम",
+  "track.invalid_ref": "आवेदन संदर्भ ठीक वैसा ही लिखें जैसा आपकी रसीद पर छपा है।",
+  "track.invalid_code": "सत्यापन कोड छह अंकों का होता है।",
+  "self.loading": "प्रश्न लोड हो रहे हैं…",
+  "self.retry": "फिर से कोशिश करें"
 }
