@@ -200,3 +200,37 @@ def test_decision_date_is_the_date_in_india_not_utc(env):
     _decide(engine, "LA-01", "approve")
     _decision_at(engine, "LA-01", datetime(2026, 11, 19, 19, 0, tzinfo=timezone.utc))   # 00:30 IST on 20 Nov
     assert lookup("LA-01")[1]["decision"]["date"] == "2026-11-20"
+
+
+# --- no secret, no lookups (audit finding 2) ------------------------------------------------------------------
+
+def test_without_a_secret_status_lookup_is_refused_with_a_clear_503(tmp_path, monkeypatch):
+    monkeypatch.delenv("GOVFLOW_CITIZEN_SECRET", raising=False)
+    engine = create_engine("sqlite://", poolclass=StaticPool, connect_args={"check_same_thread": False})
+    Base.metadata.create_all(engine)
+    app = create_app(engine=engine, upload_dir=tmp_path)
+    for code in ["123456", citizen_code("LA-01", "govflow-demo-secret-not-for-production")]:   # the old built-in secret
+        status, body = call(app, "POST", "/public/status", {"case_ref": "LA-01", "code": code}, client="1.2.3.4")
+        assert status == 503 and "GOVFLOW_CITIZEN_SECRET" in body["detail"]
+
+
+def test_the_secret_comes_from_the_environment_first_then_dotenv(tmp_path, monkeypatch):
+    from app.citizen import citizen_secret
+    dotenv = tmp_path / ".env"
+    dotenv.write_text("GOVFLOW_CITIZEN_SECRET='from-file'\n", encoding="utf-8")
+    monkeypatch.delenv("GOVFLOW_CITIZEN_SECRET", raising=False)
+    assert citizen_secret() is None and citizen_secret(tmp_path / "missing.env") is None
+    assert citizen_secret(dotenv) == "from-file"
+    monkeypatch.setenv("GOVFLOW_CITIZEN_SECRET", "from-env")
+    assert citizen_secret(dotenv) == "from-env"
+    monkeypatch.setenv("GOVFLOW_CITIZEN_SECRET", "   ")
+    assert citizen_secret() is None                                   # blank is not a secret
+
+
+def test_with_the_secret_from_the_environment_lookups_work(env, tmp_path, monkeypatch):
+    engine, _, _ = env
+    monkeypatch.setenv("GOVFLOW_CITIZEN_SECRET", SECRET)
+    app = create_app(engine=engine, upload_dir=tmp_path)
+    status, body = call(app, "POST", "/public/status", {"case_ref": "LA-01", "code": citizen_code("LA-01", SECRET)},
+                        client="1.2.3.4")
+    assert status == 200 and body["case_ref"] == "LA-01"

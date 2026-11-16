@@ -52,6 +52,9 @@ ROLES = ("citizen", "clerk", "officer", "admin")   # admin: rule simulator only
 UPLOAD_TYPES = {".txt", ".png", ".jpg", ".jpeg", ".pdf"}
 MAX_UPLOAD_BYTES = 10 * 1024 * 1024
 DEFAULT_UPLOAD_DIR = Path(__file__).resolve().parent.parent / "uploads"   # gitignored: citizen documents
+DOTENV = Path(__file__).resolve().parent.parent / ".env"
+STATUS_NOT_CONFIGURED = ("Status lookup is not configured on this server: set GOVFLOW_CITIZEN_SECRET "
+                         "(the demo seed writes one to .env).")
 
 
 class Actor(BaseModel):
@@ -190,7 +193,7 @@ def create_app(engine: Optional[Engine] = None, agent_llm_factory: Optional[Call
                clock: Callable[[], float] = time.monotonic,
                now: Callable[[], datetime] = lambda: datetime.now(timezone.utc)) -> FastAPI:
     app = FastAPI(title="GovFlow", version="0.1.0")
-    secret = citizen_secret or default_citizen_secret()
+    secret = citizen_secret or default_citizen_secret()   # None: status lookups answer 503, never a weak default
     limiter = RateLimiter(clock)
     state: dict[str, Any] = {"engine": engine}
     uploads = Path(upload_dir or DEFAULT_UPLOAD_DIR)
@@ -231,6 +234,8 @@ def create_app(engine: Optional[Engine] = None, agent_llm_factory: Optional[Call
     def public_status(body: StatusLookup, request: Request,
                       session: Session = Depends(session_dep)) -> dict[str, Any]:
         """No login. Same 404 for an unknown reference or a wrong code; rate-limited by peer address."""
+        if not secret:
+            raise HTTPException(503, STATUS_NOT_CONFIGURED)
         client = request.client.host if request.client else "unknown"   # never X-Forwarded-For (spoofable)
         ref = body.case_ref.strip()
         if not limiter.allow(client, ref.upper()):
@@ -456,4 +461,5 @@ def _default_extraction() -> Any:
     return GeminiProvider()
 
 
-app = create_app(agent_llm_factory=_default_llm, extraction_factory=_default_extraction)
+app = create_app(agent_llm_factory=_default_llm, extraction_factory=_default_extraction,
+                 citizen_secret=default_citizen_secret(DOTENV))

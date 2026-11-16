@@ -16,16 +16,17 @@ Usage: python -m scripts.seed_demo [--db govflow.db] [--reset] [--no-decisions]
 
 import argparse
 import json
+import secrets
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 from sqlalchemy.orm import Session
 
 from app.agent import run_agent
 from app.case_model import CaseIn
 from app.case_store import seed_case
-from app.citizen import citizen_code, citizen_secret
+from app.citizen import SECRET_ENV, citizen_code, citizen_secret
 from app.evaluation import SET_DIR, _fake_for
 from app.extraction import ProviderError
 from app.models import Case, make_engine
@@ -95,7 +96,21 @@ def _backdate_submissions(session: Session) -> None:
     session.commit()
 
 
-def seed(db_path: Path, reset: bool = False, with_decisions: bool = True) -> dict[str, Any]:
+def ensure_citizen_secret(dotenv: Path) -> tuple[str, bool]:
+    """The citizen code secret for the demo: the configured one, else a new random one appended to `dotenv`
+    (gitignored). Returns (secret, created). Random per machine, so nobody can derive codes from the source."""
+    existing = citizen_secret(dotenv)
+    if existing:
+        return existing, False
+    secret = secrets.token_urlsafe(32)
+    text = dotenv.read_text(encoding="utf-8") if dotenv.is_file() else ""
+    sep = "" if not text or text.endswith("\n") else "\n"
+    dotenv.write_text(f"{text}{sep}{SECRET_ENV}={secret}\n", encoding="utf-8")
+    return secret, True
+
+
+def seed(db_path: Path, reset: bool = False, with_decisions: bool = True,
+         code_secret: Optional[str] = None) -> dict[str, Any]:
     db_path = Path(db_path)
     if db_path.exists():
         if not reset:
@@ -125,7 +140,7 @@ def seed(db_path: Path, reset: bool = False, with_decisions: bool = True) -> dic
     engine.dispose()
     return {"db": str(db_path), "cases": len(statuses),
             "by_status": {s: statuses.count(s) for s in sorted(set(statuses))},
-            "citizen_codes": {ref: citizen_code(ref, citizen_secret()) for ref in CITIZEN_DEMO_CASES}}
+            "citizen_codes": ({ref: citizen_code(ref, code_secret) for ref in CITIZEN_DEMO_CASES} if code_secret else {})}
 
 
 def main() -> None:
@@ -134,10 +149,13 @@ def main() -> None:
     parser.add_argument("--reset", action="store_true", help="replace an existing .db file")
     parser.add_argument("--no-decisions", action="store_true", help="do not record seeded officer decisions")
     args = parser.parse_args()
-    summary = seed(Path(args.db), reset=args.reset, with_decisions=not args.no_decisions)
+    secret, created = ensure_citizen_secret(ROOT / ".env")
+    summary = seed(Path(args.db), reset=args.reset, with_decisions=not args.no_decisions, code_secret=secret)
     print(f"Seeded {summary['cases']} synthetic cases into {summary['db']}")
     for status, n in summary["by_status"].items():
         print(f"  {status:<18}{n}")
+    if created:
+        print(f"Wrote a new random {SECRET_ENV} to .env (gitignored); the API reads it at start-up.")
     print("Demo citizen verification codes (public page #/citizen/track):")
     for ref, code in summary["citizen_codes"].items():
         print(f"  {ref}: {code}")

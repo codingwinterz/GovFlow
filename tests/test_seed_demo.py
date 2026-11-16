@@ -9,10 +9,12 @@ from app.models import AuditLog, Case, Document, ExtractedField, make_engine
 from scripts.seed_demo import seed
 
 
+CODE_SECRET = "test-code-secret"
+
 @pytest.fixture
 def seeded(tmp_path):
     db = tmp_path / "demo.db"
-    summary = seed(db)
+    summary = seed(db, code_secret=CODE_SECRET)
     engine = make_engine(f"sqlite:///{db}")
     with Session(engine) as s:
         yield summary, s
@@ -79,11 +81,23 @@ def test_reset_only_deletes_database_files(tmp_path):
 
 
 def test_seed_lists_demo_citizen_codes_that_work(seeded):
-    from app.citizen import DEMO_SECRET, citizen_code
+    from app.citizen import citizen_code
     summary, _ = seeded
     codes = summary["citizen_codes"]
     assert {"LA-01", "LA-05", "LA-07", "DR-01"} <= set(codes)
-    assert all(code == citizen_code(ref, DEMO_SECRET) for ref, code in codes.items())
+    assert all(code == citizen_code(ref, CODE_SECRET) for ref, code in codes.items())
+
+
+def test_seed_writes_a_random_secret_to_dotenv_once_and_then_reuses_it(tmp_path, monkeypatch):
+    from scripts.seed_demo import ensure_citizen_secret
+    monkeypatch.delenv("GOVFLOW_CITIZEN_SECRET", raising=False)
+    dotenv = tmp_path / ".env"
+    dotenv.write_text("GEMINI_API_KEY=keep-me", encoding="utf-8")       # no trailing newline
+    first, created = ensure_citizen_secret(dotenv)
+    assert created and len(first) >= 40
+    assert dotenv.read_text(encoding="utf-8") == f"GEMINI_API_KEY=keep-me\nGOVFLOW_CITIZEN_SECRET={first}\n"
+    assert ensure_citizen_secret(dotenv) == (first, False)               # reused, file unchanged
+    assert ensure_citizen_secret(tmp_path / "other.env")[0] != first      # random per machine, not in the source
 
 
 def test_seed_spreads_intake_dates_so_some_cases_are_overdue(seeded):

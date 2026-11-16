@@ -2,26 +2,28 @@
 text from translation templates and formats numbers itself. No LLM is involved.
 
 Never returned: verification flags, rule details, officer ids or comments, other cases, identifiers.
-DEMO: the verification code is an HMAC of the case reference; set GOVFLOW_CITIZEN_SECRET in deployment.
+The verification code is an HMAC of the case reference with GOVFLOW_CITIZEN_SECRET. There is no built-in
+secret: without one, status lookups are refused (a secret in the source would make every code predictable).
 """
 
 import hashlib
 import hmac
 import json
-import os
+from pathlib import Path
 from collections import defaultdict, deque
 from typing import Any, Callable, Optional
 
 from sqlalchemy.orm import Session
 
 from app.audit import log_action
+from app.env_file import env_value
 from app.case_store import load_case
 from app.facts import build_facts
 from app.models import AuditLog, Case, CompensationItemRow, india_date
 from app.privacy import mask_identifiers
 from app.rules_loader import load_scheme_by_name
 
-DEMO_SECRET = "govflow-demo-secret-not-for-production"
+SECRET_ENV = "GOVFLOW_CITIZEN_SECRET"
 CITIZEN_STATUS = {"received": "received", "extracted": "received", "verified": "received", "assessed": "received",
                   "in_officer_review": "under_review", "needs_info": "needs_info", "approved": "approved",
                   "rejected": "rejected", "withdrawn": "closed"}
@@ -33,8 +35,9 @@ MAX_ATTEMPTS_PER_CLIENT = 10
 MAX_FAILURES_PER_CASE = 5
 
 
-def citizen_secret() -> str:
-    return os.environ.get("GOVFLOW_CITIZEN_SECRET") or DEMO_SECRET
+def citizen_secret(dotenv: Optional[Path] = None) -> Optional[str]:
+    """The server's code secret: the environment, else the .env file at `dotenv`; None when not set."""
+    return env_value(SECRET_ENV, dotenv)
 
 
 def citizen_code(case_ref: str, secret: str) -> str:

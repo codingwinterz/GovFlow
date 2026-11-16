@@ -9,14 +9,14 @@ Steps marked **LIVE GEMINI** call the Gemini API. If Gemini is slow, out of quot
 ## Before the jury arrives (5 minutes)
 
 ```
-.venv/Scripts/python -m scripts.seed_demo --reset      # 30 synthetic cases, prints citizen codes
+.venv/Scripts/python -m scripts.seed_demo --reset      # 32 synthetic cases, prints citizen codes
 .venv/Scripts/python -m uvicorn app.main:app            # terminal 1, port 8000
 cd web && npm run dev                                   # terminal 2, open http://127.0.0.1:5173
 ```
 
-- Check the seed output lists these citizen codes (they are fixed for the built-in demo secret; if
-  `GOVFLOW_CITIZEN_SECRET` is set, use the codes the seed prints instead):
-  `LA-01: 666643`, `LA-05: 147068`, `DR-01: 285143`.
+- Note the citizen codes the seed prints for `LA-01`, `LA-05` and `DR-01`. On the first run the seed writes a
+  random `GOVFLOW_CITIZEN_SECRET` to `.env`, so the codes are different on every machine and stay the same on
+  re-seeds. Start the API after seeding (it reads the secret at start-up); without it, tracking answers 503.
 - Open `rules/disaster_relief.yaml` in an editor tab, scrolled to the top (for step 6).
 - Have `data/synthetic/land_acquisition/case_02/documents/identity_proof.txt` ready to upload (step 1).
 - Decide whether Gemini is live: if `.env` has no key or the quota is exhausted, plan on the fallbacks.
@@ -86,13 +86,13 @@ cd web && npm run dev                                   # terminal 2, open http:
 
 ### 6. Citizen status page in two languages (2:10, ~20 s)
 - **Login:** none. **Click:** *Track an application* in the header.
-- **Enter:** reference `LA-01`, code `666643` → Check status.
+- **Enter:** reference `LA-01` and the code the seed printed for it → Check status.
 - **Say:** "A citizen sees only status, next step, what is missing and the decision, with no internal flags.
   *Why this amount* cites the same formula as the officer view."
 - **Click:** Language → *हिंदी*.
 - **Say:** "All wording comes from fixed templates; numbers are inserted by code, never by an LLM. Hindi,
   Marathi and Konkani are marked as awaiting native-speaker review, as the footer says."
-- **Optional:** `LA-05` / `147068` shows *More information needed* with the expired identity proof listed.
+- **Optional:** `LA-05` with its printed code shows *More information needed* with the expired identity proof listed.
 
 ### 7. Self-check before applying (2:30, ~15 s)
 - **Login:** none. **Click:** *Check before you apply*.
@@ -112,5 +112,6 @@ cd web && npm run dev                                   # terminal 2, open http:
 - **A page shows an error:** check both terminals are running; re-run the seed with `--reset`.
 - **Gemini errors anywhere:** carry on; every LLM step falls back to the deterministic tools and says so.
 - **A citizen code is rejected:** use the codes printed by the seed (a different `GOVFLOW_CITIZEN_SECRET`
-  changes them); after 10 tries the page rate-limits for 15 minutes, so restart the backend to reset it.
+  changes them). **Tracking says it is unavailable (503):** the API started without the secret; seed once, then
+  restart the API. After 10 tries the page rate-limits for 15 minutes, so restart the backend to reset it.
 - **LA-09 already approved** (demo run twice): approve LA-02 instead (eligible, ₹64,60,000), or re-seed.
