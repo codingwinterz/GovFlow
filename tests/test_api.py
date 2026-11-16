@@ -250,6 +250,10 @@ def test_queue_shows_flag_count_and_filters_by_scheme(env):
     _, queue = env("GET", "/cases?scheme=land_acquisition", headers=OFFICER)
     by_id = {c["case_id"]: c for c in queue}
     assert len(queue) == 16 and by_id["LA-07"]["flags_count"] >= 1 and by_id["LA-03"]["flags_count"] == 0
+    # the queue names each flag's kind and severity (so it can show the reason), never the detail text
+    assert {"kind": "missing_document", "severity": "high"} in by_id["LA-07"]["flags"]
+    assert len(by_id["LA-07"]["flags"]) == by_id["LA-07"]["flags_count"] and by_id["LA-03"]["flags"] == []
+    assert all(set(f) == {"kind", "severity"} for c in queue for f in c["flags"])
     assert env("GET", "/cases?scheme=disaster_relief", headers=OFFICER)[1] == []
 
 

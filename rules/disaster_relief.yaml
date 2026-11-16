@@ -158,9 +158,9 @@ terms:
   area_type: Area type
   notified_area: In the notified area
   assessment_date: Assessment date
-  name_match: Name matches across documents
-  house_match: Assessed house is the residence
-  duplicate_claim: No other claim on the house
+  name_match: Name check across documents
+  house_match: Assessed house versus residence
+  duplicate_claim: Other claims on this house
   documents_complete: All documents submitted
   identity_verified: Identity verified
   residence_in_affected_area: Residence in the affected area

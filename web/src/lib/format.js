@@ -45,6 +45,18 @@ export function unavailableDocuments(detail) {
   return (detail.documents || []).filter((d) => d.current && d.extraction_status === "extraction_unavailable");
 }
 
-export function formatDate(iso) {
-  return iso ? new Date(iso).toLocaleString("en-IN") : "—";
+// The backend stores UTC and may send it without a zone suffix; read such values as UTC, not browser-local.
+function parseUtc(iso) {
+  const s = String(iso);
+  return new Date(/[zZ]|[+-]\d{2}:\d{2}$/.test(s) || !s.includes("T") ? s : `${s}Z`);
+}
+
+const DAY = { day: "numeric", month: "short", year: "numeric" };
+
+export function formatDate(iso) {   // to the minute: "7 Sept 2026, 12:37 pm"
+  return iso ? parseUtc(iso).toLocaleString("en-IN", { ...DAY, hour: "numeric", minute: "2-digit" }) : "—";
+}
+
+export function formatDay(iso) {    // "7 Sept 2026"
+  return iso ? parseUtc(iso).toLocaleDateString("en-IN", DAY) : "—";
 }

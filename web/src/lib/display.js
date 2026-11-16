@@ -56,6 +56,16 @@ export function readableFormula(formula, terms) {
     .replace(/\s*\*\s*/g, " × ").replace(/([^\s=<>≥≤≠])=([^\s=])/g, "$1 = $2");
 }
 
+const SEVERITY_ORDER = { high: 0, medium: 1, low: 2 };
+
+// The queue's reason badge: the most severe flag's label (first stored among equals), plus how many others.
+export function queueReason(flags, terms) {
+  if (!flags || flags.length === 0) return null;
+  const sorted = [...flags].sort((a, b) => (SEVERITY_ORDER[a.severity] ?? 3) - (SEVERITY_ORDER[b.severity] ?? 3));
+  const all = sorted.map((f) => flagLabel(terms, f.kind));
+  return { label: all[0], more: all.length - 1, all };
+}
+
 export function schemeTitle(schemes, id) {
   return (schemes || []).find((s) => s.scheme === id)?.labels?.title ?? humanize(id);
 }

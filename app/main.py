@@ -19,7 +19,7 @@ from typing import Any, Callable, Iterator, Optional
 from fastapi import Depends, FastAPI, Header, HTTPException, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
-from sqlalchemy import Engine, func
+from sqlalchemy import Engine
 from sqlalchemy.orm import Session
 
 from app import tools
@@ -268,11 +268,13 @@ def create_app(engine: Optional[Engine] = None, agent_llm_factory: Optional[Call
             query = query.filter_by(status=status)
         if scheme:
             query = query.filter_by(scheme=scheme)
-        counts = dict(session.query(VerificationFlag.case_id, func.count(VerificationFlag.id))
-                      .group_by(VerificationFlag.case_id).all())
+        flags: dict[str, list[dict[str, str]]] = {}
+        for row in session.query(VerificationFlag).order_by(VerificationFlag.id):
+            flags.setdefault(row.case_id, []).append({"kind": row.kind, "severity": row.severity})   # no detail text
         cases = sorted(query.all(), key=queue_key)
         decided, at = sla.decision_times(session), now()
-        return [{**_case_summary(c, counts.get(c.id, 0)), **sla.sla_view(c, at, decided)} for c in cases]
+        return [{**_case_summary(c, len(flags.get(c.id, []))), "flags": flags.get(c.id, []),
+                 **sla.sla_view(c, at, decided)} for c in cases]
 
     @app.get("/analytics")
     def get_analytics(stuck_days: float = 7, actor: Actor = Depends(_actor),

@@ -158,9 +158,9 @@ terms:
   issue_date: Issue date
   id_number: ID number
   expiry_date: Expiry date
-  name_match: Name matches across documents
-  survey_no_match: Survey number matches
-  duplicate_claim: No overlapping claim on the land
+  name_match: Name check across documents
+  survey_no_match: Survey number check
+  duplicate_claim: Overlapping claims on this survey number
   documents_complete: All documents submitted
   valid_ownership: Valid ownership
   land_identified: Land identified

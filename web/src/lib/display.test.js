@@ -4,7 +4,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { APP_LABELS, appLabel, humanize, readable, readableFormula, schemeTitle, termLabel } from "./display.js";
+import { APP_LABELS, appLabel, humanize, queueReason, readable, readableFormula, schemeTitle, termLabel } from "./display.js";
 
 const SRC = new URL("..", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const APP_DIR = join(SRC, "..", "..", "app");
@@ -91,4 +91,22 @@ test("pages never print a raw identifier field directly", () => {
         if (RAW.test(line)) hits.push(`${dir}/${name}:${i + 1}: ${line.trim()}`);
       });
   assert.deepEqual(hits, []);
+});
+
+test("the queue shows the most severe flag's reason, not a generic badge", () => {
+  const terms = { name_match: "Name matches across documents" };
+  assert.equal(queueReason([], terms), null);
+  assert.deepEqual(queueReason([{ kind: "low_confidence", severity: "medium" }], terms),
+    { label: "Low-confidence reading", more: 0, all: ["Low-confidence reading"] });
+  const mixed = [{ kind: "low_confidence", severity: "medium" }, { kind: "name_match", severity: "high" },
+    { kind: "missing_document", severity: "high" }];
+  assert.deepEqual(queueReason(mixed, terms), { label: "Name matches across documents", more: 2,
+    all: ["Name matches across documents", "Document missing", "Low-confidence reading"] });
+});
+
+test("the queue page shows the flag reason and the overdue badge, not a generic needs-review badge", () => {
+  const queue = readFileSync(join(SRC, "pages", "Queue.jsx"), "utf8");
+  assert.match(queue, /queueReason\(/);
+  assert.match(queue, /c\.overdue && <span className="badge warn">overdue<\/span>/);
+  assert.doesNotMatch(queue, />needs review</);
 });

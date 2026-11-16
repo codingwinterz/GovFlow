@@ -1,8 +1,19 @@
 import { useState } from "react";
 import { Loading, useApi } from "../useApi.jsx";
-import { formatDate } from "../lib/format.js";
+import { formatDate, formatDay } from "../lib/format.js";
 import { href } from "../lib/router.js";
-import { appLabel, schemeTitle } from "../lib/display.js";
+import { appLabel, queueReason, schemeTitle } from "../lib/display.js";
+
+// The most severe flag's reason, with a count of the others; every reason on hover.
+function Reason({ flags, terms }) {
+  const r = queueReason(flags, terms);
+  if (!r) return <span className="muted">—</span>;
+  return (
+    <span className="badge warn reason" title={r.all.join("\n")}>
+      {r.label}{r.more > 0 && <span className="more"> +{r.more} more</span>}
+    </span>
+  );
+}
 
 const STATUSES = ["", "received", "extracted", "verified", "assessed", "in_officer_review", "needs_info",
   "approved", "rejected", "withdrawn"];
@@ -15,6 +26,7 @@ export default function Queue() {
   if (status) params.set("status", status);
   if (scheme) params.set("scheme", scheme);
   const cases = useApi(`/cases?${params}`);
+  const termsOf = (id) => (schemes.data || []).find((s) => s.scheme === id)?.terms;
 
   return (
     <section>
@@ -40,7 +52,7 @@ export default function Queue() {
         cases.data.length === 0 ? <p className="muted">No cases match these filters.</p> : (
           <table>
             <thead>
-              <tr><th>#</th><th>Case</th><th>Scheme</th><th>Status</th><th>Flags</th><th className="num">Days open</th><th>Submitted</th></tr>
+              <tr><th>#</th><th>Case</th><th>Scheme</th><th>Status</th><th>Reason for review</th><th className="num">Days open</th><th>Submitted</th></tr>
             </thead>
             <tbody>
               {cases.data.map((c, i) => (
@@ -49,13 +61,11 @@ export default function Queue() {
                   <td><a href={href("case", c.case_id)}>{c.case_id}</a></td>
                   <td>{schemeTitle(schemes.data, c.scheme)}</td>
                   <td><span className={`status s-${c.status}`}>{appLabel("status", c.status)}</span></td>
-                  <td title="verification flags stored for this case">
-                    {c.flags_count}{c.confidence_flag && <span className="badge warn">needs review</span>}
-                  </td>
-                  <td className="num" title={`target ${c.sla_days} days (scheme sla_days); flag only, nothing changes automatically`}>
+                  <td><Reason flags={c.flags} terms={termsOf(c.scheme)} /></td>
+                  <td className="num" title={`Target ${c.sla_days} days for this scheme. A flag only: nothing changes automatically.`}>
                     {c.days_open}{c.overdue && <span className="badge warn">overdue</span>}
                   </td>
-                  <td>{formatDate(c.submitted_at)}</td>
+                  <td title={formatDate(c.submitted_at)}>{formatDay(c.submitted_at)}</td>
                 </tr>
               ))}
             </tbody>

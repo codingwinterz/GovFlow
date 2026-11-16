@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   formatRupees, maskIdentifiers, formatConfidence, formatDuration, fieldSource, validateDecision,
-  unavailableDocuments,
+  unavailableDocuments, formatDate, formatDay,
 } from "./format.js";
 
 test("rupees use Indian grouping and are only formatted, never computed", () => {
@@ -54,4 +54,22 @@ test("retry banner lists only current documents whose extraction is unavailable"
   ] };
   assert.deepEqual(unavailableDocuments(detail).map((d) => d.id), [2]);
   assert.deepEqual(unavailableDocuments({}), []);
+});
+
+test("dates are shown to the minute, never with seconds", () => {
+  const text = formatDate("2026-09-07T07:07:35.808317+00:00");
+  assert.match(text, /2026/);
+  assert.doesNotMatch(text, /\d{1,2}:\d{2}:\d{2}/);
+  assert.match(text, /\d{1,2}:\d{2}/);
+  assert.equal(formatDate(null), "—");
+});
+
+test("a day is shown without a time", () => {
+  assert.match(formatDay("2026-09-07T07:07:35+00:00"), /^\d{1,2} \w+ 2026$/);
+  assert.equal(formatDay(undefined), "—");
+});
+
+test("timestamps without a zone are UTC (as the backend stores them), not browser-local", () => {
+  assert.equal(formatDate("2026-09-07T07:07:35.808317"), formatDate("2026-09-07T07:07:35.808317Z"));
+  assert.equal(formatDay("2026-09-07T23:30:00"), formatDay("2026-09-07T23:30:00+00:00"));
 });
