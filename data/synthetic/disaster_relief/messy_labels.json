@@ -1,0 +1,103 @@
+{
+  "documents": [
+    {
+      "case": "case_01",
+      "doc_type": "damage_assessment",
+      "why": "fully damaged pucca house, 80%",
+      "truth": {
+        "house_number": "H-101",
+        "village": "Siolim",
+        "damage_percent": 80,
+        "house_type": "pucca",
+        "area_type": "plain",
+        "notified_area": "yes",
+        "assessment_date": "2026-10-20"
+      }
+    },
+    {
+      "case": "case_03",
+      "doc_type": "damage_assessment",
+      "why": "exactly at the 75% full-damage threshold, kutcha, hilly",
+      "truth": {
+        "house_number": "H-7",
+        "village": "Aldona",
+        "damage_percent": 75,
+        "house_type": "kutcha",
+        "area_type": "hilly",
+        "notified_area": "yes",
+        "assessment_date": "2026-10-20"
+      }
+    },
+    {
+      "case": "case_06",
+      "doc_type": "damage_assessment",
+      "why": "14.9%: a decimal just under the minimum, easy to misread",
+      "truth": {
+        "house_number": "H-56",
+        "village": "Parra",
+        "damage_percent": 14.9,
+        "house_type": "hut",
+        "area_type": "plain",
+        "notified_area": "yes",
+        "assessment_date": "2026-10-20"
+      }
+    },
+    {
+      "case": "case_07",
+      "doc_type": "residence_proof",
+      "why": "name differs from the applicant (expected name_match)",
+      "truth": {
+        "name": "Ramesh Naik",
+        "house_number": "H-9",
+        "village": "Colvale",
+        "issue_date": "2026-06-01"
+      }
+    },
+    {
+      "case": "case_13",
+      "doc_type": "residence_proof",
+      "why": "house number differs from the assessment (expected house_match)",
+      "truth": {
+        "name": "Jyoti Parab",
+        "house_number": "H-21",
+        "village": "Corgao",
+        "issue_date": "2026-06-01"
+      }
+    },
+    {
+      "case": "case_05",
+      "doc_type": "identity_proof",
+      "why": "apostrophe in the name",
+      "truth": {
+        "name": "Esther D'Souza",
+        "id_number": "9999 2000 0005",
+        "expiry_date": "2030-12-31"
+      }
+    },
+    {
+      "case": "case_08",
+      "doc_type": "identity_proof",
+      "why": "expired identity proof (expected document_expired)",
+      "truth": {
+        "name": "Gopal Kerkar",
+        "id_number": "9999 2000 0008",
+        "expiry_date": "2026-09-30"
+      }
+    }
+  ],
+  "expected_flags": {
+    "DR-01": [],
+    "DR-03": [],
+    "DR-06": [],
+    "DR-07": [
+      "name_match"
+    ],
+    "DR-13": [
+      "house_match"
+    ],
+    "DR-05": [],
+    "DR-08": [
+      "document_expired"
+    ]
+  }
+}

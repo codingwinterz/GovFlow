@@ -28,7 +28,8 @@ from app.privacy import redact_secrets
 
 ROOT = Path(__file__).resolve().parent.parent
 RESULTS_DIR = ROOT / "eval_results"
-VARIANTS = ("clean", "degraded")
+VARIANTS = ("clean", "degraded", "hard")
+SCHEMES = ("land_acquisition", "disaster_relief")
 
 
 def say(line: str = "") -> None:
@@ -80,7 +81,7 @@ def report_lines(system: str, r: EvalReport) -> list[str]:
     accuracy = "n/a" if e.accuracy is None else f"{e.accuracy:.3f}"
     kinds = Counter(p.kind for p in r.provider_errors)
     lines = [
-        f"{system} / {r.variant}   model {r.model or 'none (no LLM)'}",
+        f"{system} / {r.scheme} / {r.variant}   model {r.model or 'none (no LLM)'}",
         f"  accuracy {accuracy}  ({e.correct}/{e.fields_answered} fields, answered {e.documents_answered}/"
         f"{e.documents_total} docs)",
         f"  accepted {e.accepted}   accepted WRONG {e.accepted_wrong}   routed to review {e.routed_to_review}",
@@ -114,14 +115,14 @@ def main() -> None:
             say(summaries[-1][0])
             continue
         provider, ocr, cross_check = _build(system)
-        for variant in VARIANTS:
-            say(f"\n{system} / {variant} ...")
-            report = run_messy_eval(provider=provider, ocr=ocr, variant=variant, cross_check=cross_check,
+        for scheme, variant in [(s, v) for s in SCHEMES for v in VARIANTS]:
+            say(f"\n{system} / {scheme} / {variant} ...")
+            report = run_messy_eval(provider=provider, ocr=ocr, variant=variant, cross_check=cross_check, scheme=scheme,
                                     on_document=lambda label, result: say(progress_line(label, result)))
             summaries.append(report_lines(system, report))
             for line in summaries[-1]:
                 say(line)
-            saved[f"{system}/{variant}"] = report.model_dump(mode="json")
+            saved[f"{system}/{scheme}/{variant}"] = report.model_dump(mode="json")
     say("\n=== summary ===")
     for block in summaries:
         for line in block:

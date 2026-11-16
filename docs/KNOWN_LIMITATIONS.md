@@ -86,8 +86,10 @@ None of these may be used for a real decision until checked against official sou
 
 ## Data and testing
 - **All data is synthetic.** 17 land-acquisition and 15 disaster-relief cases (two with injected text),
-  hand-derived expected outcomes, and 7 messy documents rendered as clean and degraded images from a computer
-  font, not real scans.
+  hand-derived expected outcomes. Document images: 7 land and 7 relief documents, each rendered three ways
+  from a computer font: clean, degraded (tilt, blur, faded ink, speckle) and hard (one field in a
+  handwriting-style font, a red stamp over the values, a phone-photo look with perspective, a shadow and JPEG
+  artefacts). All generated, all marked SYNTHETIC; not real scans, real handwriting or real Goa forms.
 - A case whose amount cannot be computed at all (for example DR-09, damage report missing) is flagged but
   stays *verified*: it never reaches *awaiting officer decision*, so it is found through the queue filters.
 - The demo seed spreads intake dates over recent weeks by a fixed pattern so SLA flags appear; those dates

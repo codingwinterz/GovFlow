@@ -87,6 +87,14 @@ _LABELS = [
     ("issue_date", re.compile(rf"^issued{_SEP}(.+)$", re.I)),
     ("expiry_date", re.compile(rf"^valid\s*up\s*to{_SEP}(.+)$", re.I)),
     ("id_number", re.compile(rf"^id\s*no\.?{_SEP}(.+)$", re.I)),
+    # disaster relief layouts
+    ("house_number", re.compile(rf"^house\s*no\.?{_SEP}(.+)$", re.I)),
+    ("house_type", re.compile(rf"^house\s*type{_SEP}(.+)$", re.I)),
+    ("area_type", re.compile(rf"^area\s*type{_SEP}(.+)$", re.I)),
+    ("notified_area", re.compile(rf"^notified\s*area{_SEP}(.+)$", re.I)),
+    ("village", re.compile(rf"^village{_SEP}(.+)$", re.I)),
+    ("damage_percent", re.compile(rf"^damage{_SEP}([\d.]+)\s*%?", re.I)),
+    ("assessment_date", re.compile(rf"^assessed{_SEP}(.+)$", re.I)),
 ]
 
 
@@ -111,7 +119,7 @@ def _parse_line(label: str, match: re.Match, conf: float) -> list[ProviderField]
             out.append(ProviderField(name="area_unit", value=match.group(2).strip(), confidence=conf))
         return out
     value = match.group(1).strip()
-    if label in ("issue_date", "expiry_date"):
+    if label in ("issue_date", "expiry_date", "assessment_date"):
         value = _iso_date(value)
         if value is None:
             return []   # unreadable date: omit rather than guess
