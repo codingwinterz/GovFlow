@@ -3,8 +3,8 @@
 The model's own content turns are echoed back verbatim, so thought signatures survive
 (Gemini 3 rejects a function-calling turn whose signature is missing). Tool results are sent
 as functionResponse parts in a user turn, grouped and in call order.
-VERIFY: wire format checked against the Gemini docs (generate-content/gemini-3, thought-signatures);
-not yet exercised against the live API because the free-tier quota was exhausted.
+Wire format checked against the Gemini docs (generate-content/gemini-3, thought-signatures) and exercised live on
+gemini-3.5-flash-lite (16 Nov 2026, docs/EVAL_RESULTS.md). VERIFY: not exercised on any other model.
 """
 
 import time
@@ -77,7 +77,8 @@ class GeminiAgentLLM:
         self.model = self.client.model
 
     def complete(self, system: str, messages: list[Message], tools: list[ToolSpec]) -> AgentReply:
-        # VERIFY: Gemini 3 guidance is to keep the default temperature for agentic use, so none is set here.
+        # Gemini 3 guidance is to keep the default temperature for agentic use, so none is set here. Worked live on
+        # gemini-3.5-flash-lite. VERIFY: on any other model.
         body = {"systemInstruction": {"parts": [{"text": system}]},
                 "contents": to_contents(messages),
                 "tools": [{"functionDeclarations": [_declaration(t) for t in tools]}]}

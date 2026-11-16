@@ -33,6 +33,7 @@ cd web && npm run dev                                 # dashboard on http://127.
 | `GOVFLOW_AUTH_SECRET` | Signs the staff sign-in tokens (8 hours). **Also written by the seed on its first run.** Without it, sign-in answers 503. |
 | `GOVFLOW_DEMO_INSECURE` | `1` also accepts plain `X-Role` / `X-User` headers (old scripts). Off by default; never in a shared deployment. |
 | `GEMINI_API_KEY` | Optional. Live extraction and agent. |
+| `GEMINI_MODEL` | Optional. Defaults to `gemini-3.5-flash-lite`, the only model evaluated live (`docs/EVAL_RESULTS.md`). Any other model is unverified. |
 
 A real environment variable always wins over `.env`. Start the API after the first seed so it picks up the
 secret.

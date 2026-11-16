@@ -19,7 +19,9 @@ from typing import Any, Callable, Optional
 
 from app.extraction import ErrorKind, ExtractionRequest, ProviderError, ProviderField
 
-DEFAULT_MODEL = "gemini-3.8-flash"   # override with GEMINI_MODEL
+# The only model verified live (docs/EVAL_RESULTS.md, 16 Nov 2026). Override with GEMINI_MODEL; any other model
+# is unverified. VERIFY: extraction and function calling on other models before relying on them.
+DEFAULT_MODEL = "gemini-3.5-flash-lite"
 API_BASE = "https://generativelanguage.googleapis.com/v1beta/models"
 TIMEOUT_SECONDS = 30
 MAX_ATTEMPTS = 4

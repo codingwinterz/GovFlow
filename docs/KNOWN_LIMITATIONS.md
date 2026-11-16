@@ -60,9 +60,9 @@ None of these may be used for a real decision until checked against official sou
   are free text in English and may contain internal notes.
 
 ## AI and extraction
-- **Live results exist for one small model only** (`docs/EVAL_RESULTS.md`, 16 Nov 2026, `gemini-3.5-flash-lite`).
-  The default model `gemini-3.8-flash` could not be reached (503, then timeouts), so it has never run live; its
-  function-calling wire format stays marked VERIFY. The agent's wire format worked live on `gemini-3.5-flash-lite`.
+- **Live results exist for one small model only** (`docs/EVAL_RESULTS.md`): `gemini-3.5-flash-lite`, now the
+  default. A lighter model than first planned: `gemini-3.8-flash` could not be reached (503, then timeouts) and has
+  never run live. Any model set through `GEMINI_MODEL` other than the default is unverified (VERIFY).
 - **Extraction accuracy is measured on a tiny synthetic set only:** 7 land-acquisition documents (27 fields),
   27/27 correct on clean and mildly degraded images, 0 wrong values accepted. No stamps, handwriting or phone
   photos, no disaster-relief images, no real Goa documents. 0 errors in 27 still allows up to about 11% on this

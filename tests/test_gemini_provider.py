@@ -105,3 +105,21 @@ def test_transport_error_raises_provider_error_without_leaking_key():
     with pytest.raises(ProviderError) as exc:
         GeminiProvider(api_key=KEY, post=post).extract(_request())
     assert KEY not in str(exc.value)
+
+
+def test_default_model_is_the_one_verified_live(monkeypatch):
+    """gemini-3.5-flash-lite is the only model evaluated live (docs/EVAL_RESULTS.md); it must be the default."""
+    from app.providers.gemini_agent import GeminiAgentLLM
+    monkeypatch.setenv("GEMINI_API_KEY", KEY)
+    monkeypatch.delenv("GEMINI_MODEL", raising=False)
+    post = Recorder(_reply([]))
+    GeminiProvider(post=post).extract(_request())
+    assert post.calls[0][0].endswith("/models/gemini-3.5-flash-lite:generateContent")
+    assert GeminiAgentLLM(post=post).model == "gemini-3.5-flash-lite"
+
+
+def test_agent_model_can_be_overridden_by_environment(monkeypatch):
+    from app.providers.gemini_agent import GeminiAgentLLM
+    monkeypatch.setenv("GEMINI_API_KEY", KEY)
+    monkeypatch.setenv("GEMINI_MODEL", "some-other-model")
+    assert GeminiAgentLLM(post=Recorder(_reply([]))).model == "some-other-model"
