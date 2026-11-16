@@ -82,14 +82,21 @@ Fuller detail is in `docs/KNOWN_LIMITATIONS.md`.
   residence proof age 365 days; claim window 90 days; which Goa areas count as hilly; relying on the assessment's
   own "notified area" certification; 75% full-damage threshold (a placeholder: the norms give no percentage);
   applying the 15% minimum to kutcha houses, huts, clothing and utensils; the condition for clothing and utensils.
-- `app/providers/gemini_agent.py`: Gemini function-calling wire format and default temperature (never run live).
+- `app/providers/gemini_agent.py`: Gemini function-calling wire format and default temperature. Worked live on
+  `gemini-3.5-flash-lite` (16 Nov); never run on the default `gemini-3.8-flash`.
 - Every rule's `<clause ref>` in both YAML files.
 - Plausibility ranges (placeholders, not legal values): land `area_sqm` 10 to 500,000 (holding) and 10 to 5,000,000
   (survey number); `market_value_per_sqm` Rs 100 to 1,00,000.
 
 ### Open items
-- Gemini: free-tier quota exhausted during testing; the agent has never run against the live API.
-- Real-extraction accuracy is unmeasured (last real-image run: 1 of 28 requests answered before rate limits).
+- Live evaluation (`docs/EVAL_RESULTS.md`, 16 Nov 2026) ran on `gemini-3.5-flash-lite` only: the default
+  `gemini-3.8-flash` gave 503 then timeouts, `gemini-3.7-flash` timed out, `gemini-2.5-flash` is 404 for new users.
+  Decide the model for the demo (the code default is still `gemini-3.8-flash`).
+- Extraction measured on 7 synthetic land documents (27 fields): Gemini 27/27 clean and degraded, 0 accepted wrong;
+  Tesseract alone 10/27 degraded. No relief images, no stamps / handwriting / phone photos, no real documents.
+- Model confidence was 0.99 on every field, so the 0.85 threshold never routed anything: needs harder documents.
+- LA-11's expected flags describe a corrupted scan text, but its image prints clean text: flag recall 0.667 is a
+  labelling mismatch. Decide whether to render LA-11 from the corrupted text or relabel it.
 - Hindi, Marathi and Konkani text needs native-speaker review.
 - Goa rural multiplier: notified value unknown (default 1.0 above).
 - Current relief schedule for Goa: amounts follow the 2022-26 norms, labelled "to be confirmed".

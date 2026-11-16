@@ -60,11 +60,15 @@ None of these may be used for a real decision until checked against official sou
   are free text in English and may contain internal notes.
 
 ## AI and extraction
-- **The Gemini agent has never been run against the live API.** The function-calling wire format follows
-  Google's documentation and is marked VERIFY; the free-tier quota was exhausted during testing.
-- **Live extraction accuracy is unmeasured.** The real-image evaluation was cut short by Gemini rate limits
-  (1 of 28 requests answered in the last run). The only full numbers come from Tesseract and from recorded
-  fake responses, which describe the recordings, not a model.
+- **Live results exist for one small model only** (`docs/EVAL_RESULTS.md`, 16 Nov 2026, `gemini-3.5-flash-lite`).
+  The default model `gemini-3.8-flash` could not be reached (503, then timeouts), so it has never run live; its
+  function-calling wire format stays marked VERIFY. The agent's wire format worked live on `gemini-3.5-flash-lite`.
+- **Extraction accuracy is measured on a tiny synthetic set only:** 7 land-acquisition documents (27 fields),
+  27/27 correct on clean and mildly degraded images, 0 wrong values accepted. No stamps, handwriting or phone
+  photos, no disaster-relief images, no real Goa documents. 0 errors in 27 still allows up to about 11% on this
+  kind of data, and real documents are harder.
+- **The model's confidence was 0.99 on every field**, clean or degraded, so the 0.85 threshold never sent a field
+  to review. Treat model confidence as uninformative until it is shown to drop on hard documents.
 - The Tesseract baseline's label parser knows the synthetic document layouts, so its accuracy is generous.
 - Gemini's confidence scores are self-reported, not calibrated; the 0.85 threshold depends on them. So a
   document cannot vouch for itself where it matters: the fields that drive an amount (land area and unit;
