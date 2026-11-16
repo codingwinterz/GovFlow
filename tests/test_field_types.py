@@ -78,7 +78,7 @@ def _dr01(damage):
 @pytest.mark.parametrize("damage", ["80", "80.0", " 80 ", "80%", " 80 % "])
 def test_numeric_strings_give_the_same_outcome_as_numbers(damage):
     result = assess_case(DR, _dr01(damage), [])
-    assert result.eligibility.overall == "eligible" and result.compensation.total == 105000
+    assert result.eligibility.overall == "eligible" and result.compensation.total == 125000
     assert not [f for f in result.verification.flags if f.kind == "invalid_value"]
 
 
@@ -138,13 +138,13 @@ def test_extracted_strings_through_the_database(tmp_path, damage, overall):
         s.add(doc)
         s.commit()
         values = {"house_number": "H-101", "village": "Siolim", "damage_percent": damage, "notified_area": "yes",
-                  "assessment_date": "2026-10-20"}
+                  "house_type": "Pucca", "area_type": "plain", "assessment_date": "2026-10-20"}
         provider = FakeProvider({(str(doc.id), "document"): [
             ProviderField(name=k, value=v, confidence=0.95, page=1) for k, v in values.items()]})
         extract_document(s, doc.id, provider)
         verify_documents(s, "DR-01")
         assert check_eligibility(s, "DR-01").overall == overall
-        assert (compute_compensation(s, "DR-01").total == 105000) == (overall == "eligible")
+        assert (compute_compensation(s, "DR-01").total == 125000) == (overall == "eligible")
 
 
 # --- the YAML declares the types ---------------------------------------------------------

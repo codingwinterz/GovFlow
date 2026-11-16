@@ -50,7 +50,11 @@
   "component.land_acquisition.assets_value": "Value of assets on the land (buildings, trees and so on): {amount}",
   "component.land_acquisition.solatium": "Solatium (additional compensation for compulsory acquisition): {amount}",
   "component.land_acquisition.interest": "Additional amount at twelve per cent a year, from the notification to the award or possession, whichever is earlier: {amount}",
-  "component.disaster_relief.house_full": "Relief for a fully damaged house: {amount}",
-  "component.disaster_relief.house_partial": "Relief for a partially damaged house: {amount}",
-  "component.disaster_relief.household_items": "Relief for household items (clothing and utensils): {amount}"
+  "component.disaster_relief.house_full_plain": "Relief for a fully damaged house, plain area: {amount}",
+  "component.disaster_relief.house_full_hilly": "Relief for a fully damaged house, hilly area: {amount}",
+  "component.disaster_relief.house_partial_pucca": "Relief for a partially damaged pucca house: {amount}",
+  "component.disaster_relief.house_partial_kutcha": "Relief for a partially damaged kutcha house: {amount}",
+  "component.disaster_relief.hut": "Relief for a damaged hut: {amount}",
+  "component.disaster_relief.clothing": "Relief for loss of clothing: {amount}",
+  "component.disaster_relief.utensils": "Relief for loss of utensils and household goods: {amount}"
 }

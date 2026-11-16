@@ -20,9 +20,13 @@
   "compensation": {
     "status": "computed",
     "items": {
-      "house_full": 0,
-      "house_partial": 0,
-      "household_items": 0
+      "house_full_plain": 0,
+      "house_full_hilly": 0,
+      "house_partial_pucca": 0,
+      "house_partial_kutcha": 0,
+      "hut": 0,
+      "clothing": 0,
+      "utensils": 0
     },
     "total": 0
   },

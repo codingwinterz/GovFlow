@@ -50,7 +50,11 @@
   "component.land_acquisition.assets_value": "जमनीर आशिल्ल्या मालमत्तेचें मोल (इमारती, झाडां आदी): {amount}",
   "component.land_acquisition.solatium": "सोलेशियम (सक्तीच्या संपादनाखातीर आनीक भरपाय): {amount}",
   "component.land_acquisition.interest": "अधिसूचने सावन निवाडो वा ताबो, जें आदीं जाता तें मेरेन, वर्साक बारा टक्के आनीक रक्कम: {amount}",
-  "component.disaster_relief.house_full": "पुराय लुकसाण जाल्ल्या घराखातीर मदत: {amount}",
-  "component.disaster_relief.house_partial": "थोडें लुकसाण जाल्ल्या घराखातीर मदत: {amount}",
-  "component.disaster_relief.household_items": "घरगुती वस्तूंखातीर (कपडे आनी भांडीं) मदत: {amount}"
+  "component.disaster_relief.house_full_plain": "पुराय लुकसाण जाल्ल्या घराखातीर मदत, सपाट वाठार: {amount}",
+  "component.disaster_relief.house_full_hilly": "पुराय लुकसाण जाल्ल्या घराखातीर मदत, दोंगराळ वाठार: {amount}",
+  "component.disaster_relief.house_partial_pucca": "थोडें लुकसाण जाल्ल्या पक्क्या घराखातीर मदत: {amount}",
+  "component.disaster_relief.house_partial_kutcha": "थोडें लुकसाण जाल्ल्या कच्च्या घराखातीर मदत: {amount}",
+  "component.disaster_relief.hut": "लुकसाण जाल्ल्या खोपीखातीर मदत: {amount}",
+  "component.disaster_relief.clothing": "कपड्यांच्या लुकसाणाखातीर मदत: {amount}",
+  "component.disaster_relief.utensils": "भांडीं आनी घरगुती वस्तूंच्या लुकसाणाखातीर मदत: {amount}"
 }

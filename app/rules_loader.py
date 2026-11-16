@@ -43,7 +43,8 @@ class Derived(BaseModel):
 class RequiredDocument(BaseModel):
     id: str
     fields: list[str] = []            # what extraction must read; empty = not declared
-    types: dict[str, str] = {}        # field -> text | number | percent | date | unit (plain list = text)
+    types: dict[str, str] = {}        # field -> text | number | percent | date | unit | one_of (list = text)
+    options: dict[str, list[str]] = {}   # one_of fields: the allowed values
     derived: dict[str, Derived] = {}
     validity: Optional[Validity] = None
 
@@ -52,7 +53,9 @@ class RequiredDocument(BaseModel):
     def _typed_fields(cls, data: Any) -> Any:
         if isinstance(data, dict) and isinstance(data.get("fields"), dict):
             declared = data["fields"]
-            data = {**data, "fields": list(declared), "types": {k: str(v) for k, v in declared.items()}}
+            types = {k: ("one_of" if isinstance(v, dict) and "one_of" in v else str(v)) for k, v in declared.items()}
+            options = {k: list(v["one_of"] or []) for k, v in declared.items() if isinstance(v, dict) and "one_of" in v}
+            data = {**data, "fields": list(declared), "types": types, "options": options}
         return data
 
     @model_validator(mode="after")
@@ -61,6 +64,8 @@ class RequiredDocument(BaseModel):
         for name, kind in self.types.items():
             if kind not in FIELD_TYPES:
                 raise ValueError(f"{self.id}.{name}: unknown type {kind!r}; use one of {list(FIELD_TYPES)}")
+            if kind == "one_of" and not [o for o in self.options.get(name, []) if str(o).strip()]:
+                raise ValueError(f"{self.id}.{name}: one_of needs a non-empty list of allowed values")
         for name, d in self.derived.items():
             if name in self.types:
                 raise ValueError(f"{self.id}.{name}: derived field clashes with a read field")

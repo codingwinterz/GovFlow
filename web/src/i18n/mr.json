@@ -50,7 +50,11 @@
   "component.land_acquisition.assets_value": "जमिनीवरील मालमत्तेचे मूल्य (इमारती, झाडे इत्यादी): {amount}",
   "component.land_acquisition.solatium": "सोलेशियम (सक्तीच्या संपादनासाठी अतिरिक्त भरपाई): {amount}",
   "component.land_acquisition.interest": "अधिसूचनेपासून निवाडा किंवा ताबा, जे आधी होईल तोपर्यंत, दरवर्षी बारा टक्के अतिरिक्त रक्कम: {amount}",
-  "component.disaster_relief.house_full": "पूर्णपणे नुकसान झालेल्या घरासाठी मदत: {amount}",
-  "component.disaster_relief.house_partial": "अंशतः नुकसान झालेल्या घरासाठी मदत: {amount}",
-  "component.disaster_relief.household_items": "घरगुती वस्तूंसाठी (कपडे आणि भांडी) मदत: {amount}"
+  "component.disaster_relief.house_full_plain": "पूर्णपणे नुकसान झालेल्या घरासाठी मदत, सपाट भाग: {amount}",
+  "component.disaster_relief.house_full_hilly": "पूर्णपणे नुकसान झालेल्या घरासाठी मदत, डोंगराळ भाग: {amount}",
+  "component.disaster_relief.house_partial_pucca": "अंशतः नुकसान झालेल्या पक्क्या घरासाठी मदत: {amount}",
+  "component.disaster_relief.house_partial_kutcha": "अंशतः नुकसान झालेल्या कच्च्या घरासाठी मदत: {amount}",
+  "component.disaster_relief.hut": "नुकसान झालेल्या झोपडीसाठी मदत: {amount}",
+  "component.disaster_relief.clothing": "कपड्यांच्या नुकसानीसाठी मदत: {amount}",
+  "component.disaster_relief.utensils": "भांडी आणि घरगुती वस्तूंच्या नुकसानीसाठी मदत: {amount}"
 }

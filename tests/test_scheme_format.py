@@ -38,7 +38,7 @@ def test_changing_the_parameter_moves_both_the_rule_and_the_relief():
     data["compensation"]["parameters"]["partial_damage_threshold"] = 10
     result = assess_case(parse_scheme(data), _case("disaster_relief", 6), [])      # 14.9% damage
     assert _rule(result, "damage_category_eligible").status == "pass"
-    assert {i.component: i.amount for i in result.compensation.items}["house_partial"] == 10000
+    assert {i.component: i.amount for i in result.compensation.items}["hut"] == 8000      # DR-06 is a hut
 
 
 def test_rule_reason_shows_the_parameter_it_used():

@@ -73,6 +73,16 @@
           "confidence": 0.97,
           "source_page": 1
         },
+        "house_type": {
+          "value": "kutcha",
+          "confidence": 0.97,
+          "source_page": 1
+        },
+        "area_type": {
+          "value": "plain",
+          "confidence": 0.97,
+          "source_page": 1
+        },
         "notified_area": {
           "value": "no",
           "confidence": 0.97,

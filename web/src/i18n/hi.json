@@ -50,7 +50,11 @@
   "component.land_acquisition.assets_value": "भूमि पर संपत्तियों का मूल्य (भवन, पेड़ आदि): {amount}",
   "component.land_acquisition.solatium": "सोलेशियम (अनिवार्य अधिग्रहण के लिए अतिरिक्त मुआवज़ा): {amount}",
   "component.land_acquisition.interest": "अधिसूचना से अवार्ड या कब्ज़े तक, जो पहले हो, बारह प्रतिशत वार्षिक की अतिरिक्त राशि: {amount}",
-  "component.disaster_relief.house_full": "पूरी तरह क्षतिग्रस्त घर के लिए सहायता: {amount}",
-  "component.disaster_relief.house_partial": "आंशिक रूप से क्षतिग्रस्त घर के लिए सहायता: {amount}",
-  "component.disaster_relief.household_items": "घरेलू सामान (कपड़े और बर्तन) के लिए सहायता: {amount}"
+  "component.disaster_relief.house_full_plain": "पूरी तरह क्षतिग्रस्त घर के लिए सहायता, मैदानी क्षेत्र: {amount}",
+  "component.disaster_relief.house_full_hilly": "पूरी तरह क्षतिग्रस्त घर के लिए सहायता, पहाड़ी क्षेत्र: {amount}",
+  "component.disaster_relief.house_partial_pucca": "आंशिक रूप से क्षतिग्रस्त पक्के घर के लिए सहायता: {amount}",
+  "component.disaster_relief.house_partial_kutcha": "आंशिक रूप से क्षतिग्रस्त कच्चे घर के लिए सहायता: {amount}",
+  "component.disaster_relief.hut": "क्षतिग्रस्त झोपड़ी के लिए सहायता: {amount}",
+  "component.disaster_relief.clothing": "कपड़ों के नुकसान के लिए सहायता: {amount}",
+  "component.disaster_relief.utensils": "बर्तनों और घरेलू सामान के नुकसान के लिए सहायता: {amount}"
 }

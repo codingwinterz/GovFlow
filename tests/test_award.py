@@ -92,7 +92,7 @@ def test_award_view_is_audited(env):
     engine, get = env
     _decide(engine, "DR-01", "approve")
     a = get("/cases/DR-01/award")[1]
-    assert a["labels"]["amounts"] == "Relief" and a["total"] == pytest.approx(105000)
+    assert a["labels"]["amounts"] == "Relief" and a["total"] == pytest.approx(125000)   # full house, plain 120000 + 2500 + 2500
     with Session(engine) as s:
         (row,) = s.query(AuditLog).filter_by(case_id="DR-01", action="award_letter_viewed").all()
     assert row.actor == "officer:O-7"

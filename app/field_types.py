@@ -9,8 +9,8 @@ from typing import Any, Literal, Optional
 
 from app.units import UnknownUnit, to_sqm
 
-FieldType = Literal["text", "number", "percent", "date", "unit"]
-FIELD_TYPES: tuple[str, ...] = ("text", "number", "percent", "date", "unit")
+FieldType = Literal["text", "number", "percent", "date", "unit", "one_of"]
+FIELD_TYPES: tuple[str, ...] = ("text", "number", "percent", "date", "unit", "one_of")
 
 _FRACTION = r"(\.\d+)?"
 _PLAIN_NUMBER = re.compile(r"[+-]?(\d+(\.\d*)?|\.\d+)")
@@ -74,9 +74,20 @@ def _unit(value: Any) -> Coerced:
     return text, None
 
 
-def coerce(field_type: str, value: Any) -> Coerced:
+def _one_of(value: Any, options: list[str]) -> Coerced:
+    """One of the scheme's listed values, matched ignoring case and spacing; returns the listed spelling."""
+    key = " ".join(str(value).split()).casefold()
+    for option in options:
+        if key == option.casefold():
+            return option, None
+    return None, f"{value!r} is not one of {', '.join(options)}"
+
+
+def coerce(field_type: str, value: Any, options: Optional[list[str]] = None) -> Coerced:
     if _blank(value):
         return None, "empty value"
+    if field_type == "one_of":
+        return _one_of(value, options or [])
     if field_type == "number":
         return _number(value)
     if field_type == "percent":

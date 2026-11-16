@@ -78,8 +78,8 @@ cd web && npm run dev                                   # terminal 2, open http:
 ### 5. Second scheme by YAML only (1:45, ~25 s)
 - **Show:** the editor tab with `rules/disaster_relief.yaml`.
 - **Say:** "Disaster relief was added as this one YAML file plus synthetic test cases: documents, checks,
-  rules, relief amounts, labels, SLA. No scheme-specific Python. The amounts here are placeholders until we
-  have the official state relief schedule."
+  rules, relief amounts, labels, SLA. No scheme-specific Python. The amounts follow the MHA SDRF norms
+  2022-26 by house type and plain or hilly area; the schedule in force in Goa is still to be confirmed."
 - **Click:** Queue → Scheme filter *disaster_relief* → open **DR-10**.
 - **Say:** "Two family members claimed the same house; the duplicate check sends both to review and never
   rejects."

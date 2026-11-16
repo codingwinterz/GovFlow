@@ -1,6 +1,6 @@
 scheme: disaster_relief
 version: "0.1.0"
-source: "State Disaster Response Fund norms and the Goa state relief schedule"   # VERIFY: exact notification and schedule references
+source: "MHA norms 2022-26; current schedule to be confirmed"   # VERIFY: SDRF/NDRF norms 2022-26; confirm the schedule in force in Goa
 confidence_threshold: 0.85
 sla_days: 15                       # VERIFY: target days from intake to decision for relief (placeholder)
 labels:
@@ -10,7 +10,7 @@ labels:
 
 # Housing damage relief for one household after a notified disaster.
 # Same format as land_acquisition.yaml; no scheme-specific Python.
-# All amounts, thresholds and validity periods below are PLACEHOLDERS, not taken from any schedule.
+# Amounts follow the MHA SDRF/NDRF norms 2022-26. Items marked VERIFY are not yet confirmed.
 required_documents:
   - id: application
     fields: {name: text}
@@ -24,7 +24,14 @@ required_documents:
       date_field: issue_date
       max_age_days: 365            # VERIFY: how recent the residence proof must be
   - id: damage_assessment          # issued by the revenue / panchayat officer after the event
-    fields: {house_number: text, village: text, damage_percent: percent, notified_area: text, assessment_date: date}
+    fields:
+      house_number: text
+      village: text
+      damage_percent: percent
+      house_type: {one_of: [pucca, kutcha, hut]}
+      area_type: {one_of: [plain, hilly]}    # VERIFY: which Goa areas count as hilly under the norms
+      notified_area: text
+      assessment_date: date
     validity:
       date_field: assessment_date
       max_age_days: 90             # VERIFY: how long after assessment a claim may be filed
@@ -98,16 +105,36 @@ compensation:
   inputs:
     damage_percent:
       from: damage_assessment.damage_percent
+    house_type:
+      from: damage_assessment.house_type
+    area_type:
+      from: damage_assessment.area_type
   parameters:
-    full_damage_threshold: 75      # VERIFY: % damage counted as fully damaged
-    partial_damage_threshold: 15   # VERIFY: minimum % damage for any housing relief
-    full_house_relief: 100000      # VERIFY: PLACEHOLDER, take from the state relief schedule
-    partial_house_relief: 10000    # VERIFY: PLACEHOLDER, take from the state relief schedule
-    household_items_relief: 5000   # VERIFY: PLACEHOLDER (clothing and utensils per family)
+    full_damage_threshold: 75      # VERIFY: % damage counted as fully / severely damaged (not given in the norms as a %)
+    partial_damage_threshold: 15   # partially damaged pucca house: damage at least 15%.
+                                   # VERIFY: the same minimum is also applied to kutcha houses, huts and the items below
+    full_house_plain: 120000       # fully / severely damaged house (pucca or kutcha), plain area
+    full_house_hilly: 130000       # fully / severely damaged house (pucca or kutcha), hilly area
+    partial_pucca: 6500            # partially damaged pucca house (other than huts)
+    partial_kutcha: 4000           # partially damaged kutcha house (other than huts)
+    hut: 8000                      # damaged or destroyed hut
+    clothing: 2500                 # gratuitous relief per family, loss of clothing
+    utensils: 2500                 # gratuitous relief per family, loss of utensils / household goods
+                                   # VERIFY: the norms tie clothing and utensils relief to houses washed away, fully
+                                   # damaged or severely inundated; here it is given at the minimum damage
+  # A comparison is 1 when true and 0 when false, so each line is the amount for one category.
   components:
-    - id: house_full
-      formula: "full_house_relief * (damage_percent >= full_damage_threshold)"
-    - id: house_partial
-      formula: "partial_house_relief * (damage_percent >= partial_damage_threshold) * (damage_percent < full_damage_threshold)"
-    - id: household_items
-      formula: "household_items_relief * (damage_percent >= partial_damage_threshold)"
+    - id: house_full_plain
+      formula: "full_house_plain * (damage_percent >= full_damage_threshold) * (house_type != 'hut') * (area_type == 'plain')"
+    - id: house_full_hilly
+      formula: "full_house_hilly * (damage_percent >= full_damage_threshold) * (house_type != 'hut') * (area_type == 'hilly')"
+    - id: house_partial_pucca
+      formula: "partial_pucca * (damage_percent >= partial_damage_threshold) * (damage_percent < full_damage_threshold) * (house_type == 'pucca')"
+    - id: house_partial_kutcha
+      formula: "partial_kutcha * (damage_percent >= partial_damage_threshold) * (damage_percent < full_damage_threshold) * (house_type == 'kutcha')"
+    - id: hut
+      formula: "hut * (damage_percent >= partial_damage_threshold) * (house_type == 'hut')"
+    - id: clothing
+      formula: "clothing * (damage_percent >= partial_damage_threshold)"
+    - id: utensils
+      formula: "utensils * (damage_percent >= partial_damage_threshold)"

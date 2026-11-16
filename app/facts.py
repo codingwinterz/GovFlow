@@ -47,7 +47,7 @@ def _confident_fields(req: RequiredDocument, doc: DocumentIn, threshold: float, 
         if name not in req.types:           # not declared by the scheme: passed through unchanged
             fields[name] = fv.value
             continue
-        value, error = coerce(req.types[name], fv.value)
+        value, error = coerce(req.types[name], fv.value, req.options.get(name))
         if error:
             facts.invalid[ref] = error
             continue

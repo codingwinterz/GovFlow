@@ -19,13 +19,21 @@ a screen or a test result as more than it is.
 
 ## Legal and policy parameters (all marked `# VERIFY`)
 None of these may be used for a real decision until checked against official sources.
-- **Land acquisition:** notification references and every rule's `<clause ref>` (placeholders); document
-  ages (180 and 365 days); the multiplier default 1.0; the interest start date, end date and the
-  reference-date default; 100% solatium; 12% interest and whether its base includes the multiplier; the
-  actual/365 day count; the 60-day SLA.
-- **Disaster relief:** schedule references and every `<clause ref>`; document ages (365 and 90 days);
-  the 75% and 15% damage thresholds; **all three relief amounts are placeholders** (₹1,00,000, ₹10,000,
-  ₹5,000), not taken from any schedule; the 15-day SLA.
+- **Land acquisition:** confirmed from research: solatium 100% of (market value × multiplier + assets);
+  the 12% additional amount from the SIA notification date to the earlier of award and possession; the
+  multiplier as a per-case input (urban 1.00, rural 1.00 to 2.00 as notified; outside that range a case
+  goes to review). Still VERIFY: notification references, section numbers and every rule's `<clause ref>`;
+  the multiplier default 1.0 (Goa's notified factor is unconfirmed); whether the 12% base includes the
+  multiplier (one High Court held that it does; the formula currently includes it); estimating to the
+  reference date while the award or possession date is not yet recorded; document ages (180 and 365 days);
+  the actual/365 day count; the 60-day SLA.
+- **Disaster relief:** amounts follow the MHA SDRF/NDRF norms 2022-26 (fully damaged house ₹1,20,000 plain
+  or ₹1,30,000 hilly; partially damaged pucca ₹6,500 at 15% or more, kutcha ₹4,000; hut ₹8,000;
+  clothing ₹2,500 and utensils ₹2,500), labelled "current schedule to be confirmed". Still VERIFY: the
+  schedule in force in Goa and every `<clause ref>`; the 75% full-damage threshold (the norms do not give
+  it as a percentage); applying the 15% minimum to kutcha houses, huts and the clothing and utensils relief;
+  the condition for clothing and utensils (the norms tie it to houses washed away, fully damaged or severely
+  inundated); which Goa areas count as hilly; document ages (365 and 90 days); the 15-day SLA.
 - **Notified area:** disaster relief relies on the damage assessment's own "notified area" certification;
   there is no list of notified villages per disaster event.
 

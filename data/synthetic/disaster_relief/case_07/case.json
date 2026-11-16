@@ -73,6 +73,16 @@
           "confidence": 0.97,
           "source_page": 1
         },
+        "house_type": {
+          "value": "hut",
+          "confidence": 0.97,
+          "source_page": 1
+        },
+        "area_type": {
+          "value": "hilly",
+          "confidence": 0.97,
+          "source_page": 1
+        },
         "notified_area": {
           "value": "yes",
           "confidence": 0.97,
