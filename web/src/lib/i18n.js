@@ -1,6 +1,7 @@
 // Translation templates with fixed placeholders. Templates contain no numbers: amounts and dates are
 // formatted here, by code, from API values. No LLM generates or translates any text or number.
 import { formatRupees, maskIdentifiers } from "./format.js";
+import { readableFormula } from "./display.js";
 
 export function placeholders(template) {
   return [...String(template).matchAll(/\{(\w+)\}/g)].map((m) => m[1]).sort();
@@ -35,7 +36,8 @@ export function citizenLines(view, dict) {
     lines.push({ kind: "intro", text: t(dict, "amounts.intro") });
     for (const item of view.amounts.items) {
       lines.push({ kind: "item", text: t(dict, `component.${view.scheme}.${item.component}`, { amount: formatRupees(item.amount) }) });
-      lines.push({ kind: "source", text: t(dict, "amounts.source", { source: maskIdentifiers(item.source) }) });
+      lines.push({ kind: "source", text: t(dict, "amounts.source",
+        { source: readableFormula(maskIdentifiers(item.source), view.amounts.terms) }) });
     }
     lines.push({ kind: "total", text: t(dict, "amounts.total", { amount: formatRupees(view.amounts.total) }) });
     lines.push({ kind: "source", text: t(dict, "amounts.rules", { version: view.amounts.rules_version }) });

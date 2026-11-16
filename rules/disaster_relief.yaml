@@ -138,3 +138,45 @@ compensation:
       formula: "clothing * (damage_percent >= partial_damage_threshold)"
     - id: utensils
       formula: "utensils * (damage_percent >= partial_damage_threshold)"
+
+# Human labels for every identifier that can reach a screen (officer pages, citizen page, simulator).
+# Keys must be identifiers of this scheme; a document field falls back to its plain field name.
+# hut, clothing and utensils are both a component and its amount parameter: one label serves both.
+terms:
+  application: Application form
+  identity_proof: Identity proof
+  residence_proof: Residence proof
+  damage_assessment: Damage assessment report
+  name: Name
+  id_number: ID number
+  expiry_date: Expiry date
+  house_number: House number
+  village: Village
+  issue_date: Issue date
+  damage_percent: Damage (%)
+  house_type: House type
+  area_type: Area type
+  notified_area: In the notified area
+  assessment_date: Assessment date
+  name_match: Name matches across documents
+  house_match: Assessed house is the residence
+  duplicate_claim: No other claim on the house
+  documents_complete: All documents submitted
+  identity_verified: Identity verified
+  residence_in_affected_area: Residence in the affected area
+  damage_category_eligible: Damage meets the minimum
+  documents_not_expired: Documents current
+  no_duplicate_relief: No duplicate relief
+  house_full_plain: Fully damaged house, plain area
+  house_full_hilly: Fully damaged house, hilly area
+  house_partial_pucca: Partly damaged pucca house
+  house_partial_kutcha: Partly damaged kutcha house
+  hut: Damaged hut
+  clothing: Loss of clothing
+  utensils: Loss of utensils and household goods
+  full_damage_threshold: Full damage threshold (%)
+  partial_damage_threshold: Minimum damage (%)
+  full_house_plain: Full damage amount, plain area
+  full_house_hilly: Full damage amount, hilly area
+  partial_pucca: Partial damage amount, pucca house
+  partial_kutcha: Partial damage amount, kutcha house

@@ -1,6 +1,7 @@
 import { Loading, useApi } from "../useApi.jsx";
 import { formatDate, formatRupees, maskIdentifiers } from "../lib/format.js";
 import { href } from "../lib/router.js";
+import { appLabel, readableFormula, termLabel } from "../lib/display.js";
 
 // Print-friendly award letter. Every value comes from GET /cases/{id}/award; the browser's
 // "Save as PDF" produces the file. Nothing is computed here.
@@ -31,8 +32,8 @@ export default function Award({ id }) {
             <thead><tr><th>Item</th><th className="num">Amount</th><th>Formula and inputs (source)</th></tr></thead>
             <tbody>
               {a.items.map((i) => (
-                <tr key={i.component}><td>{i.component}</td><td className="num">{formatRupees(i.amount)}</td>
-                  <td className="small">{maskIdentifiers(i.formula_note)}</td></tr>
+                <tr key={i.component}><td>{termLabel(a.terms, i.component)}</td><td className="num">{formatRupees(i.amount)}</td>
+                  <td className="small">{readableFormula(maskIdentifiers(i.formula_note), a.terms)}</td></tr>
               ))}
               <tr className="total"><td>{a.labels.total}</td><td className="num">{formatRupees(a.total)}</td>
                 <td className="small">as recorded by the rules engine (version {a.rules_version})</td></tr>
@@ -43,7 +44,7 @@ export default function Award({ id }) {
           <table>
             <thead><tr><th>Rule</th><th>Result</th><th>Clause</th></tr></thead>
             <tbody>{a.rule_results.map((r) => (
-              <tr key={r.rule_id}><td>{r.rule_id}</td><td>{r.status}</td><td>{r.clause}</td></tr>
+              <tr key={r.rule_id}><td>{termLabel(a.terms, r.rule_id)}</td><td>{appLabel("result", r.status)}</td><td>{r.clause}</td></tr>
             ))}</tbody>
           </table>
           <p className="muted small">Generated {formatDate(a.generated_at)} from GovFlow case records. The decision is the

@@ -141,3 +141,41 @@ compensation:
       # VERIFY: whether the 12% base includes the multiplier is unsettled (one High Court held that it
       # does); this formula uses land_value, which includes it.
       formula: "land_value * interest_rate * years_since_notification"
+
+# Human labels for every identifier that can reach a screen (officer pages, citizen page, simulator).
+# Keys must be identifiers of this scheme; a document field falls back to its plain field name.
+terms:
+  application: Application form
+  ownership_record: Ownership record (Form I & XIV)
+  identity_proof: Identity proof
+  survey_sheet: Survey sheet
+  mutation_record: Mutation record
+  name: Name
+  survey_number: Survey number
+  area: Area
+  area_unit: Area unit
+  area_sqm: Area (sq m)
+  issue_date: Issue date
+  id_number: ID number
+  expiry_date: Expiry date
+  name_match: Name matches across documents
+  survey_no_match: Survey number matches
+  duplicate_claim: No overlapping claim on the land
+  documents_complete: All documents submitted
+  valid_ownership: Valid ownership
+  land_identified: Land identified
+  documents_not_expired: Documents current
+  no_competing_claim: No competing claim
+  land_value: Land value
+  assets_value: Assets on the land
+  solatium: Solatium
+  interest: Additional amount at 12% a year
+  market_value_per_sqm: Market value per sq m
+  assets_total: Value of assets
+  multiplier: Rural multiplier
+  years_since_notification: Years from notification
+  sia_notification_date: SIA notification date
+  award_date: Award date
+  possession_date: Possession date
+  solatium_rate: Solatium rate
+  interest_rate: Additional amount rate

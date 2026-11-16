@@ -50,6 +50,7 @@ def test_award_for_an_approved_case(env):
     assert status == 200 and a["case_id"] == "LA-01" and a["demo"] is True
     assert a["decision"]["officer_id"] == "O-7" and a["decision"]["date"] and a["rules_version"] == "0.1.0"
     assert a["labels"]["amounts"] == "Compensation" and a["applicant_name"] == "Asha Naik"
+    assert a["terms"]["solatium"] == "Solatium"           # so the letter shows words, not identifiers
     with Session(engine) as s:
         stored = {r.component: (r.amount, r.formula_note) for r in s.query(CompensationItemRow).filter_by(case_id="LA-01")}
         rules = {r.rule_id: (r.status, r.clause) for r in s.query(RuleResultRow).filter_by(case_id="LA-01")}

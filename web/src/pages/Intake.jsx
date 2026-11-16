@@ -2,6 +2,7 @@ import { useState } from "react";
 import { api, readFileAsBase64 } from "../api.js";
 import { useApi } from "../useApi.jsx";
 import { href } from "../lib/router.js";
+import { termLabel } from "../lib/display.js";
 
 function CreateCase({ schemes, onCreated }) {
   const [form, setForm] = useState({ case_id: "", scheme: "", reference_date: new Date().toISOString().slice(0, 10) });
@@ -36,9 +37,9 @@ function CreateCase({ schemes, onCreated }) {
         onChange={(e) => setForm({ ...form, reference_date: e.target.value })} /></label>
       {scheme && scheme.officer_inputs.length > 0 && (
         <fieldset>
-          <legend>Officer inputs (names from the scheme YAML)</legend>
+          <legend>Officer inputs</legend>
           {scheme.officer_inputs.map((name) => (
-            <label key={name}>{name}
+            <label key={name}>{termLabel(scheme.terms, name)}
               <input value={inputs[name] || ""} onChange={(e) => setInputs({ ...inputs, [name]: e.target.value })}
                 placeholder={name.endsWith("_date") ? "YYYY-MM-DD" : ""} />
             </label>
@@ -73,7 +74,7 @@ function UploadDocuments({ caseId, scheme }) {
       } catch (err) {
         status = `uploaded; extraction not run (${err.message})`;
       }
-      setUploaded([...uploaded, { ...doc, status }]);
+      setUploaded([...uploaded, { ...doc, outcome: status }]);
       setMessage("");
     } catch (err) {
       setMessage(err.message);
@@ -99,7 +100,7 @@ function UploadDocuments({ caseId, scheme }) {
       <form onSubmit={upload}>
         <label>Document type
           <select value={docType} onChange={(e) => setDocType(e.target.value)}>
-            {scheme.documents.map((d) => <option key={d}>{d}</option>)}
+            {scheme.documents.map((d) => <option key={d} value={d}>{termLabel(scheme.terms, d)}</option>)}
           </select>
         </label>
         <label>File (.txt, .png, .jpg, .pdf; max 10 MB)
@@ -107,7 +108,7 @@ function UploadDocuments({ caseId, scheme }) {
         </label>
         <button type="submit" disabled={busy}>Upload</button>
       </form>
-      {uploaded.length > 0 && <ul>{uploaded.map((d) => <li key={d.id}>{d.doc_type} #{d.id}: {d.status}</li>)}</ul>}
+      {uploaded.length > 0 && <ul>{uploaded.map((d) => <li key={d.id}>{termLabel(scheme.terms, d.doc_type)} #{d.id}: {d.outcome}</li>)}</ul>}
       {message && <p className="error">{message}</p>}
       <h2>3. Run the agent</h2>
       <p className="muted">Runs extraction checks, verification, eligibility and compensation, then submits to the officer queue.

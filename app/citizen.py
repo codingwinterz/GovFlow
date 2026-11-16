@@ -93,7 +93,8 @@ def _amounts(session: Session, case: Case, version: str) -> Optional[dict[str, A
         return None   # before an officer decides, amounts are recommendations: not shown to the public
     items = session.query(CompensationItemRow).filter_by(case_id=case.id).all()
     return {"items": [{"component": i.component, "amount": i.amount, "source": i.formula_note} for i in items],
-            "total": round(sum(i.amount for i in items), 2), "rules_version": version}
+            "total": round(sum(i.amount for i in items), 2), "rules_version": version,
+            "terms": load_scheme_by_name(case.scheme).terms}   # so the basis reads as words, not identifiers
 
 
 def citizen_view(session: Session, case: Case) -> dict[str, Any]:

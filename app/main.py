@@ -37,15 +37,12 @@ from app.privacy import mask_identifiers
 from app.rules_engine import overall_from
 from app.self_check import NoSelfCheck, public_questions, self_check
 from app.simulator import knobs, simulate
-from app.rules_loader import RULES_DIR, Scheme, load_scheme_by_name
+from app.rules_loader import RULES_DIR, Scheme, case_input_names, load_scheme_by_name
 
 
 def officer_inputs(scheme: Scheme) -> list[str]:
     """Officer-entered values the scheme reads as `case.<name>`, in YAML order (no names hardcoded here)."""
-    if scheme.compensation is None:
-        return []
-    names = re.findall(r"\bcase\.([A-Za-z_][A-Za-z0-9_]*)", json.dumps(scheme.compensation.model_dump(by_alias=True)))
-    return list(dict.fromkeys(names))
+    return case_input_names(scheme)
 
 
 def _all_schemes() -> list[Scheme]:
@@ -169,7 +166,7 @@ def _detail(session: Session, case: Case) -> dict[str, Any]:
     items = session.query(CompensationItemRow).filter_by(case_id=case.id).all()
     return mask_identifiers({
         **_case_summary(case), "reference_date": case.reference_date.isoformat() if case.reference_date else None,
-        "inputs": json.loads(case.inputs_json), "rules_version": scheme.version, "labels": scheme.labels,
+        "inputs": json.loads(case.inputs_json), "rules_version": scheme.version, "labels": scheme.labels, "terms": scheme.terms,
         "documents": _documents(session, case.id, scheme.confidence_threshold),
         "flags": [{"kind": f.kind, "detail": f.detail, "severity": f.severity}
                   for f in session.query(VerificationFlag).filter_by(case_id=case.id)],
@@ -286,7 +283,7 @@ def create_app(engine: Optional[Engine] = None, agent_llm_factory: Optional[Call
     @app.get("/schemes")
     def schemes(actor: Actor = Depends(_actor)) -> list[dict[str, Any]]:
         return [{"scheme": s.scheme, "version": s.version, "documents": [d.id for d in s.required_documents],
-                 "officer_inputs": officer_inputs(s), "labels": s.labels} for s in _all_schemes()]
+                 "officer_inputs": officer_inputs(s), "labels": s.labels, "terms": s.terms} for s in _all_schemes()]
 
     @app.post("/cases", status_code=201)
     def create_case(body: CreateCase, actor: Actor = Depends(_actor),
@@ -412,7 +409,7 @@ def create_app(engine: Optional[Engine] = None, agent_llm_factory: Optional[Call
         field = lambda doc, name: docs[doc].fields[name].value if doc in docs and name in docs[doc].fields else None
         items = session.query(CompensationItemRow).filter_by(case_id=case_id).all()
         letter = mask_identifiers({
-            "case_id": case.id, "scheme": case.scheme, "labels": scheme.labels, "demo": True,
+            "case_id": case.id, "scheme": case.scheme, "labels": scheme.labels, "terms": scheme.terms, "demo": True,
             "applicant_name": field("application", "name"), "applicant_id": field("identity_proof", "id_number"),
             "decision": {"decision": "approve", "officer_id": case.officer_id,
                          "date": decision.ts.date().isoformat() if decision else None},

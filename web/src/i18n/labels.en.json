@@ -1,0 +1,91 @@
+{
+  "status": {
+    "received": "Received",
+    "extracted": "Documents read",
+    "verified": "Verified",
+    "assessed": "Assessed",
+    "in_officer_review": "Awaiting officer decision",
+    "needs_info": "More information needed",
+    "approved": "Approved",
+    "rejected": "Rejected",
+    "withdrawn": "Withdrawn"
+  },
+  "result": {
+    "pass": "Pass",
+    "fail": "Fail",
+    "needs_review": "Needs review"
+  },
+  "recommendation": {
+    "eligible": "Eligible",
+    "not_eligible": "Not eligible",
+    "needs_review": "Needs review"
+  },
+  "compensation": {
+    "computed": "Computed",
+    "needs_review": "Needs review"
+  },
+  "flag": {
+    "missing_document": "Document missing",
+    "document_expired": "Document expired or too old",
+    "validity_unknown": "Document date unreadable",
+    "low_confidence": "Low-confidence reading",
+    "invalid_value": "Value could not be read",
+    "extraction_unavailable": "Document could not be read"
+  },
+  "severity": {
+    "high": "High",
+    "medium": "Medium",
+    "low": "Low"
+  },
+  "extraction": {
+    "ok": "Read",
+    "extraction_unavailable": "Could not be read"
+  },
+  "error_kind": {
+    "rate_limited": "Rate limited",
+    "timeout": "Timed out",
+    "network": "Network error",
+    "not_configured": "Not configured",
+    "bad_response": "Unexpected response"
+  },
+  "method": {
+    "llm": "Read by the vision model",
+    "ocr_fallback": "Read by OCR (fallback)",
+    "seed": "Synthetic seed data"
+  },
+  "decision": {
+    "approve": "Approve",
+    "reject": "Reject",
+    "send_back": "Send back"
+  },
+  "knob": {
+    "parameter": "Parameter",
+    "input_default": "Default for a missing input"
+  },
+  "record": {
+    "created_at": "intake date",
+    "updated_at": "last update",
+    "submitted_at": "submission date",
+    "sla_days": "SLA target (days)"
+  },
+  "action": {
+    "add_document": "Document added",
+    "agent_explanation": "Explanation written",
+    "agent_llm_unavailable": "Language model unavailable",
+    "agent_run_started": "Agent run started",
+    "agent_tool_call": "Agent tool call",
+    "agent_tool_refused": "Agent tool call refused",
+    "award_letter_viewed": "Award letter viewed",
+    "check_eligibility": "Eligibility checked",
+    "citizen_status_viewed": "Citizen viewed status",
+    "compute_compensation": "Amounts computed",
+    "create_case": "Case created",
+    "extract_facts": "Document read",
+    "get_case_status": "Status checked",
+    "officer_decision": "Officer decision",
+    "rule_simulation": "Rule simulation",
+    "submit_to_officer": "Sent to officer",
+    "update_inputs": "Inputs updated",
+    "verify_documents": "Documents verified"
+  }
+}

@@ -32,8 +32,10 @@ test("confidence and durations", () => {
 
 test("every extracted value names its source", () => {
   const f = { document_id: 12, document_type: "identity_proof", field: "name", source_page: 1, method: "llm" };
-  assert.equal(fieldSource(f), "identity_proof #12 · field name · page 1 · llm");
-  assert.equal(fieldSource({ ...f, source_page: null, method: "seed" }), "identity_proof #12 · field name · seed");
+  const terms = { identity_proof: "Identity proof", name: "Name" };
+  assert.equal(fieldSource(f, terms), "Identity proof #12 · Name · page 1 · Read by the vision model");
+  assert.equal(fieldSource({ ...f, source_page: null, method: "seed" }, terms), "Identity proof #12 · Name · Synthetic seed data");
+  assert.equal(fieldSource({ ...f, method: "ocr_fallback" }, {}), "Identity proof #12 · Name · page 1 · Read by OCR (fallback)");
 });
 
 test("reject and send back need a comment; approve does not", () => {

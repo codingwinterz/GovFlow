@@ -2,9 +2,10 @@ import { useEffect, useState } from "react";
 import { api } from "../api.js";
 import { useApi } from "../useApi.jsx";
 import { formatRupees } from "../lib/format.js";
+import { appLabel, termLabel } from "../lib/display.js";
 
 function Outcome({ o }) {
-  return <>{o.overall}<div className="small muted">{o.compensation_status}</div></>;
+  return <>{appLabel("recommendation", o.overall)}<div className="small muted">{appLabel("compensation", o.compensation_status)}</div></>;
 }
 
 export default function Simulator() {
@@ -16,6 +17,7 @@ export default function Simulator() {
   const [result, setResult] = useState(null);
   const [error, setError] = useState("");
   const chosen = scheme || schemes.data?.[0]?.scheme || "";
+  const terms = schemes.data?.find((s) => s.scheme === chosen)?.terms;
 
   useEffect(() => {
     if (!chosen) return;
@@ -53,7 +55,7 @@ export default function Simulator() {
             setName(e.target.value);
             setValue(String(knobList.knobs.find((k) => k.name === e.target.value)?.value ?? ""));
           }}>
-            {(knobList?.knobs || []).map((k) => <option key={k.name} value={k.name}>{k.name} ({k.kind}, now {k.value})</option>)}
+            {(knobList?.knobs || []).map((k) => <option key={k.name} value={k.name}>{termLabel(terms, k.name)} ({appLabel("knob", k.kind).toLowerCase()}, now {k.value})</option>)}
           </select>
         </label>
         <label>New value <input value={value} onChange={(e) => setValue(e.target.value)} inputMode="decimal" /></label>
@@ -62,7 +64,7 @@ export default function Simulator() {
       {error && <p className="error">{error}</p>}
       {result && (
         <div className="card">
-          <h2>{result.name}: {result.original_value} → {result.new_value}</h2>
+          <h2>{termLabel(terms, result.name)}: {result.original_value} → {result.new_value}</h2>
           <p className="muted">{result.changed_count} of {result.case_count} cases change · rules version {result.rules_version} · source: POST /simulate</p>
           <table>
             <thead><tr><th>Case</th><th>Before</th><th>After</th><th className="num">Total before</th><th className="num">Total after</th><th className="num">Change</th></tr></thead>

@@ -64,7 +64,8 @@ test("t fills placeholders and flags unknown keys instead of inventing text", ()
 const APPROVED = {
   case_ref: "LA-01", scheme: "land_acquisition", status: "approved", next_step: "approved", missing: [],
   decision: { decision: "approve", date: "2026-11-20" },
-  amounts: { rules_version: "0.1.0", total: 17200000, items: [
+  amounts: { rules_version: "0.1.0", total: 17200000,
+    terms: { area_sqm: "Area (sq m)", market_value_per_sqm: "Market value per sq m", multiplier: "Rural multiplier" }, items: [
     { component: "land_value", amount: 7500000, source: "area_sqm * market_value_per_sqm * multiplier with area_sqm=2500" },
     { component: "interest", amount: 1800000, source: "land_value * interest_rate * years_since_notification with ..." },
   ] },
@@ -77,7 +78,8 @@ test("why-this-amount lines use API amounts formatted by code and cite the offic
     assert.match(text, /₹75,00,000\.00/);
     assert.match(text, /₹1,72,00,000\.00/);
     assert.match(text, /2026-11-20/);
-    assert.ok(text.includes(APPROVED.amounts.items[0].source), lang);
+    assert.ok(text.includes("Area (sq m) × Market value per sq m × Rural multiplier with Area (sq m) = 2500"), lang);
+    assert.doesNotMatch(text, /_/, lang);       // the basis reads as words, never identifiers
   }
 });
 

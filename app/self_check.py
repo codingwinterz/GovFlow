@@ -77,6 +77,6 @@ def public_questions(scheme: Scheme) -> Optional[dict]:
         return None
     types = {f"{d.id}.{f}": t for d in scheme.required_documents for f, t in d.types.items()}
     return {"scheme": scheme.scheme, "labels": scheme.labels, "guide_label": GUIDE_LABEL,
-            "documents": scheme.document_ids,
+            "documents": scheme.document_ids, "terms": scheme.terms,
             "questions": [{"field": q.field, "prompt": q.prompt, "type": types[q.field], "choices": q.choices}
                           for q in scheme.self_check.questions]}

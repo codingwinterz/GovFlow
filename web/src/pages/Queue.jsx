@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Loading, useApi } from "../useApi.jsx";
 import { formatDate } from "../lib/format.js";
 import { href } from "../lib/router.js";
+import { appLabel, schemeTitle } from "../lib/display.js";
 
 const STATUSES = ["", "received", "extracted", "verified", "assessed", "in_officer_review", "needs_info",
   "approved", "rejected", "withdrawn"];
@@ -24,13 +25,13 @@ export default function Queue() {
       <div className="filters">
         <label>Status
           <select value={status} onChange={(e) => setStatus(e.target.value)}>
-            {STATUSES.map((s) => <option key={s} value={s}>{s || "all"}</option>)}
+            {STATUSES.map((s) => <option key={s} value={s}>{s ? appLabel("status", s) : "All statuses"}</option>)}
           </select>
         </label>
         <label>Scheme
           <select value={scheme} onChange={(e) => setScheme(e.target.value)}>
-            <option value="">all</option>
-            {(schemes.data || []).map((s) => <option key={s.scheme} value={s.scheme}>{s.scheme}</option>)}
+            <option value="">All schemes</option>
+            {(schemes.data || []).map((s) => <option key={s.scheme} value={s.scheme}>{s.labels.title}</option>)}
           </select>
         </label>
       </div>
@@ -46,8 +47,8 @@ export default function Queue() {
                 <tr key={c.case_id} className={c.confidence_flag ? "flagged" : ""}>
                   <td>{i + 1}</td>
                   <td><a href={href("case", c.case_id)}>{c.case_id}</a></td>
-                  <td>{c.scheme}</td>
-                  <td><span className={`status s-${c.status}`}>{c.status}</span></td>
+                  <td>{schemeTitle(schemes.data, c.scheme)}</td>
+                  <td><span className={`status s-${c.status}`}>{appLabel("status", c.status)}</span></td>
                   <td title="verification flags stored for this case">
                     {c.flags_count}{c.confidence_flag && <span className="badge warn">needs review</span>}
                   </td>

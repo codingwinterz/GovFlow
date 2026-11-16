@@ -1,6 +1,7 @@
 import { Loading, useApi } from "../useApi.jsx";
 import { formatDate, maskIdentifiers } from "../lib/format.js";
 import { href } from "../lib/router.js";
+import { appLabel } from "../lib/display.js";
 
 export default function Audit({ id }) {
   const audit = useApi(`/cases/${encodeURIComponent(id)}/audit`);
@@ -12,13 +13,13 @@ export default function Audit({ id }) {
       <Loading state={audit} />
       {audit.data && (
         <table>
-          <thead><tr><th>#</th><th>Time</th><th>Actor</th><th>Action</th><th>Rules</th><th>Payload</th></tr></thead>
+          <thead><tr><th>#</th><th>Time</th><th>Actor</th><th>Action</th><th>Rules version</th><th>Details (as stored)</th></tr></thead>
           <tbody>
             {audit.data.map((a) => (
               <tr key={a.id} className={a.action === "officer_decision" ? "decision-row" : ""}>
-                <td>{a.id}</td><td className="small">{formatDate(a.ts)}</td><td>{a.actor}</td><td>{a.action}</td>
+                <td>{a.id}</td><td className="small">{formatDate(a.ts)}</td><td>{a.actor}</td><td>{appLabel("action", a.action)}</td>
                 <td>{a.rules_version}</td>
-                <td><details><summary>view</summary><pre>{maskIdentifiers(JSON.stringify(a.payload, null, 2))}</pre></details></td>
+                <td><details><summary>Technical record</summary><pre>{maskIdentifiers(JSON.stringify(a.payload, null, 2))}</pre></details></td>
               </tr>
             ))}
           </tbody>

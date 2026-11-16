@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { t } from "../lib/i18n.js";
+import { readable, termLabel } from "../lib/display.js";
 
 class CheckError extends Error {}
 
@@ -71,10 +72,10 @@ export default function SelfCheck({ dict }) {
         <div className="citizen-view">
           <h2>{t(dict, `outcome.${result.outcome}`)}</h2>
           <p className="banner warn"><strong>{result.guide_label}</strong></p>
-          <ul>{result.rules.map((r) => <li key={r.rule_id}>{r.message}</li>)}</ul>
+          <ul>{result.rules.map((r) => <li key={r.rule_id}>{readable(r.message, scheme.terms)}</li>)}</ul>
           <h2>{t(dict, "self.documents")}</h2>
           <ul>{result.documents_to_bring.map((d) => <li key={d}>{t(dict, `documents.${d}`)}</li>)}</ul>
-          <p className="muted small">{t(dict, "self.later", { checks: result.checked_when_you_apply.join(", ") })}{" "}
+          <p className="muted small">{t(dict, "self.later", { checks: result.checked_when_you_apply.map((c) => termLabel(scheme.terms, c)).join(", ") })}{" "}
             {t(dict, "self.rules", { version: result.rules_version })}</p>
         </div>
       )}

@@ -1,4 +1,5 @@
 // Display helpers. Nothing here computes money: amounts are formatted exactly as the API returned them.
+import { appLabel, termLabel } from "./display.js";
 
 const RUPEES = new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", minimumFractionDigits: 2 });
 const ID_PATTERN = /(?<!\d)\d{4}[ -]?\d{4}[ -]?(\d{4})(?!\d)/g;   // same rule as app/privacy.py
@@ -27,10 +28,10 @@ export function formatDuration(seconds) {
   return `${minutes} min`;
 }
 
-export function fieldSource(f) {
-  const parts = [`${f.document_type} #${f.document_id}`, `field ${f.field}`];
+export function fieldSource(f, terms) {
+  const parts = [`${termLabel(terms, f.document_type)} #${f.document_id}`, termLabel(terms, `${f.document_type}.${f.field}`)];
   if (f.source_page) parts.push(`page ${f.source_page}`);
-  parts.push(f.method);
+  parts.push(appLabel("method", f.method));
   return parts.join(" · ");
 }
 

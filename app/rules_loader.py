@@ -232,6 +232,7 @@ class Scheme(BaseModel):
     eligibility_rules: list[EligibilityRule]
     compensation: Optional[Compensation] = None
     self_check: Optional[SelfCheck] = None
+    terms: dict[str, str] = {}       # human label per identifier shown on screen (see known_terms)
 
     @model_validator(mode="after")
     def _positive_sla(self) -> "Scheme":
@@ -336,6 +337,44 @@ def _check_self_check(scheme: Scheme) -> None:
             raise RulesError(f"self_check rule {rule_id!r} reads {sorted(outside)}, which are not questions")
 
 
+def case_input_names(scheme: Scheme) -> list[str]:
+    """Officer-entered values the scheme reads as `case.<name>`, in YAML order."""
+    if scheme.compensation is None:
+        return []
+    text = yaml.safe_dump(scheme.compensation.model_dump(by_alias=True), sort_keys=False)
+    return list(dict.fromkeys(re.findall(r"\bcase\.([A-Za-z_][A-Za-z0-9_]*)", text)))
+
+
+def known_terms(scheme: Scheme) -> set[str]:
+    """Every identifier of this scheme that can reach a screen: documents, document fields (doc.field and the
+    plain field name), checks, rules, amount components, compensation inputs, case inputs and parameters."""
+    terms: set[str] = set(scheme.document_ids)
+    for doc in scheme.required_documents:
+        for name in [*doc.fields, *doc.derived]:
+            terms |= {name, f"{doc.id}.{name}"}
+    terms |= {c.id for c in scheme.verification_checks} | {r.id for r in scheme.eligibility_rules}
+    if scheme.compensation:
+        comp = scheme.compensation
+        terms |= {c.id for c in comp.components} | set(comp.inputs) | set(comp.parameters)
+    return terms | set(case_input_names(scheme))
+
+
+def term_label(scheme: Scheme, term: str) -> Optional[str]:
+    """The YAML label for an identifier; doc.field falls back to the plain field's label."""
+    if term in scheme.terms:
+        return scheme.terms[term]
+    return scheme.terms.get(term.split(".", 1)[1]) if "." in term else None
+
+
+def _check_terms(scheme: Scheme) -> None:
+    unknown = sorted(set(scheme.terms) - known_terms(scheme))
+    if unknown:
+        raise RulesError(f"terms label unknown identifiers: {unknown}")
+    bad = sorted(k for k, v in scheme.terms.items() if not str(v).strip() or "_" in str(v))
+    if bad:
+        raise RulesError(f"terms must be human wording (non-empty, no underscores): {bad}")
+
+
 def _cross_check(scheme: Scheme) -> None:
     reserved = set(scheme.document_ids) & set(RESERVED_NAMES)
     if reserved:
@@ -358,6 +397,7 @@ def _cross_check(scheme: Scheme) -> None:
             raise RulesError(str(exc)) from exc
     _check_params(scheme)
     _check_self_check(scheme)
+    _check_terms(scheme)   # last: a structural error is the more useful message
 
 
 def parse_scheme(data: dict) -> Scheme:
