@@ -6,7 +6,7 @@
 - one document is "uploaded" and fails with a simulated rate limit, to demo the retry banner;
 - most cases go through the agent's deterministic fallback (no LLM), so each has an assessment
   and a plain summary clearly labelled "generated without the LLM";
-- intake dates are SYNTHETIC: spread over recent weeks by a fixed pattern, so SLA timers and
+- intake and submission dates are SYNTHETIC: spread over recent weeks by a fixed pattern, so SLA timers and
   overdue flags have something to show (audit entries keep their real timestamps);
 - three officer decisions are recorded as actor officer:seed-demo with a "synthetic" comment,
   so analytics and the citizen page have data (skip with --no-decisions).
@@ -87,6 +87,14 @@ def _spread_intake_dates(session: Session, cases: list[CaseIn]) -> None:
     session.commit()
 
 
+def _backdate_submissions(session: Session) -> None:
+    """The agent stamps submitted_at with the real clock; in the synthetic timeline the case went to the
+    officer on its (backdated) intake date, so "Submitted" and "Days open" agree in the queue."""
+    for case in session.query(Case).filter(Case.submitted_at.isnot(None)):
+        case.submitted_at = case.created_at
+    session.commit()
+
+
 def seed(db_path: Path, reset: bool = False, with_decisions: bool = True) -> dict[str, Any]:
     db_path = Path(db_path)
     if db_path.exists():
@@ -106,6 +114,7 @@ def seed(db_path: Path, reset: bool = False, with_decisions: bool = True) -> dic
         for case in cases:
             if case.case_id not in NOT_RUN:
                 run_agent(session, case.case_id, _NoLLM(), actor="seed-demo")
+        _backdate_submissions(session)
         if with_decisions:
             for case_id, decision, comment in DECISIONS:
                 if session.get(Case, case_id).status == "in_officer_review":

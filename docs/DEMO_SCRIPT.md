@@ -9,7 +9,7 @@ Steps marked **LIVE GEMINI** call the Gemini API. If Gemini is slow, out of quot
 ## Before the jury arrives (5 minutes)
 
 ```
-.venv/Scripts/python -m scripts.seed_demo --reset      # 29 synthetic cases, prints citizen codes
+.venv/Scripts/python -m scripts.seed_demo --reset      # 30 synthetic cases, prints citizen codes
 .venv/Scripts/python -m uvicorn app.main:app            # terminal 1, port 8000
 cd web && npm run dev                                   # terminal 2, open http://127.0.0.1:5173
 ```

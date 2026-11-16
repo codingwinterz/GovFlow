@@ -28,6 +28,20 @@ def test_seed_covers_the_dashboard_states(seeded):
         k: list(statuses.values()).count(k) for k in set(statuses.values())}
 
 
+def test_days_open_counts_from_the_submitted_date_for_every_open_submitted_case(seeded):
+    """The queue's "Submitted" and "Days open" columns must agree: days open = now - submitted date."""
+    from datetime import datetime, timezone
+    from app.models import as_utc
+    from app.sla import sla_view
+    _, s = seeded
+    now = datetime.now(timezone.utc)
+    open_submitted = [c for c in s.query(Case) if c.submitted_at and c.status not in ("approved", "rejected", "withdrawn")]
+    assert len(open_submitted) >= 10
+    for c in open_submitted:
+        assert sla_view(c, now, {})["days_open"] == (now - as_utc(c.submitted_at)).days, c.id
+    assert len({as_utc(c.submitted_at).date() for c in open_submitted}) > 5      # spread, not all today
+
+
 def test_seed_shows_low_confidence_fields_and_an_unavailable_document(seeded):
     _, s = seeded
     assert s.query(ExtractedField).filter(ExtractedField.confidence < 0.85).count() >= 1
