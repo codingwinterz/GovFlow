@@ -1,0 +1,31 @@
+{
+  "case_id": "LA-19",
+  "description": "Mundkar (other rights) named on the record of rights",
+  "verification": {
+    "name_match": "pass",
+    "survey_no_match": "pass",
+    "duplicate_claim": "pass",
+    "tenant_or_mundkar_claim": "needs_review"
+  },
+  "eligibility": {
+    "overall": "needs_review",
+    "rules": {
+      "documents_complete": "pass",
+      "valid_ownership": "needs_review",
+      "land_identified": "pass",
+      "documents_not_expired": "pass",
+      "no_competing_claim": "pass"
+    }
+  },
+  "compensation": {
+    "status": "computed",
+    "items": {
+      "land_value": 1500000,
+      "assets_value": 0,
+      "solatium": 1500000,
+      "interest": 180000
+    },
+    "total": 3180000
+  },
+  "needs_human_review": true
+}

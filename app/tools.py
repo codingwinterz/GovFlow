@@ -25,6 +25,7 @@ from app.extraction import (
     extract_facts,
 )
 from app.models import Case, CompensationItemRow, queue_key, Document, ExtractedField, RuleResultRow, VerificationFlag
+from app.resolutions import open_resolution_flags, resolution_problem
 from app.rules_engine import EligibilityResult, overall_from
 from app.rules_engine import check_eligibility as check_eligibility_pure
 from app.rules_loader import RULES_DIR, Scheme, amount_fields, load_scheme_by_name
@@ -261,10 +262,14 @@ def _unconfirmed(session: Session, case_id: str, confirmed: dict[str, Any]) -> l
 
 
 def record_officer_decision(session: Session, case_id: str, role: str, officer_id: str, decision: str,
-                            comment: str = "", confirmed: Optional[dict[str, Any]] = None) -> DecisionResult:
+                            comment: str = "", confirmed: Optional[dict[str, Any]] = None,
+                            resolutions: Optional[dict[str, Any]] = None,
+                            today: Optional[date] = None) -> DecisionResult:
     """The only way a case is approved, rejected or sent back. Not exposed to the agent.
     Approval needs `confirmed`: the officer's check of every amount-driving field at its current value, however
-    confident the extraction was (a document must not be able to vouch for itself)."""
+    confident the extraction was (a document must not be able to vouch for itself). It also needs, for every open
+    flag the YAML marks approval_needs_resolution (e.g. a tenant or mundkar entry), the officer's resolution:
+    a reference and a date. Each resolution is written to the audit log."""
     if role != "officer":
         raise PermissionError("Only the officer role can approve, reject or send back a case")
     case, scheme = _case(session, case_id)
@@ -279,10 +284,24 @@ def record_officer_decision(session: Session, case_id: str, role: str, officer_i
         missing = _unconfirmed(session, case_id, confirmed)
         if missing:
             raise ToolError(f"Confirm these values against the documents before approving: {', '.join(missing)}")
+    recorded = {}
+    if decision == "approve":
+        given = dict(resolutions or {})
+        for check in open_resolution_flags(session, case_id, scheme):
+            problem = resolution_problem(given.get(check.id), today or date.today())
+            if problem:
+                label = scheme.terms.get(check.id, check.id)
+                raise ToolError(f"Record the resolution for “{label}” before approving: {problem}")
+            recorded[check.id] = {"reference": str(given[check.id]["reference"]).strip(),
+                                  "date": str(given[check.id]["date"])}
+    for kind, res in recorded.items():
+        log_action(session, case_id, f"officer:{officer_id}", "flag_resolution",
+                   {"flag": kind, **res, "officer_id": officer_id}, scheme.version)
     case.status, case.officer_id = DECISION_STATUS[decision], officer_id
     result = DecisionResult(case_id=case_id, decision=decision, status=case.status, officer_id=officer_id)
     log_action(session, case_id, f"officer:{officer_id}", "officer_decision",
-               {**result.model_dump(), "comment": comment, "confirmed_fields": confirmed}, scheme.version)
+               {**result.model_dump(), "comment": comment, "confirmed_fields": confirmed, "resolutions": recorded},
+               scheme.version)
     session.commit()
     return result
 

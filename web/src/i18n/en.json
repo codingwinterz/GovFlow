@@ -28,6 +28,7 @@
   "missing.missing": "{document}: not submitted",
   "missing.expired": "{document}: expired, please bring a valid one",
   "missing.none": "Nothing is missing.",
+  "notice.rights_verification": "Additional verification of rights is in progress.",
   "decision.title": "Officer's decision",
   "decision.approve": "Approved",
   "decision.reject": "Rejected",

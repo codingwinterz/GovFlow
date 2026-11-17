@@ -49,7 +49,7 @@ Keep this section current: update it in the same commit as any change to what is
 Fuller detail is in `docs/KNOWN_LIMITATIONS.md`.
 
 ### Built
-- Two schemes from YAML only: land acquisition (17 synthetic cases) and disaster relief (15), with hand-derived
+- Two schemes from YAML only: land acquisition (21 synthetic cases) and disaster relief (15), with hand-derived
   expected outcomes. LA-17 and DR-15 carry prompt-injection text at confidence 1.0 and must end in review.
 - Tools: rules engine, compensation, extraction (Gemini vision, Tesseract fallback), verification, SLA, analytics,
   self-check, rule simulator (read-only what-if over the synthetic set). Agent loop with a deterministic fallback.
@@ -61,6 +61,12 @@ Fuller detail is in `docs/KNOWN_LIMITATIONS.md`.
 - Dates are day first: the prompt says DD/MM/YYYY and asks for the date as printed; `field_types` parses
   DD/MM/YYYY (and ISO) day first and rejects anything only valid month first.
 - Name match: a name containing digits or symbols ("L?ta Sh1rodkar") fails outright.
+- Tenant / mundkar entry (land): the record of rights' tenant and mundkar / other-rights entries are copied as
+  printed; the YAML `recorded_entry` check flags any non-empty entry (`tenant_or_mundkar_claim`, high severity;
+  blank, dash, Nil, NA, none and Devanagari forms are empty). While open: `valid_ownership` needs review, the
+  total is labelled "Total for the holding, not the owner's share", approval needs the officer's resolution
+  (reference + date, audit row `flag_resolution`), and the citizen page shows "additional verification of rights
+  is in progress". LA-18 (tenant), LA-19 (mundkar), LA-20 (Nil / dash), LA-21 (whitespace only).
 - Default model `gemini-3.5-flash-lite` (`GEMINI_MODEL` overrides).
 - Synthetic document images for both schemes (land 7, relief 7), each clean, degraded and hard (stamp, one
   handwriting-style field, phone-photo look), all labelled SYNTHETIC. LA-11's image prints its damaged scan text.
@@ -80,8 +86,8 @@ Fuller detail is in `docs/KNOWN_LIMITATIONS.md`.
 - Demo database re-seeded 2026-11-16 after the backdating fix: Submitted and Days open agree for all 23 open cases.
 
 ### Tests (all green at commit time)
-- Python: 904 passed (`pytest -q`, about 3 minutes).
-- Frontend: 65 logic (`npm test`) + 25 browser (`npm run test:layout`); `npm run test:all` runs both. Build clean.
+- Python: 965 passed (`pytest -q`, about 4 minutes).
+- Frontend: 67 logic (`npm test`) + 25 browser (`npm run test:layout`); `npm run test:all` runs both. Build clean.
 
 ### Still marked VERIFY
 - Land acquisition (`rules/land_acquisition.yaml`): notification references (source); 60-day SLA; record-of-rights
@@ -96,11 +102,16 @@ Fuller detail is in `docs/KNOWN_LIMITATIONS.md`.
 - `app/providers/gemini_agent.py` and `gemini.py`: wire format and default temperature verified live on the default
   `gemini-3.5-flash-lite` only; VERIFY on any other model set through `GEMINI_MODEL`.
 - Every rule's `<clause ref>` in both YAML files.
+- Tenant / mundkar rule (`rules/land_acquisition.yaml`): which Form I & XIV column(s) hold the tenant and the
+  mundkar / other-rights entries; which resolution document applies in an acquisition; that the empty-value list
+  covers how Goa's records write an empty column. Basis cited: the Goa, Daman and Diu Agricultural Tenancy Act,
+  1964 and the Goa, Daman and Diu Mundkars (Protection from Eviction) Act, 1975.
 - Plausibility ranges (placeholders, not legal values): land `area_sqm` 10 to 500,000 (holding) and 10 to 5,000,000
   (survey number); `market_value_per_sqm` Rs 100 to 1,00,000.
 
 ### Open items
-- **Feature freeze from 2026-11-17.** No new features; only fixes, docs and demo preparation.
+- **Feature freeze from 2026-11-17.** No new features; only fixes, docs and demo preparation. One exception
+  granted 2026-11-17: the tenant / mundkar rule and the deficiency notice.
 - Live evaluation (`docs/EVAL_RESULTS.md`, two runs on 17 Nov 2026, synthetic only) on `gemini-3.5-flash-lite`
   only (other models were unreachable on 16 Nov). After the fix round, Gemini: relief 35/35 on clean, degraded and
   hard; land 25/27, 25/27, 21/27 with 1, 0, 2 wrong values passing the confidence gate, every one caught later by

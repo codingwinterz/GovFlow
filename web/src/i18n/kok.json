@@ -28,6 +28,7 @@
   "missing.missing": "{document}: सादर केलें ना",
   "missing.expired": "{document}: मुदत सोंपल्या, उपकार करून वैध कागद हाडात",
   "missing.none": "कांयच उणें ना.",
+  "notice.rights_verification": "हक्कांची अदीक पडताळणी चालू आसा.",
   "decision.title": "अधिकाऱ्याचो निर्णय",
   "decision.approve": "मान्य",
   "decision.reject": "अमान्य",

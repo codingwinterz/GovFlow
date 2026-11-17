@@ -13,7 +13,8 @@ from pathlib import Path
 
 OUT = Path(__file__).resolve().parent / "land_acquisition"
 REFERENCE_DATE = "2026-11-15"
-ALL_PASS_CHECKS = {"name_match": "pass", "survey_no_match": "pass", "duplicate_claim": "pass"}
+ALL_PASS_CHECKS = {"name_match": "pass", "survey_no_match": "pass", "duplicate_claim": "pass",
+                   "tenant_or_mundkar_claim": "pass"}   # LA-01..17 carry no tenant or mundkar entry: pass
 ALL_PASS_RULES = {r: "pass" for r in
                   ["documents_complete", "valid_ownership", "land_identified", "documents_not_expired",
                    "no_competing_claim"]}
@@ -203,6 +204,50 @@ CASES.append((docs17, inputs(2500, 100_000),
               expected("Prompt injection in the ownership record; implausible area at confidence 1.0",
                        rules={"documents_not_expired": "needs_review"}, overall="needs_review", review=True,
                        compensation=comp(None, 100_000, None, None, status="needs_review"))))
+
+
+def with_entries(docs, tenant, other):
+    """The record of rights' tenant and mundkar / other-rights entries, copied as printed."""
+    docs["ownership_record"]["fields"]["tenant_entry"] = f(tenant)
+    docs["ownership_record"]["fields"]["other_rights_entry"] = f(other)
+    return docs
+
+
+# 18-21: tenant / mundkar entries on the record of rights. All four: SIA notification 2025-11-15 to award
+# 2026-11-15 = 365 days (no 29 Feb) = 1.0 year; multiplier 1.0; solatium = (land + assets) x 1.0;
+# interest = land x 0.12 x 1.0. An entry makes the tenant check and valid_ownership needs_review: the case
+# goes to review, never fails. The calculator still computes the holding total (labelled as such).
+
+# 18 tenant named. 1000 sqm x 2000 = 2,000,000; assets 50,000; solatium 2,050,000; interest 240,000
+CASES.append((with_entries(documents("Ganesh Naik", "501/1", 1000, "sqm", 3000, "sqm", id_last4="0018"),
+                           "Ramesh Gawde (tenant)", "Nil"),
+              inputs(2000, 50_000, start="2025-11-15"),
+              expected("Tenant named on the record of rights",
+                       checks={"tenant_or_mundkar_claim": "needs_review"}, rules={"valid_ownership": "needs_review"},
+                       overall="needs_review", review=True,
+                       compensation=comp(2_000_000, 50_000, 2_050_000, 240_000))))
+# 19 mundkar named. 1500 sqm x 1000 = 1,500,000; assets 0; solatium 1,500,000; interest 180,000
+CASES.append((with_entries(documents("Rosa Fernandes", "502/1", 1500, "sqm", 4000, "sqm", id_last4="0019"),
+                           "—", "Mundkar: Joaquim D'Costa"),
+              inputs(1000, 0, start="2025-11-15"),
+              expected("Mundkar (other rights) named on the record of rights",
+                       checks={"tenant_or_mundkar_claim": "needs_review"}, rules={"valid_ownership": "needs_review"},
+                       overall="needs_review", review=True,
+                       compensation=comp(1_500_000, 0, 1_500_000, 180_000))))
+# 20 columns printed "Nil" and "—": empty, must NOT flag. 800 sqm x 2500 = 2,000,000; assets 20,000;
+# solatium 2,020,000; interest 240,000
+CASES.append((with_entries(documents("Kavita Shet", "503/1", 800, "sqm", 2000, "sqm", id_last4="0020"),
+                           "Nil", "—"),
+              inputs(2500, 20_000, start="2025-11-15"),
+              expected("Tenant and mundkar columns printed Nil and a dash: nothing recorded",
+                       compensation=comp(2_000_000, 20_000, 2_020_000, 240_000))))
+# 21 plausibility: both columns hold only whitespace, read confidently: blank, must NOT flag (and is not an
+# invalid value). 600 sqm x 3000 = 1,800,000; assets 0; solatium 1,800,000; interest 216,000
+CASES.append((with_entries(documents("Nilesh Parsekar", "504/1", 600, "sqm", 1500, "sqm", id_last4="0021"),
+                           "   ", " \t "),
+              inputs(3000, 0, start="2025-11-15"),
+              expected("Tenant and mundkar columns contain only whitespace: nothing recorded",
+                       compensation=comp(1_800_000, 0, 1_800_000, 216_000))))
 
 
 def main() -> None:

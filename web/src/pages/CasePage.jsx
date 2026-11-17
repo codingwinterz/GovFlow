@@ -3,6 +3,7 @@ import { api } from "../api.js";
 import { Loading, useApi } from "../useApi.jsx";
 import {
   fieldSource, formatConfidence, formatDate, formatRupees, maskIdentifiers, unavailableDocuments, validateDecision, confirmedFields,
+  resolutionsBody,
 } from "../lib/format.js";
 import { href } from "../lib/router.js";
 import { appLabel, flagLabel, readable, readableFormula, termLabel } from "../lib/display.js";
@@ -134,16 +135,20 @@ function Explanation({ explanation, terms }) {
   );
 }
 
-function DecisionPanel({ caseId, confirmFields = [], terms, onDone }) {
+function DecisionPanel({ caseId, confirmFields = [], resolutionsNeeded = [], terms, onDone }) {
   const [decision, setDecision] = useState("");
   const [comment, setComment] = useState("");
   const [checked, setChecked] = useState({});
+  const [resolutions, setResolutions] = useState({});
   const [error, setError] = useState("");
+  const setResolution = (flag, key, value) => setResolutions({ ...resolutions, [flag]: { ...resolutions[flag], [key]: value } });
   const submit = async (e) => {
     e.preventDefault();
-    const problem = validateDecision(decision, comment, confirmFields, checked);
+    const problem = validateDecision(decision, comment, confirmFields, checked, resolutionsNeeded, resolutions);
     if (problem) return setError(problem);
-    const body = { decision, comment, confirmed_fields: decision === "approve" ? confirmedFields(confirmFields, checked) : {} };
+    const approving = decision === "approve";
+    const body = { decision, comment, confirmed_fields: approving ? confirmedFields(confirmFields, checked) : {},
+      resolutions: approving ? resolutionsBody(resolutionsNeeded, resolutions) : {} };
     try {
       await api("POST", `/cases/${encodeURIComponent(caseId)}/decision`, body);
       setError("");
@@ -177,6 +182,19 @@ function DecisionPanel({ caseId, confirmFields = [], terms, onDone }) {
             ))}
           </fieldset>
         )}
+        {decision === "approve" && resolutionsNeeded.map((r) => (
+          <fieldset key={r.flag} className="confirm">
+            <legend>Resolution: {termLabel(terms, r.flag)}</legend>
+            <p className="muted small">Approval needs the resolution you relied on: its reference and date. It is
+              recorded in the audit trail.{r.basis && <> Basis: {r.basis}.</>}</p>
+            <label>Resolution reference
+              <input value={resolutions[r.flag]?.reference || ""} maxLength={200}
+                onChange={(e) => setResolution(r.flag, "reference", e.target.value)} /></label>
+            <label>Resolution date
+              <input type="date" value={resolutions[r.flag]?.date || ""}
+                onChange={(e) => setResolution(r.flag, "date", e.target.value)} /></label>
+          </fieldset>
+        ))}
         <label>Comment {decision && decision !== "approve" && <span className="muted">(required)</span>}
           <textarea value={comment} onChange={(e) => setComment(e.target.value)} rows={3} />
         </label>
@@ -241,7 +259,7 @@ export default function CasePage({ id, login }) {
               <tr key={k}><td>{termLabel(d.terms, k)}</td><td>{maskIdentifiers(v)}</td><td className="small muted">source: case inputs (officer/clerk)</td></tr>
             ))}</tbody></table>
           </section>
-          {login.role === "officer" && d.status === "in_officer_review" && <DecisionPanel caseId={d.case_id} confirmFields={d.confirm_fields} terms={d.terms} onDone={detail.reload} />}
+          {login.role === "officer" && d.status === "in_officer_review" && <DecisionPanel caseId={d.case_id} confirmFields={d.confirm_fields} resolutionsNeeded={d.resolutions_needed} terms={d.terms} onDone={detail.reload} />}
         </>
       )}
     </section>

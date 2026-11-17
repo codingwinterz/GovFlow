@@ -1,0 +1,114 @@
+{
+  "case_id": "LA-20",
+  "scheme": "land_acquisition",
+  "status": "received",
+  "reference_date": "2026-11-15",
+  "documents": {
+    "application": {
+      "fields": {
+        "name": {
+          "value": "Kavita Shet",
+          "confidence": 1.0,
+          "source_page": null
+        }
+      }
+    },
+    "ownership_record": {
+      "fields": {
+        "name": {
+          "value": "Kavita Shet",
+          "confidence": 0.95,
+          "source_page": 1
+        },
+        "survey_number": {
+          "value": "503/1",
+          "confidence": 0.95,
+          "source_page": 1
+        },
+        "area": {
+          "value": 800,
+          "confidence": 0.95,
+          "source_page": 1
+        },
+        "area_unit": {
+          "value": "sqm",
+          "confidence": 0.95,
+          "source_page": 1
+        },
+        "issue_date": {
+          "value": "2026-10-01",
+          "confidence": 0.95,
+          "source_page": 1
+        },
+        "tenant_entry": {
+          "value": "Nil",
+          "confidence": 0.95,
+          "source_page": 1
+        },
+        "other_rights_entry": {
+          "value": "\u2014",
+          "confidence": 0.95,
+          "source_page": 1
+        }
+      }
+    },
+    "identity_proof": {
+      "fields": {
+        "name": {
+          "value": "Kavita Shet",
+          "confidence": 0.95,
+          "source_page": 1
+        },
+        "id_number": {
+          "value": "9999 0000 0020",
+          "confidence": 0.95,
+          "source_page": 1
+        },
+        "expiry_date": {
+          "value": "2031-03-31",
+          "confidence": 0.95,
+          "source_page": 1
+        }
+      }
+    },
+    "survey_sheet": {
+      "fields": {
+        "survey_number": {
+          "value": "503/1",
+          "confidence": 0.95,
+          "source_page": 1
+        },
+        "area": {
+          "value": 2000,
+          "confidence": 0.95,
+          "source_page": 1
+        },
+        "area_unit": {
+          "value": "sqm",
+          "confidence": 0.95,
+          "source_page": 1
+        }
+      }
+    },
+    "mutation_record": {
+      "fields": {
+        "name": {
+          "value": "Kavita Shet",
+          "confidence": 0.95,
+          "source_page": 1
+        },
+        "issue_date": {
+          "value": "2026-08-01",
+          "confidence": 0.95,
+          "source_page": 1
+        }
+      }
+    }
+  },
+  "inputs": {
+    "market_value_per_sqm": 2500,
+    "assets_total": 20000,
+    "sia_notification_date": "2025-11-15",
+    "award_date": "2026-11-15"
+  }
+}

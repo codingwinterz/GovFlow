@@ -91,3 +91,15 @@ test("timestamps are shown in India time whatever the browser's zone: a decision
   assert.equal(formatDay("2026-11-20"), "20 Nov 2026");    // a plain date stays that date
   assert.equal(todayInIndia(new Date(ts)), "2026-11-20");  // intake's default reference date
 });
+
+test("approval with an open rights entry needs a resolution reference and date", async () => {
+  const { resolutionsBody } = await import("./format.js");
+  const needed = [{ flag: "tenant_or_mundkar_claim" }];
+  assert.match(validateDecision("approve", "", [], {}, needed, {}), /resolution/);
+  assert.match(validateDecision("approve", "", [], {}, needed, { tenant_or_mundkar_claim: { reference: " ", date: "2026-11-10" } }), /resolution/);
+  assert.match(validateDecision("approve", "", [], {}, needed, { tenant_or_mundkar_claim: { reference: "TNC/1", date: "" } }), /resolution/);
+  assert.equal(validateDecision("approve", "", [], {}, needed, { tenant_or_mundkar_claim: { reference: "TNC/1", date: "2026-11-10" } }), null);
+  assert.equal(validateDecision("send_back", "bring papers", [], {}, needed, {}), null);   // only approval needs it
+  assert.deepEqual(resolutionsBody(needed, { tenant_or_mundkar_claim: { reference: " TNC/1 ", date: "2026-11-10" } }),
+    { tenant_or_mundkar_claim: { reference: "TNC/1", date: "2026-11-10" } });
+});

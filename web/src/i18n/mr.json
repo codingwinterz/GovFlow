@@ -28,6 +28,7 @@
   "missing.missing": "{document}: सादर केलेले नाही",
   "missing.expired": "{document}: मुदत संपली आहे, कृपया वैध कागदपत्र आणा",
   "missing.none": "काहीही कमी नाही.",
+  "notice.rights_verification": "हक्कांची अतिरिक्त पडताळणी सुरू आहे.",
   "decision.title": "अधिकाऱ्यांचा निर्णय",
   "decision.approve": "मंजूर",
   "decision.reject": "नामंजूर",

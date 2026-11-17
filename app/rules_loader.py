@@ -50,6 +50,9 @@ class RequiredDocument(BaseModel):
     # Plausible [min, max] for number, percent or derived fields. A value outside goes to human review
     # (withheld like an unreadable value), whatever confidence the extraction reported. Never clamped.
     plausible: dict[str, tuple[float, float]] = {}
+    # Text fields where a blank (or whitespace-only) reading means "nothing recorded", not an unreadable value,
+    # e.g. an empty tenant column. A field the reader leaves out entirely is not checked either.
+    may_be_blank: list[str] = []
 
     @model_validator(mode="before")
     @classmethod
@@ -80,6 +83,9 @@ class RequiredDocument(BaseModel):
                 raise ValueError(f"{self.id}.{name}: plausible bounds need a number, percent or derived field")
             if lo > hi:
                 raise ValueError(f"{self.id}.{name}: plausible range {[lo, hi]} has min above max")
+        for name in self.may_be_blank:
+            if self.types.get(name) != "text":
+                raise ValueError(f"{self.id}.{name}: may_be_blank needs a declared text field")
         return self
 
 
@@ -91,6 +97,14 @@ DUPLICATE_MESSAGES = {
     "within_total": {"ids", "key", "combined", "total"},   # only with claimed_area and total_area
     "exceeds_total": {"ids", "key", "combined", "total"},
 }
+
+# Message templates for the recorded_entry built-in.
+RECORDED_ENTRY_MESSAGES = {
+    "none": set(),                     # every listed entry is empty
+    "entry": {"ref", "value"},         # one per entry that holds something
+    "unreadable": {"ref", "reason"},   # one per entry that could not be read reliably
+}
+NOTICE_KEY = re.compile(r"^[a-z][a-z0-9_]{0,63}$")
 
 
 def _placeholders(template: str) -> set[str]:
@@ -105,11 +119,20 @@ class VerificationCheck(BaseModel):
     across: list[str] = []
     tolerance: Optional[str] = None
     # built-in checks
-    builtin: Optional[Literal["duplicate_claim"]] = None
+    builtin: Optional[Literal["duplicate_claim", "recorded_entry"]] = None
     key: Optional[str] = None
     claimed_area: Optional[str] = None
     total_area: Optional[str] = None
     messages: dict[str, str] = {}     # wording shown to officers; each scheme writes its own
+    # recorded_entry: doc.field entries that must be empty; a value equal to one of empty_values (after
+    # normalising case, spaces and punctuation) counts as empty.
+    entries: list[str] = []
+    empty_values: list[str] = []
+    basis: Optional[str] = None       # the law the check rests on, shown with its result
+    # While this check's flag is open: approval needs the officer's resolution (reference and date) ...
+    approval_needs_resolution: bool = False
+    total_label: Optional[str] = None     # ... the total is shown with this label ...
+    citizen_notice: Optional[str] = None  # ... and the citizen page shows this translation key (notice.<key>)
 
     @property
     def fuzzy_threshold(self) -> Optional[float]:
@@ -136,10 +159,27 @@ class VerificationCheck(BaseModel):
                 raise ValueError(f"{self.id}: message {name} uses unknown placeholders {sorted(bad)}; "
                                  f"allowed {sorted(DUPLICATE_MESSAGES[name])}")
 
+    def _check_recorded_entry_shape(self) -> None:
+        if not self.entries or any(e.count(".") != 1 for e in self.entries):
+            raise ValueError(f"{self.id}: recorded_entry needs entries as doc.field")
+        missing = set(RECORDED_ENTRY_MESSAGES) - set(self.messages)
+        unknown = set(self.messages) - set(RECORDED_ENTRY_MESSAGES)
+        if missing or unknown:
+            raise ValueError(f"{self.id}: messages missing {sorted(missing)}, unknown {sorted(unknown)}")
+        for name, template in self.messages.items():
+            bad = _placeholders(template) - RECORDED_ENTRY_MESSAGES[name]
+            if bad:
+                raise ValueError(f"{self.id}: message {name} uses unknown placeholders {sorted(bad)}")
+
     @model_validator(mode="after")
     def _shape(self) -> "VerificationCheck":
+        if self.citizen_notice is not None and not NOTICE_KEY.match(self.citizen_notice):
+            raise ValueError(f"{self.id}: citizen_notice must be a lower-case key, got {self.citizen_notice!r}")
         if self.builtin == "duplicate_claim":
             self._check_duplicate_shape()
+            return self
+        if self.builtin == "recorded_entry":
+            self._check_recorded_entry_shape()
             return self
         if not (self.fields and len(self.across) >= 2):
             raise ValueError(f"{self.id}: needs fields and at least two documents in across")
@@ -281,6 +321,11 @@ def _check_declared_fields(scheme: Scheme) -> None:
     needed: list[tuple[str, str, str]] = []
     for check in scheme.verification_checks:
         needed += [(doc, f, f"check {check.id}") for doc in check.across for f in check.fields]
+        needed += [(*e.split(".", 1), f"check {check.id}") for e in check.entries]
+    for check in scheme.verification_checks:
+        unknown_docs = {e.split(".", 1)[0] for e in check.entries} - set(scheme.document_ids)
+        if unknown_docs:
+            raise RulesError(f"check {check.id}: entries name unknown documents {sorted(unknown_docs)}")
     for doc in scheme.required_documents:
         if doc.validity:
             v = doc.validity

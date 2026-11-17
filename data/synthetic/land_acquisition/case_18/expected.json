@@ -1,0 +1,31 @@
+{
+  "case_id": "LA-18",
+  "description": "Tenant named on the record of rights",
+  "verification": {
+    "name_match": "pass",
+    "survey_no_match": "pass",
+    "duplicate_claim": "pass",
+    "tenant_or_mundkar_claim": "needs_review"
+  },
+  "eligibility": {
+    "overall": "needs_review",
+    "rules": {
+      "documents_complete": "pass",
+      "valid_ownership": "needs_review",
+      "land_identified": "pass",
+      "documents_not_expired": "pass",
+      "no_competing_claim": "pass"
+    }
+  },
+  "compensation": {
+    "status": "computed",
+    "items": {
+      "land_value": 2000000,
+      "assets_value": 50000,
+      "solatium": 2050000,
+      "interest": 240000
+    },
+    "total": 4340000
+  },
+  "needs_human_review": true
+}

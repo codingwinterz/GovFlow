@@ -91,3 +91,14 @@ test("missing documents are shown with translated names", () => {
   assert.match(text, /Identity proof: expired/);
   assert.doesNotMatch(text, /Why this amount/);
 });
+
+test("an open rights entry shows only a plain notice, in every language", () => {
+  const view = { ...APPROVED, status: "under_review", next_step: "officer_review", decision: null, amounts: null,
+    missing: [], notices: ["rights_verification"] };
+  assert.match(citizenLines(view, DICTS.en).map((l) => l.text).join("\n"), /Additional verification of rights is in progress\./);
+  for (const lang of LANGS) {
+    const lines = citizenLines(view, DICTS[lang]).filter((l) => l.kind === "notice");
+    assert.equal(lines.length, 1);
+    assert.doesNotMatch(lines[0].text, /⟦/);                     // the key exists in this language
+  }
+});

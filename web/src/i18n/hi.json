@@ -28,6 +28,7 @@
   "missing.missing": "{document}: जमा नहीं किया गया",
   "missing.expired": "{document}: अवधि समाप्त, कृपया वैध दस्तावेज़ लाएँ",
   "missing.none": "कोई कमी नहीं है।",
+  "notice.rights_verification": "अधिकारों का अतिरिक्त सत्यापन चल रहा है।",
   "decision.title": "अधिकारी का निर्णय",
   "decision.approve": "स्वीकृत",
   "decision.reject": "अस्वीकृत",

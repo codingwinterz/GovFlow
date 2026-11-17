@@ -24,7 +24,11 @@ required_documents:
   - id: application
     fields: {name: text}
   - id: ownership_record          # Form I & XIV
-    fields: {name: text, survey_number: text, area: number, area_unit: unit, issue_date: date}
+    # tenant_entry and other_rights_entry are copied as printed (the model copies; the check below decides).
+    # VERIFY: which column(s) of Form I & XIV hold the tenant entry and the mundkar / other-rights entry.
+    fields: {name: text, survey_number: text, area: number, area_unit: unit, issue_date: date,
+             tenant_entry: text, other_rights_entry: text}
+    may_be_blank: [tenant_entry, other_rights_entry]   # an empty column means nothing is recorded
     derived:
       area_sqm: {convert: area, unit_field: area_unit, to: sqm}
     plausible:
@@ -80,6 +84,28 @@ verification_checks:
       competing: "Open cases {ids} also claim {key}; areas unknown, cannot rule out overlap."
       within_total: "Open cases {ids} also claim {key}, but combined area {combined} fits within survey total {total} (co-owners)."
       exceeds_total: "Open cases {ids} also claim {key}; combined area {combined} exceeds survey total {total}."
+  # recorded_entry (built-in): every listed entry must be empty. Blank, a dash, or one of empty_values (compared
+  #   after removing case, spaces and punctuation) is empty. Anything else -> needs_review, never fail: a tenant
+  #   or mundkar entry is for the officer to resolve, not a reason to reject. An entry read at or below the
+  #   confidence threshold also -> needs_review. An entry the reader did not return is not checked.
+  - id: tenant_or_mundkar_claim
+    builtin: recorded_entry
+    entries: [ownership_record.tenant_entry, ownership_record.other_rights_entry]
+    # English, then Devanagari forms of nil / not applicable / none (Hindi, Marathi, Konkani).
+    # VERIFY: that this list covers how Goa's records of rights write an empty tenant or mundkar column.
+    empty_values: [nil, "n.a.", "n/a", none, "निल", "शून्य", "निरंक", "नाही", "नहीं", "लागू नाही", "लागू नहीं",
+                   "काही नाही", "कोई नहीं", "कोणी नाही", "कांय ना"]
+    severity: high
+    basis: "The Goa, Daman and Diu Agricultural Tenancy Act, 1964; The Goa, Daman and Diu Mundkars (Protection from Eviction) Act, 1975"
+    # VERIFY: which resolution document applies in an acquisition (no specific Mamlatdar order is assumed here);
+    # the officer records the reference they relied on.
+    approval_needs_resolution: true
+    total_label: "Total for the holding, not the owner's share"
+    citizen_notice: rights_verification
+    messages:
+      none: "No tenant or mundkar entry on the record of rights."
+      entry: "{ref} reads {value!r}"
+      unreadable: "{ref} could not be read reliably ({reason})"
 
 # A rule passes only if every `depends_on` check passed and `when` is true.
 # Expressions can read scheme parameters as params.<name> (unknown names fail at load),
@@ -93,7 +119,8 @@ eligibility_rules:
     fail_reason: "One or more required documents are missing."
   - id: valid_ownership
     clause: "<clause ref>"
-    depends_on: [name_match]
+    # A tenant or mundkar entry makes this needs_review: the case cannot be recommended for a single-owner payout.
+    depends_on: [name_match, tenant_or_mundkar_claim]
     when: "ownership_record.present"
     fail_reason: "Ownership record missing or owner name does not match the applicant."
   - id: land_identified
@@ -168,6 +195,9 @@ terms:
   name_match: Name check across documents
   survey_no_match: Survey number check
   duplicate_claim: Overlapping claims on this survey number
+  tenant_or_mundkar_claim: Tenant or mundkar entry on the record of rights
+  tenant_entry: Tenant entry
+  other_rights_entry: Mundkar or other-rights entry
   documents_complete: All documents submitted
   valid_ownership: Valid ownership
   land_identified: Land identified

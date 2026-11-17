@@ -34,6 +34,7 @@ from app.citizen import RateLimiter, citizen_view, code_matches
 from app.env_file import env_value
 from app.citizen import citizen_secret as default_citizen_secret
 from app.confidence import needs_review_for_confidence
+from app.resolutions import open_resolution_flags
 from app.extraction import EXTRACTION_UNAVAILABLE_MESSAGE, ProviderError
 from app.case_store import load_case
 from app.models import AuditLog, Case, CompensationItemRow, Document, ExtractedField, RuleResultRow
@@ -114,6 +115,8 @@ class DecisionIn(BaseModel):
     decision: str
     comment: str = ""
     confirmed_fields: dict[str, Any] = {}   # approve: each amount-driving field at the value the officer checked
+    # approve: for each open flag that needs one, {flag id: {"reference": "...", "date": "YYYY-MM-DD"}}
+    resolutions: dict[str, dict[str, Any]] = {}
 
 
 class _NoLLM:
@@ -194,9 +197,15 @@ def _detail(session: Session, case: Case) -> dict[str, Any]:
     scheme = load_scheme_by_name(case.scheme)
     rules = session.query(RuleResultRow).filter_by(case_id=case.id).all()
     items = session.query(CompensationItemRow).filter_by(case_id=case.id).all()
+    open_flags = open_resolution_flags(session, case.id, scheme)
+    labels = dict(scheme.labels)
+    for check in open_flags:            # e.g. a tenant entry: the total is the holding's, not the owner's share
+        if check.total_label:
+            labels["total"] = check.total_label
     return mask_identifiers({
         **_case_summary(case), "reference_date": case.reference_date.isoformat() if case.reference_date else None,
-        "inputs": json.loads(case.inputs_json), "rules_version": scheme.version, "labels": scheme.labels, "terms": scheme.terms,
+        "inputs": json.loads(case.inputs_json), "rules_version": scheme.version, "labels": labels, "terms": scheme.terms,
+        "resolutions_needed": [{"flag": c.id, "basis": c.basis} for c in open_flags],
         "documents": _documents(session, case.id, scheme.confidence_threshold),
         "flags": [{"kind": f.kind, "detail": f.detail, "severity": f.severity}
                   for f in session.query(VerificationFlag).filter_by(case_id=case.id)],
@@ -433,7 +442,8 @@ def create_app(engine: Optional[Engine] = None, agent_llm_factory: Optional[Call
         _require(actor, "officer")
         return tools.record_officer_decision(session, case_id, role=actor.role, officer_id=actor.user,
                                              decision=body.decision, comment=body.comment,
-                                             confirmed=body.confirmed_fields).model_dump()
+                                             confirmed=body.confirmed_fields,
+                                             resolutions=body.resolutions).model_dump()
 
     def _known_scheme(name: str) -> None:
         if not tools.SCHEME_NAME.match(name) or not (RULES_DIR / f"{name}.yaml").is_file():

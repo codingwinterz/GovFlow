@@ -1,0 +1,31 @@
+{
+  "case_id": "LA-20",
+  "description": "Tenant and mundkar columns printed Nil and a dash: nothing recorded",
+  "verification": {
+    "name_match": "pass",
+    "survey_no_match": "pass",
+    "duplicate_claim": "pass",
+    "tenant_or_mundkar_claim": "pass"
+  },
+  "eligibility": {
+    "overall": "eligible",
+    "rules": {
+      "documents_complete": "pass",
+      "valid_ownership": "pass",
+      "land_identified": "pass",
+      "documents_not_expired": "pass",
+      "no_competing_claim": "pass"
+    }
+  },
+  "compensation": {
+    "status": "computed",
+    "items": {
+      "land_value": 2000000,
+      "assets_value": 20000,
+      "solatium": 2020000,
+      "interest": 240000
+    },
+    "total": 4280000
+  },
+  "needs_human_review": false
+}

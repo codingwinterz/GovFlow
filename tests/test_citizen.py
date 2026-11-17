@@ -20,7 +20,8 @@ from tests.asgi_client import call
 
 DATA = Path(__file__).resolve().parent.parent / "data" / "synthetic"
 SECRET = "test-secret"
-ALLOWED_KEYS = {"case_ref", "scheme", "status", "next_step", "missing", "decision", "amounts"}
+ALLOWED_KEYS = {"case_ref", "scheme", "status", "next_step", "missing", "notices", "decision", "amounts"}
+# notices: translation keys only (e.g. "rights_verification"), never flag detail
 
 
 class Clock:

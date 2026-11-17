@@ -264,7 +264,7 @@ def test_queue_shows_flag_count_and_filters_by_scheme(env):
     env("POST", "/cases/LA-07/run", headers=CLERK)
     _, queue = env("GET", "/cases?scheme=land_acquisition", headers=OFFICER)
     by_id = {c["case_id"]: c for c in queue}
-    assert len(queue) == 17 and by_id["LA-07"]["flags_count"] >= 1 and by_id["LA-03"]["flags_count"] == 0
+    assert len(queue) == 21 and by_id["LA-07"]["flags_count"] >= 1 and by_id["LA-03"]["flags_count"] == 0
     # the queue names each flag's kind and severity (so it can show the reason), never the detail text
     assert {"kind": "missing_document", "severity": "high"} in by_id["LA-07"]["flags"]
     assert len(by_id["LA-07"]["flags"]) == by_id["LA-07"]["flags_count"] and by_id["LA-03"]["flags"] == []
@@ -277,8 +277,8 @@ def test_analytics_counts_status_scheme_and_processing_time(env):
     env("POST", "/cases/LA-01/decision", _approval(env), OFFICER)
     status, a = env("GET", "/analytics", headers=OFFICER)
     assert status == 200
-    assert a["by_status"]["approved"] == 1 and a["by_status"]["received"] == 16
-    assert a["per_scheme"] == {"land_acquisition": 17}
+    assert a["by_status"]["approved"] == 1 and a["by_status"]["received"] == 20
+    assert a["per_scheme"] == {"land_acquisition": 21}
     assert a["decided_cases"] == 1 and a["average_processing_seconds"] >= 0
     assert a["average_processing_source"] == "case created_at to officer_decision audit entry"
 
@@ -293,7 +293,7 @@ def test_stuck_cases_use_last_audit_movement(env):
     env("POST", "/cases/LA-01/decision", _approval(env), OFFICER)
     stuck_now = env("GET", "/analytics?stuck_days=0", headers=OFFICER)[1]["stuck_cases"]
     assert "LA-01" not in {c["case_id"] for c in stuck_now}             # closed cases are never stuck
-    assert len(stuck_now) == 16 and all("last_movement" in c and "status" in c for c in stuck_now)
+    assert len(stuck_now) == 20 and all("last_movement" in c and "status" in c for c in stuck_now)
     assert env("GET", "/analytics?stuck_days=30", headers=OFFICER)[1]["stuck_cases"] == []
 
 

@@ -35,12 +35,21 @@ export function fieldSource(f, terms) {
   return parts.join(" · ");
 }
 
-export function validateDecision(decision, comment, confirmFields = [], checked = {}) {
+export function validateDecision(decision, comment, confirmFields = [], checked = {}, resolutionsNeeded = [], resolutions = {}) {
   if (!["approve", "reject", "send_back"].includes(decision)) return "Choose approve, reject or send back.";
   if (decision !== "approve" && !String(comment || "").trim()) return "A comment is required to reject or send back.";
   if (decision === "approve" && confirmFields.some((f) => !checked[f.ref]))
     return "Tick each value below once you have checked it against the document.";
+  if (decision === "approve" && resolutionsNeeded.some((r) => !String(resolutions[r.flag]?.reference || "").trim()
+      || !/^\d{4}-\d{2}-\d{2}$/.test(String(resolutions[r.flag]?.date || ""))))
+    return "Record the resolution (reference and date) for each open rights entry below.";
   return null;
+}
+
+// What approval sends for each open flag that needs a resolution (the server re-checks every one).
+export function resolutionsBody(resolutionsNeeded = [], resolutions = {}) {
+  return Object.fromEntries(resolutionsNeeded.map((r) => [r.flag, {
+    reference: String(resolutions[r.flag]?.reference || "").trim(), date: resolutions[r.flag]?.date || "" }]));
 }
 
 // What approval sends: each field that drives an amount, at the value the officer saw and ticked (the server re-checks).

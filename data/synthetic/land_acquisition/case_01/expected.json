@@ -4,7 +4,8 @@
   "verification": {
     "name_match": "pass",
     "survey_no_match": "pass",
-    "duplicate_claim": "pass"
+    "duplicate_claim": "pass",
+    "tenant_or_mundkar_claim": "pass"
   },
   "eligibility": {
     "overall": "eligible",

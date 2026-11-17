@@ -25,8 +25,8 @@ PAIRS = _load_all()
 ALL_CASES = [c for c, _ in PAIRS]
 
 
-def test_set_has_seventeen_cases():
-    assert len(PAIRS) == 17
+def test_set_has_twenty_one_cases():
+    assert len(PAIRS) == 21          # 17, plus LA-18..21 (tenant / mundkar entries, Nil and dash, whitespace)
 
 
 @pytest.mark.parametrize("case, expected", PAIRS, ids=[c.case_id for c, _ in PAIRS])

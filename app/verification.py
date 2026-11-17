@@ -199,6 +199,44 @@ def _duplicate_check(check: VerificationCheck, scheme: Scheme, case: CaseIn,
     return CheckResult(status="needs_review", detail=say["exceeds_total"].format(**values), **base)
 
 
+# --- built-in: recorded_entry -----------------------------------------------------
+
+def normalise_entry(value: object) -> str:
+    """Case, spaces and punctuation removed: "N.A." -> "na", " - " -> "", "Nil." -> "nil", "—" -> ""."""
+    text = unicodedata.normalize("NFKC", str(value)).casefold()
+    return "".join(c for c in text if not (c.isspace() or unicodedata.category(c)[0] in "PZ"))
+
+
+def entry_is_empty(value: object, empty_values: list[str]) -> bool:
+    key = normalise_entry(value)
+    return key == "" or key in {normalise_entry(v) for v in empty_values}
+
+
+def _recorded_entry_check(check: VerificationCheck, facts: CaseFacts) -> CheckResult:
+    """Entries that must be empty (e.g. tenant, mundkar). Something recorded -> needs_review, never fail: the
+    officer resolves it. An entry that could not be read reliably -> needs_review too. An entry the reader did
+    not return at all is not checked (it looks the same as a blank column)."""
+    base = {"check_id": check.id, "severity": check.severity, "sources": list(check.entries)}
+    say, found, unreadable = check.messages, [], []
+    for ref in check.entries:
+        doc_id, name = ref.split(".", 1)
+        doc = facts.names.get(doc_id, {"present": False})
+        if not doc["present"]:
+            continue                                    # a missing document is flagged on its own
+        if name in doc:
+            if not entry_is_empty(doc[name], check.empty_values):
+                found.append(say["entry"].format(ref=ref, value=doc[name]))
+        elif ref in facts.low_confidence:
+            unreadable.append(say["unreadable"].format(ref=ref, reason="at or below the confidence threshold"))
+        elif ref in facts.invalid or ref in facts.disagree:
+            why = facts.invalid.get(ref) or facts.disagree.get(ref)
+            unreadable.append(say["unreadable"].format(ref=ref, reason=why))
+    basis = f" Basis: {check.basis}" if check.basis else ""
+    if found or unreadable:
+        return CheckResult(status="needs_review", detail="; ".join(found + unreadable) + "." + basis, **base)
+    return CheckResult(status="pass", detail=say["none"], **base)
+
+
 # --- entry point ---------------------------------------------------------------
 
 def _flags(checks: list[CheckResult], facts: CaseFacts, case: CaseIn) -> list[Flag]:
@@ -228,6 +266,8 @@ def verify_documents(scheme: Scheme, case: CaseIn, other_cases: Optional[list[Ca
     for check in scheme.verification_checks:
         if check.builtin == "duplicate_claim":
             checks.append(_duplicate_check(check, scheme, case, facts, other_cases or []))
+        elif check.builtin == "recorded_entry":
+            checks.append(_recorded_entry_check(check, facts))
         else:
             checks.append(_field_check(check, facts, scheme.confidence_threshold))
     return VerificationResult(checks=checks, flags=_flags(checks, facts, case), rules_version=scheme.version)

@@ -49,6 +49,9 @@ def _confident_fields(req: RequiredDocument, doc: DocumentIn, threshold: float, 
         if fv.review_reason:                # e.g. two readers disagree: withheld whatever the confidence
             facts.disagree[ref] = fv.review_reason
             continue
+        if name in req.may_be_blank and (fv.value is None or not str(fv.value).strip()):
+            fields[name] = ""               # a blank column: nothing recorded (not an unreadable value)
+            continue
         if name not in req.types:           # not declared by the scheme: passed through unchanged
             fields[name] = fv.value
             continue

@@ -42,7 +42,7 @@ def test_before_matches_the_hand_derived_expected_outcomes(scheme):
     name = knobs(load_scheme_by_name(scheme))[0].name
     result = simulate(scheme, name, knobs(load_scheme_by_name(scheme))[0].value)   # no actual change
     expected = _expected(scheme)
-    assert len(expected) == {"land_acquisition": 17, "disaster_relief": 15}[scheme]   # never an empty loop
+    assert len(expected) == {"land_acquisition": 21, "disaster_relief": 15}[scheme]   # never an empty loop
     assert {c.case_id for c in result.cases} == set(expected)
     for case_id, exp in expected.items():
         row = _row(result, case_id)

@@ -50,6 +50,13 @@ None of these may be used for a real decision until checked against official sou
   (10 to 5,000,000 per survey number) and market value ₹100 to ₹1,00,000 per sq m.
 - **Notified area:** disaster relief relies on the damage assessment's own "notified area" certification;
   there is no list of notified villages per disaster event.
+- **Tenant / mundkar entries** (land): the rule cites the Goa, Daman and Diu Agricultural Tenancy Act, 1964 and
+  the Goa, Daman and Diu Mundkars (Protection from Eviction) Act, 1975 as its basis, but which Form I & XIV
+  column(s) hold the entries, and which resolution document applies in an acquisition, are unconfirmed (VERIFY).
+  The officer records the reference they relied on; no specific Mamlatdar order is assumed. An entry the reader
+  does not return at all is not checked (it cannot be told apart from a blank column); an entry read at or below
+  the threshold goes to review. The empty-value list (Nil, NA, none, a dash and Devanagari forms) may be
+  incomplete. The rule only flags and labels the total as the holding's: it does not compute any owner's share.
 
 ## Language
 - **Hindi, Marathi and Konkani translations were written without native-speaker review** and are marked

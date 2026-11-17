@@ -26,6 +26,8 @@ export function citizenLines(view, dict) {
     for (const m of view.missing)
       lines.push({ kind: "missing", text: t(dict, `missing.${m.reason}`, { document: t(dict, `documents.${m.document}`) }) });
   }
+  for (const notice of view.notices || [])                // a key only: no flag detail reaches the public page
+    lines.push({ kind: "notice", text: t(dict, `notice.${notice}`) });
   if (view.decision) {
     lines.push({ kind: "heading", text: t(dict, "decision.title") });
     lines.push({ kind: "decision", text: t(dict, `decision.${view.decision.decision}`) });

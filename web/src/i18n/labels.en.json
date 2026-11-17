@@ -85,6 +85,7 @@
     "extract_facts": "Document read",
     "get_case_status": "Status checked",
     "officer_decision": "Officer decision",
+    "flag_resolution": "Resolution recorded by officer",
     "rule_simulation": "Rule simulation",
     "submit_to_officer": "Sent to officer",
     "update_inputs": "Inputs updated",

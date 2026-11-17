@@ -64,7 +64,8 @@ def test_rejects_rule_with_neither_when_nor_depends_on():
 def test_documents_declare_fields_to_extract():
     scheme = parse_scheme(_base())
     docs = {d.id: d for d in scheme.required_documents}
-    assert docs["ownership_record"].fields == ["name", "survey_number", "area", "area_unit", "issue_date"]
+    assert docs["ownership_record"].fields == ["name", "survey_number", "area", "area_unit", "issue_date",
+                                               "tenant_entry", "other_rights_entry"]
 
 
 def test_rejects_check_on_field_not_declared_for_document():
