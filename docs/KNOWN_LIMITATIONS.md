@@ -61,8 +61,11 @@ None of these may be used for a real decision until checked against official sou
 ## Language
 - **Hindi, Marathi and Konkani translations were written without native-speaker review** and are marked
   "needs native-speaker review" in each file and on the page. They are not verified.
-- Only the citizen status page is translated. The officer dashboard, the self-check and the rule simulator
+- The citizen pages (home, self-check, tracking) are translated; the officer dashboard and the rule simulator
   are English only.
+- **Translated self-check questions: planned.** On Hindi, Marathi and Konkani pages the self-check's question
+  prompts and its guide label stay in English, because they come from the scheme YAML, which is English. The
+  English draft-translation note under the translated one is deliberate. Sahayak is English only (see below).
 - Officer comments (for example, the reason a case was sent back) are not shown to citizens, because they
   are free text in English and may contain internal notes.
 

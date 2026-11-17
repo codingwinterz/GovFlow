@@ -121,4 +121,6 @@ cd web && npm run dev                                   # terminal 2, open http:
 - **A citizen code is rejected:** use the codes printed by the seed (a different `GOVFLOW_CITIZEN_SECRET`
   changes them). **Tracking says it is unavailable (503):** the API started without the secret; seed once, then
   restart the API. After 10 tries the page rate-limits for 15 minutes, so restart the backend to reset it.
+- **A wrong tracking code shows a 404 in the browser console:** that is by design (the API answers an unknown
+  reference and a wrong code with the same 404, so neither can be guessed); the page shows the plain message.
 - **LA-09 already approved** (demo run twice): approve LA-02 instead (eligible, ₹64,60,000), or re-seed.

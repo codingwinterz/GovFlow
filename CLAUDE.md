@@ -101,12 +101,14 @@ Fuller detail is in `docs/KNOWN_LIMITATIONS.md`.
   The demo seed writes both secrets to `.env` on first run.
 - Web: landing page, citizen shell (home, self-check, track; en/hi/mr/kok; light theme by default) and officer shell
   (queue, case, intake, analytics with one shared scale, simulator, audit, award letter); plain loading / error /
-  empty states with Retry; 24 px touch targets; no sideways scroll at 390 px.
+  empty states with Retry; 24 px touch targets; no sideways scroll at 390 px. Case, audit and award pages mount
+  fresh per case id (never the previous case while loading); an approval must name the case it was confirmed for
+  (`confirmed_case`, else 409); visible keyboard focus on every control, including radios, checkboxes, text areas.
 - Demo database re-seeded 2026-11-16 after the backdating fix: Submitted and Days open agree for all 23 open cases.
 
 ### Tests (all green at commit time)
-- Python: 1049 passed (`pytest -q`, about 5 minutes; with little free memory, run in batches).
-- Frontend: 71 logic (`npm test`) + 28 browser (`npm run test:layout`); `npm run test:all` runs both. Build clean.
+- Python: 1062 passed (`pytest -q`, about 5 minutes; with little free memory, run in batches).
+- Frontend: 71 logic (`npm test`) + 32 browser (`npm run test:layout`); `npm run test:all` runs both. Build clean.
 
 ### Still marked VERIFY
 - Land acquisition (`rules/land_acquisition.yaml`): notification references (source); 60-day SLA; record-of-rights
