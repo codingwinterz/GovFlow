@@ -57,7 +57,7 @@ function Documents({ documents, terms }) {
                   <tr key={f.field} className={f.needs_review ? "flagged" : ""}>
                     <td>{termLabel(terms, `${d.doc_type}.${f.field}`)}</td>
                     <td>{maskIdentifiers(f.value)}{f.note && <div className="muted small">{f.note}</div>}</td>
-                    <td>{formatConfidence(f.confidence)}{f.needs_review && <span className="badge warn">{f.review_reason ? `${f.review_reason}: review` : "below threshold: review"}</span>}</td>
+                    <td>{formatConfidence(f.confidence)}{f.needs_review && <span className="badge warn">{f.review_reason ? `${f.review_reason}: review` : "at or below threshold: review"}</span>}</td>
                     <td className="small">{fieldSource(f, terms)}</td>
                   </tr>
                 ))}

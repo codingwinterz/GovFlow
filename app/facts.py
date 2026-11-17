@@ -11,6 +11,7 @@ from datetime import date
 from typing import Any, Literal, Optional
 
 from app.case_model import CaseIn, DocumentIn
+from app.confidence import needs_review_for_confidence
 from app.field_types import coerce
 from app.rules_loader import RequiredDocument, Scheme, Validity
 from app.units import to_sqm
@@ -42,7 +43,7 @@ def _confident_fields(req: RequiredDocument, doc: DocumentIn, threshold: float, 
     fields: dict[str, Any] = {}
     for name, fv in doc.fields.items():
         ref = f"{req.id}.{name}"
-        if fv.confidence < threshold:
+        if needs_review_for_confidence(fv.confidence, threshold):
             facts.low_confidence.append(ref)
             continue
         if fv.review_reason:                # e.g. two readers disagree: withheld whatever the confidence
@@ -65,7 +66,7 @@ def missing_reason(expr: str, facts: CaseFacts) -> Optional[str]:
         return ref in expr or any(ref in sources and derived in expr
                                   for derived, sources in facts.derived_from.items())
     reasons = [f"{ref}: {why}" for ref, why in facts.invalid.items() if used(ref)]
-    reasons += [f"{ref}: below the confidence threshold" for ref in facts.low_confidence if used(ref)]
+    reasons += [f"{ref}: at or below the confidence threshold" for ref in facts.low_confidence if used(ref)]
     reasons += [f"{ref}: {why}" for ref, why in facts.disagree.items() if used(ref)]
     return "; ".join(reasons) or None
 

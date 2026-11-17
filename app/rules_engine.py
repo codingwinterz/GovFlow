@@ -47,7 +47,7 @@ def _evaluate_when(when: str, facts: CaseFacts) -> tuple[Status, str]:
     try:
         value = bool(evaluate(when, facts.names))
     except UnknownName as exc:
-        reason = missing_reason(when, facts) or f"{exc.args[0]} unavailable or below confidence threshold"
+        reason = missing_reason(when, facts) or f"{exc.args[0]} unavailable or at or below the confidence threshold"
         return "needs_review", f"`{when}`: {reason}"
     except (TypeError, ValueError) as exc:   # e.g. an untyped officer input compared with a number
         return "needs_review", f"`{when}` could not be evaluated: {exc}"

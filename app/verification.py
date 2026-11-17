@@ -94,7 +94,7 @@ def _collect(check: VerificationCheck, facts: CaseFacts) -> tuple[dict[str, dict
             elif ref in facts.invalid:
                 problems.append(f"{ref}: {facts.invalid[ref]}")
             elif ref in facts.low_confidence:
-                problems.append(f"{ref} is below the confidence threshold")
+                problems.append(f"{ref} is at or below the confidence threshold")
             elif ref in facts.disagree:
                 problems.append(f"{ref}: {facts.disagree[ref]}")
             else:

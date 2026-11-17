@@ -105,7 +105,7 @@ def test_dr14_low_confidence_damage_withholds_relief_but_not_the_other_inputs():
     assert comp.status == "needs_review" and comp.items == [] and comp.total is None
     assert {i.name: i.value for i in comp.inputs} == {"house_type": "pucca", "area_type": "plain"}
     assert comp.missing == ["damage_percent", *COMPONENTS]
-    assert "damage_assessment.damage_percent: below the confidence threshold" in comp.review_notes[0]
+    assert "damage_assessment.damage_percent: at or below the confidence threshold" in comp.review_notes[0]
 
 
 def test_dr14_once_the_damage_reading_is_confirmed_gets_partial_pucca_relief():

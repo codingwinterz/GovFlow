@@ -126,11 +126,11 @@ def test_case_inputs_and_reference_date_are_available():
     assert facts.names["reference_date"] == date(2026, 11, 15)
 
 
-def test_confidence_exactly_at_the_threshold_is_accepted_and_just_below_is_withheld():
+def test_confidence_exactly_at_the_threshold_is_withheld_and_just_above_is_accepted():
     assert SCHEME.confidence_threshold == 0.85
     at = _case(ownership_record={"fields": {"name": {"value": "Asha Naik", "confidence": 0.85}}})
-    below = _case(ownership_record={"fields": {"name": {"value": "Asha Naik", "confidence": 0.8499}}})
-    assert build_facts(SCHEME, at).names["ownership_record"]["name"] == "Asha Naik"
-    assert "ownership_record.name" not in build_facts(SCHEME, at).low_confidence
-    facts = build_facts(SCHEME, below)
+    above = _case(ownership_record={"fields": {"name": {"value": "Asha Naik", "confidence": 0.8501}}})
+    facts = build_facts(SCHEME, at)
     assert "name" not in facts.names["ownership_record"] and "ownership_record.name" in facts.low_confidence
+    assert build_facts(SCHEME, above).names["ownership_record"]["name"] == "Asha Naik"
+    assert "ownership_record.name" not in build_facts(SCHEME, above).low_confidence

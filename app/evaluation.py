@@ -17,6 +17,7 @@ from pydantic import BaseModel
 
 from app.case_model import CaseIn
 from app.case_store import seed_case
+from app.confidence import needs_review_for_confidence
 from app.cross_check import canonical
 from app.extraction import ExtractionProvider, ExtractionResult, OcrEngine, ProviderField, values_match
 from app.models import Document, make_engine, make_session
@@ -134,7 +135,8 @@ def _rows(case: str, doc_type: str, truth: dict, result: ExtractionResult, thres
                              value=f.value if f else None, confidence=f.confidence if f else None,
                              method=f.method if f else None, answered=answered,
                              field_type=types.get(name, "text"),
-                             accepted=bool(f and f.confidence >= threshold and not f.review_reason),
+                             accepted=bool(f and not needs_review_for_confidence(f.confidence, threshold)
+                                           and not f.review_reason),
                              correct=bool(f and field_matches(name, f.value, true_value, types.get(name))),
                              review_reason=f.review_reason if f else None))
     return rows

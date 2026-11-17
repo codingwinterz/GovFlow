@@ -33,6 +33,7 @@ from app.upload_check import content_problem
 from app.citizen import RateLimiter, citizen_view, code_matches
 from app.env_file import env_value
 from app.citizen import citizen_secret as default_citizen_secret
+from app.confidence import needs_review_for_confidence
 from app.extraction import EXTRACTION_UNAVAILABLE_MESSAGE, ProviderError
 from app.case_store import load_case
 from app.models import AuditLog, Case, CompensationItemRow, Document, ExtractedField, RuleResultRow
@@ -170,7 +171,7 @@ def _documents(session: Session, case_id: str, threshold: float) -> list[dict[st
         fields = [{"document_id": d.id, "document_type": d.doc_type, "field": f.field, "value": json.loads(f.value),
                    "confidence": f.confidence, "source_page": f.source_page, "method": f.method, "note": f.note,
                    "review_reason": f.review_reason,
-                   "needs_review": f.confidence < threshold or bool(f.review_reason)}
+                   "needs_review": needs_review_for_confidence(f.confidence, threshold) or bool(f.review_reason)}
                   for f in session.query(ExtractedField).filter_by(document_id=d.id)]
         unavailable = d.extraction_status == "extraction_unavailable"
         out.append({"id": d.id, "doc_type": d.doc_type, "current": latest[d.doc_type] == d.id,

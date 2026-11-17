@@ -2,7 +2,7 @@
 
 Extraction only reads; it never decides anything. Fields the scheme did not ask
 for are dropped, missing fields are reported (never invented), and anything
-below the confidence threshold stays flagged so the case routes to human review.
+at or below the confidence threshold stays flagged so the case routes to human review.
 """
 
 import re
@@ -10,6 +10,7 @@ from typing import Any, Literal, Optional, Protocol
 
 from pydantic import BaseModel
 
+from app.confidence import needs_review_for_confidence
 from app.cross_check import READERS_DISAGREE, readers_disagree
 
 Mode = Literal["document", "ocr_text"]
@@ -150,7 +151,7 @@ def _ocr_pass(document: DocumentInput, fields: list[str], provider: ExtractionPr
 
 def _merge(name: str, primary: Optional[ProviderField], secondary: Optional[ProviderField],
            threshold: float) -> Optional[ExtractedFieldOut]:
-    if secondary is not None and secondary.confidence >= threshold:
+    if secondary is not None and not needs_review_for_confidence(secondary.confidence, threshold):
         if primary is None:
             return _from(secondary, "ocr_fallback")
         if values_match(primary.value, secondary.value):
@@ -192,7 +193,8 @@ def extract_facts(document: DocumentInput, fields: list[str], threshold: float,
                                 fields=fields, pages=document.pages, mode="document")
     try:
         primary = _clean(provider.extract(request), fields)
-        weak = [f for f in fields if f not in primary or primary[f].confidence < threshold]
+        weak = [f for f in fields if f not in primary
+                or needs_review_for_confidence(primary[f].confidence, threshold)]
         secondary = _ocr_pass(document, weak, provider, ocr) if (weak and ocr) else {}
     except ProviderError as exc:
         # Nothing was read: not low confidence, not missing. The document can be retried.
@@ -204,7 +206,7 @@ def extract_facts(document: DocumentInput, fields: list[str], threshold: float,
     checked, disagree = _cross_check(request, out, cross_check, types or {}) if cross_check else (None, [])
     return ExtractionResult(
         fields=out,
-        low_confidence=[f.name for f in out if f.confidence < threshold],
+        low_confidence=[f.name for f in out if needs_review_for_confidence(f.confidence, threshold)],
         missing=[f for f in fields if f not in {o.name for o in out}],
         used_fallback=bool(weak and ocr),
         disagree=disagree,
