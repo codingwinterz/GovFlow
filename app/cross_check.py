@@ -6,10 +6,12 @@ confidence cannot vouch for itself; a disagreement between two different readers
 
 Normalisation, by the field's declared type: text ignores case and spacing; numbers ignore digit grouping
 (1,20,000 = 120000); dates accept ISO and day-first forms (01/10/2026 = 2026-10-01); units compare by their
-conversion factor, so synonyms agree (sq. m. = sqm). A field the second reader did not return is not checked.
+conversion factor, so synonyms agree (sq. m. = sqm). Punctuation at either end of a reading is ignored when
+comparing (Tesseract adds stray ":", ".", "?"). A field the second reader did not return is not checked.
 """
 
 import re
+import unicodedata
 from datetime import date
 from typing import Any
 
@@ -48,5 +50,23 @@ def canonical(field_type: str, value: Any) -> str:
     return _text(value)
 
 
+def _is_edge_punctuation(c: str) -> bool:
+    return c.isspace() or unicodedata.category(c).startswith("P")
+
+
+def _trim_punctuation(value: Any) -> Any:
+    """Drop punctuation and spaces at both ends ("Suresh Gawas." / ": H-9" / "? Hut"); keep what is inside.
+    A sign or decimal point right before a digit ("-5", ".5") is part of the value and stays."""
+    if not isinstance(value, str):
+        return value
+    text = value
+    while text and _is_edge_punctuation(text[-1]):
+        text = text[:-1]
+    while text and _is_edge_punctuation(text[0]) and not (text[0] in "-." and text[1:2].isdigit()):
+        text = text[1:]
+    return text
+
+
 def readers_disagree(field_type: str, first: Any, second: Any) -> bool:
-    return canonical(field_type, first) != canonical(field_type, second)
+    """Compared after trimming edge punctuation. canonical() itself is untouched: the evaluation scores with it."""
+    return canonical(field_type, _trim_punctuation(first)) != canonical(field_type, _trim_punctuation(second))
