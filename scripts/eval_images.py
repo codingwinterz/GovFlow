@@ -109,6 +109,7 @@ def main() -> None:
     say(f"Gemini model: {os.environ.get('GEMINI_MODEL') or 'default'}; "
         f"pace {os.environ.get('GEMINI_PACE_SECONDS') or 'default'} s")
     saved, summaries = {}, []
+    out = RESULTS_DIR / f"images_{datetime.now(timezone.utc):%Y%m%dT%H%M%SZ}.json"
     for system, skip in plan_systems(tesseract_available(), bool(os.environ.get("GEMINI_API_KEY"))):
         if skip:
             summaries.append([f"{system}: SKIPPED: {skip}"])
@@ -123,15 +124,18 @@ def main() -> None:
             for line in summaries[-1]:
                 say(line)
             saved[f"{system}/{scheme}/{variant}"] = report.model_dump(mode="json")
+            save_results(out, saved)   # after every block, so an interrupted run keeps what it finished
     say("\n=== summary ===")
     for block in summaries:
         for line in block:
             say(line)
     if saved:
-        RESULTS_DIR.mkdir(exist_ok=True)
-        out = RESULTS_DIR / f"images_{datetime.now(timezone.utc):%Y%m%dT%H%M%SZ}.json"
-        out.write_text(json.dumps(redact_secrets(saved), indent=2), encoding="utf-8")
         say(f"\nFull rows written to {out} (gitignored)")
+
+
+def save_results(out: Path, saved: dict) -> None:
+    out.parent.mkdir(exist_ok=True)
+    out.write_text(json.dumps(redact_secrets(saved), indent=2), encoding="utf-8")
 
 
 if __name__ == "__main__":
