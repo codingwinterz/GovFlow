@@ -44,7 +44,7 @@ docs/           architecture diagram, demo script
 - Never change expected outcomes in `data/synthetic/` to make a test pass. Fix the code or ask.
 - If a rule or legal formula is uncertain, mark it `# VERIFY: <what>` and tell the user instead of guessing.
 
-## Current state (2026-11-16)
+## Current state (2026-11-17)
 Keep this section current: update it in the same commit as any change to what is built, the test counts or a VERIFY item.
 Fuller detail is in `docs/KNOWN_LIMITATIONS.md`.
 
@@ -53,6 +53,12 @@ Fuller detail is in `docs/KNOWN_LIMITATIONS.md`.
   expected outcomes. LA-17 and DR-15 carry prompt-injection text at confidence 1.0 and must end in review.
 - Tools: rules engine, compensation, extraction (Gemini vision, Tesseract fallback), verification, SLA, analytics,
   self-check, rule simulator (read-only what-if over the synthetic set). Agent loop with a deterministic fallback.
+- Cross-check: when Tesseract is installed it reads each document again; a field the two readers read differently
+  after normalisation goes to review as "readers disagree", whatever the confidence (skipped if Tesseract finds
+  nothing for the field).
+- Default model `gemini-3.5-flash-lite` (`GEMINI_MODEL` overrides).
+- Synthetic document images for both schemes (land 7, relief 7), each clean, degraded and hard (stamp, one
+  handwriting-style field, phone-photo look), all labelled SYNTHETIC. LA-11's image prints its damaged scan text.
 - Injection defences: prompts call document text and tool results untrusted data; per-field `plausible` ranges in
   the YAML; approval needs the officer's confirmation of every amount-driving field (derived from the YAML) at its
   current value, whatever the confidence; explanations saying approved / rejected / sanctioned are flagged.
@@ -69,7 +75,7 @@ Fuller detail is in `docs/KNOWN_LIMITATIONS.md`.
 - Demo database re-seeded 2026-11-16 after the backdating fix: Submitted and Days open agree for all 23 open cases.
 
 ### Tests (all green at commit time)
-- Python: 798 passed (`pytest -q`, about 4 minutes).
+- Python: 845 passed (`pytest -q`, about 3 minutes).
 - Frontend: 65 logic (`npm test`) + 25 browser (`npm run test:layout`); `npm run test:all` runs both. Build clean.
 
 ### Still marked VERIFY
@@ -89,14 +95,15 @@ Fuller detail is in `docs/KNOWN_LIMITATIONS.md`.
   (survey number); `market_value_per_sqm` Rs 100 to 1,00,000.
 
 ### Open items
-- Live evaluation (`docs/EVAL_RESULTS.md`, 16 Nov 2026) ran on `gemini-3.5-flash-lite` only: the default
-  `gemini-3.8-flash` gave 503 then timeouts, `gemini-3.7-flash` timed out, `gemini-2.5-flash` is 404 for new users.
-  `gemini-3.5-flash-lite` is now the code default (`GEMINI_MODEL` still overrides).
-- Extraction measured on 7 synthetic land documents (27 fields): Gemini 27/27 clean and degraded, 0 accepted wrong;
-  Tesseract alone 10/27 degraded. No relief images, no stamps / handwriting / phone photos, no real documents.
-- Model confidence was 0.99 on every field, so the 0.85 threshold never routed anything: needs harder documents.
-- LA-11's expected flags describe a corrupted scan text, but its image prints clean text: flag recall 0.667 is a
-  labelling mismatch. Decide whether to render LA-11 from the corrupted text or relabel it.
+- Live evaluation (`docs/EVAL_RESULTS.md`, 17 Nov 2026, synthetic only) on `gemini-3.5-flash-lite` only (other
+  models were unreachable on 16 Nov). Gemini: relief 35/35 clean, degraded and hard; land 24/27, 25/27, 21/27 with
+  3, 2, 2 wrong values passing the confidence gate. 0 provider errors.
+- Ambiguous dates: the extraction prompt does not say dates are day-first; "01/10/2026" was read as 10 Jan at
+  confidence 1.0 once (false `document_expired` on LA-09). Fix the prompt or parse dates in code.
+- Cross-check over-flags: 34 of its 35 firings were on correct readings, 1 catch (also caught by `invalid_value`).
+  Strip leading/trailing punctuation (11 of the 34) and decide whether to keep it on for hard documents.
+- LA-11: the damaged name "L?ta Sh1rodkar" passes at confidence 0.85 (the test is `< 0.85`) and passes
+  `name_match` at 0.917 (non-letters dropped). Decide on the threshold boundary and name normalisation.
 - Hindi, Marathi and Konkani text needs native-speaker review.
 - Goa rural multiplier: notified value unknown (default 1.0 above).
 - Current relief schedule for Goa: amounts follow the 2022-26 norms, labelled "to be confirmed".
