@@ -127,6 +127,7 @@ button.link { background: none; border: none; color: var(--accent); padding: 2px
 .axis-track > span:last-child { transform: translateX(-100%); }
 .decision-row td { font-weight: 600; }
 .citizen-view .line { margin: 6px 0; }
+.citizen-view .line.status { width: fit-content; max-width: 100%; }   /* the pill sizes to its text */
 .citizen-view .source { font-size: 0.85rem; color: var(--muted); margin-top: -2px; }
 .citizen-view .total { font-weight: 700; }
 .letter { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 24px; margin: 16px 0; }

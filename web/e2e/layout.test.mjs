@@ -398,3 +398,25 @@ test("the queue counts cases waiting for the citizen, links to them, and marks t
   assert.equal(await page.locator("select").first().inputValue(), "needs_info");
   await close();
 });
+
+// --- the tracking status pill sizes to its text (round G) -------------------------------------------------------------
+
+test("the tracking page's status pill is as wide as its text, not the page", async () => {
+  const view = { case_ref: "LA-01", scheme: "land_acquisition", status: "approved", next_step: "approved", missing: [],
+    notices: [], documents_needed: null, decision: { decision: "approve", date: "2026-11-17" }, amounts: null };
+  const { page, close } = await open("#/citizen/track", () => ({ json: view }), { width: 1280 });
+  await page.locator("main input").nth(0).fill("LA-01");
+  await page.locator("main input").nth(1).fill("123456");
+  await page.locator("main form button").click();
+  const pill = page.locator(".citizen-view .line.status");
+  await pill.waitFor();
+  const { pillW, textW, viewW } = await pill.evaluate((el) => {
+    const r = document.createRange(); r.selectNodeContents(el);
+    return { pillW: el.getBoundingClientRect().width, textW: r.getBoundingClientRect().width,
+      viewW: el.parentElement.getBoundingClientRect().width };
+  });
+  assert.ok(pillW <= textW + 40, `pill ${pillW}px for ${textW}px of text`);
+  assert.ok(pillW < viewW / 2, `pill ${pillW}px stretches across ${viewW}px`);
+  assert.match(await page.locator(".citizen-view").innerText(), /17 Nov 2026/);   // round E, in the browser
+  await close();
+});
