@@ -115,7 +115,8 @@ def test_intake_queue_case_page_analytics_and_audit(env):
     assert {"check_eligibility", "compute_compensation", "submit_to_officer"} <= actions
     confirmed = {f["ref"]: f["value"] for f in detail["confirm_fields"]}
     assert set(confirmed) and api("POST", f"/cases/{first}/decision", {"decision": "approve"})[0] == 409   # must confirm
-    approved = api("POST", f"/cases/{first}/decision", {"decision": "approve", "confirmed_fields": confirmed})
+    approved = api("POST", f"/cases/{first}/decision", {"decision": "approve", "confirmed_fields": confirmed,
+                                                        "confirmed_case": first})
     assert approved[1]["status"] == "approved"
 
 

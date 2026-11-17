@@ -55,7 +55,8 @@ def env(tmp_path):
 def _approval(env, case_id="LA-01"):
     """What the officer screen sends: approve, with each amount-driving value as shown on the case page."""
     detail = env("GET", f"/cases/{case_id}", headers=OFFICER)[1]
-    return {"decision": "approve", "confirmed_fields": {f["ref"]: f["value"] for f in detail["confirm_fields"]}}
+    return {"decision": "approve", "confirmed_fields": {f["ref"]: f["value"] for f in detail["confirm_fields"]},
+            "confirmed_case": case_id}
 
 
 def _upload(env, case_id="LA-01", doc_type="identity_proof", text="Name: Asha Naik", filename="id.txt"):
@@ -107,6 +108,21 @@ def test_only_officer_can_decide(env, headers):
 def test_decision_in_wrong_state_is_409(env):
     status, body = env("POST", "/cases/LA-01/decision", _approval(env), OFFICER)
     assert status == 409 and "in_officer_review" in body["detail"]
+
+
+def test_a_confirmation_for_case_a_is_rejected_on_case_b(env):
+    """The case is the one in the path; the approval's confirmation must have been made for that same case."""
+    for case_id in ("LA-01", "LA-02"):
+        env("POST", f"/cases/{case_id}/run", headers=CLERK)
+    for_a = _approval(env, "LA-01")                              # ticked while LA-01 was on screen
+    status, body = env("POST", "/cases/LA-02/decision", for_a, OFFICER)
+    assert status == 409 and "not made for case LA-02" in body["detail"]
+    b_values_named_a = {**_approval(env, "LA-02"), "confirmed_case": "LA-01"}   # right values, wrong case
+    assert env("POST", "/cases/LA-02/decision", b_values_named_a, OFFICER)[0] == 409
+    unnamed = {k: v for k, v in _approval(env, "LA-02").items() if k != "confirmed_case"}
+    assert env("POST", "/cases/LA-02/decision", unnamed, OFFICER)[0] == 409
+    assert env("GET", "/cases/LA-02/status", headers=OFFICER)[1]["status"] == "in_officer_review"
+    assert env("POST", "/cases/LA-02/decision", _approval(env, "LA-02"), OFFICER)[1]["status"] == "approved"
 
 
 def test_reject_without_comment_is_409(env):

@@ -18,9 +18,10 @@ const CASE_PAGES = ["case", "audit", "award"];   // reached from the queue, so t
 function Page({ route, login }) {
   switch (route.page) {
     case "queue": return <Queue />;
-    case "case": return <CasePage id={route.id} login={login} />;
-    case "audit": return <Audit id={route.id} />;
-    case "award": return <Award id={route.id} />;
+    // key = the case id: a new case mounts a fresh page (loading state), so nothing of the previous case is shown
+    case "case": return <CasePage key={route.id} id={route.id} login={login} />;
+    case "audit": return <Audit key={route.id} id={route.id} />;
+    case "award": return <Award key={route.id} id={route.id} />;
     case "analytics": return <Analytics />;
     case "intake": return <Intake />;
     case "simulator": return <Simulator />;

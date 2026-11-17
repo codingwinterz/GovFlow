@@ -174,10 +174,11 @@ def test_the_decision_api_refuses_approval_without_the_resolution(engine, tmp_pa
     with Session(engine) as s:
         confirmed = amount_field_values(s, "LA-18")
     status, body = call(app, "POST", "/cases/LA-18/decision", headers=staff("officer", "O-1"),
-                        body={"decision": "approve", "confirmed_fields": confirmed})
+                        body={"decision": "approve", "confirmed_fields": confirmed, "confirmed_case": "LA-18"})
     assert status == 409 and "resolution" in body["detail"]
     status, _ = call(app, "POST", "/cases/LA-18/decision", headers=staff("officer", "O-1"),
-                     body={"decision": "approve", "confirmed_fields": confirmed, "resolutions": GOOD})
+                     body={"decision": "approve", "confirmed_fields": confirmed, "resolutions": GOOD,
+                           "confirmed_case": "LA-18"})
     assert status == 200
 
 

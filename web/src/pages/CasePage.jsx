@@ -149,7 +149,8 @@ function DecisionPanel({ caseId, confirmFields = [], resolutionsNeeded = [], ter
     if (problem) return setError(problem);
     const approving = decision === "approve";
     const body = { decision, comment, confirmed_fields: approving ? confirmedFields(confirmFields, checked) : {},
-      resolutions: approving ? resolutionsBody(resolutionsNeeded, resolutions) : {} };
+      resolutions: approving ? resolutionsBody(resolutionsNeeded, resolutions) : {},
+      confirmed_case: approving ? caseId : null };      // the server refuses a confirmation made for another case
     try {
       await api("POST", `/cases/${encodeURIComponent(caseId)}/decision`, body);
       setError("");

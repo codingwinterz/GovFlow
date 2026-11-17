@@ -328,3 +328,24 @@ test("Sahayak errors offer Retry, for the question and for the suggestions", asy
   await page.locator(".drawer [role=status]").getByText("The self-check asks whether").waitFor();
   await close();
 });
+
+// --- moving from one case to another never shows the previous case (bug-fix round A) --------------------------------
+
+test("opening another case shows a loading state, never the previous case's heading, flags or decision panel", async () => {
+  const flagged = { ...CASE, flags: [{ kind: "name_match", severity: "high", detail: "Lowest similarity 0.5" }] };
+  const { page, close } = await open("#/officer/cases/LA-01", (url) => {
+    const path = new URL(url).pathname;
+    if (path.endsWith("/cases/LA-01")) return { json: flagged };
+    if (path.endsWith("/cases/LA-02")) return "hang";                       // the next case is slow to arrive
+    return { json: [] };
+  }, { login: OFFICER_LOGIN });
+  await page.locator(".case-head h1", { hasText: "LA-01" }).waitFor();
+  await page.locator("section.decision").waitFor();
+  await page.evaluate(() => { location.hash = "#/officer/cases/LA-02"; });
+  await page.locator("main [role=status]", { hasText: "Loading" }).waitFor();
+  assert.equal(await page.locator(".case-head").count(), 0, "the previous case's heading is still shown");
+  assert.equal(await page.locator("ul.flags").count(), 0, "the previous case's flags are still shown");
+  assert.equal(await page.locator("section.decision").count(), 0, "the previous case's decision panel is still shown");
+  assert.equal(await page.getByText("LA-01").count(), 0);
+  await close();
+});

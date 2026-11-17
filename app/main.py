@@ -126,6 +126,8 @@ class DecisionIn(BaseModel):
     decision: str
     comment: str = ""
     confirmed_fields: dict[str, Any] = {}   # approve: each amount-driving field at the value the officer checked
+    # approve: the case the officer was looking at when ticking those values; must equal the case in the path
+    confirmed_case: Optional[str] = Field(None, max_length=64)
     # approve: for each open flag that needs one, {flag id: {"reference": "...", "date": "YYYY-MM-DD"}}
     resolutions: dict[str, dict[str, Any]] = {}
 
@@ -498,6 +500,11 @@ def create_app(engine: Optional[Engine] = None, agent_llm_factory: Optional[Call
     def decide(case_id: str, body: DecisionIn, actor: Actor = Depends(actor_dep),
                session: Session = Depends(session_dep)) -> dict[str, Any]:
         _require(actor, "officer")
+        # The case is always the one in the path. An approval's confirmation must name that same case: values ticked
+        # while another case was on screen never approve this one, even if the numbers happen to match.
+        if body.decision == "approve" and body.confirmed_case != case_id:
+            raise HTTPException(409, f"This confirmation was not made for case {case_id}; open the case and confirm "
+                                     "its values again")
         return tools.record_officer_decision(session, case_id, role=actor.role, officer_id=actor.user,
                                              decision=body.decision, comment=body.comment,
                                              confirmed=body.confirmed_fields,
