@@ -1,16 +1,95 @@
 # GovFlow: real-provider evaluation
 
-**Date:** 17 November 2026 (extraction); the live-agent section is from 16 November and was not re-run.
+**Two runs, 17 November 2026.** Run 1 (`images_20261117T023414Z.json`) measured the system; four fixes followed
+(day-first dates, cross-check punctuation, review at or below 0.85, names with symbols fail the match); run 2
+(`images_20261117T035519Z.json`) measured it again on the same images. Run 2 is reported first, with before/after;
+the run 1 sections below are the "before" detail. The live-agent section is from 16 November and was not re-run.
 **Model:** `gemini-3.5-flash-lite`, the code default since 16 November (`GEMINI_MODEL` unset). Client settings
 unchanged: 30 s timeout, 4 retries with backoff, 4 s pacing. **Preflight** (one request, no retry, a 1x1 red image)
-passed in 2.9 s ("Red") before the run. The run finished: 18 blocks (3 systems x 2 schemes x 3 image sets),
+passed before each run (2.9 s, 2.0 s). Each run finished: 18 blocks (3 systems x 2 schemes x 3 image sets),
 84 document reads by Gemini, **0 provider errors**, every document answered.
+
+## Run 2: after the fix round
+
+Before → after, run 1 → run 2. "Review right/unneeded" = wrong readings withheld / correct readings withheld.
+Gemini is called afresh in run 2, so a change can be the fix or run-to-run variation; the notes say which.
+
+### Land acquisition (27 fields per image set)
+
+| System | Images | Correct | Accepted wrong | Review right/unneeded | Cross-check fired (on correct/on wrong) | Case flags P / R |
+|---|---|---|---|---|---|---|
+| Gemini | clean | 24/27 → 25/27 | 3 → 1 | 0/0 → 1/0 | n/a | 0.667 / 0.667 → 0.857 / 1.000 |
+| Gemini | degraded | 25/27 → 25/27 | 2 → 0 | 0/0 → 2/0 | n/a | 0.800 / 0.667 → 1.000 / 1.000 |
+| Gemini | hard | 21/27 → 21/27 | 2 → 2 | 4/0 → 4/0 | n/a | 0.750 / 1.000 → 0.750 / 1.000 |
+| Gemini + Tesseract | clean | 25/27 → 25/27 | 2 → 0 | 0/0 → 2/0 | 0 → 0 | 0.800 / 0.667 → 1.000 / 1.000 |
+| Gemini + Tesseract | degraded | 25/27 → 25/27 | 2 → 0 | 0/3 → 2/0 | 3 (3/0) → 0 (0/0) | 0.364 / 0.667 → 1.000 / 1.000 |
+| Gemini + Tesseract | hard | 24/27 → 22/27 | 1 → 1 | 2/11 → 4/9 | 11 (10/1) → 10 (8/2) | 0.227 / 0.833 → 0.261 / 1.000 |
+| Tesseract only | clean | 24/27 → 24/27 | 0 → 0 | 3/0 → 3/0 | n/a | 1.000 / 0.833 → 1.000 / 0.833 |
+| Tesseract only | degraded | 10/27 → 10/27 | 0 → 0 | 17/2 → 17/6 | n/a | 0.294 / 0.833 → 0.273 / 1.000 |
+| Tesseract only | hard | 6/27 → 6/27 | 0 → 0 | 21/3 → 21/3 | n/a | 0.208 / 0.833 → 0.208 / 0.833 |
+
+Land, run 2, by field type (correct/n · accepted wrong · review right/unneeded · cross-check fired):
+
+| System | Images | date (n=6) | number (n=5) | text (n=11) | unit (n=5) |
+|---|---|---|---|---|---|
+| Gemini | clean | 6/6 · 0 · 0/0 · 0 | 4/5 · 1 · 0/0 · 0 | 10/11 · 0 · 1/0 · 0 | 5/5 · 0 · 0/0 · 0 |
+| Gemini | degraded | 6/6 · 0 · 0/0 · 0 | 4/5 · 0 · 1/0 · 0 | 10/11 · 0 · 1/0 · 0 | 5/5 · 0 · 0/0 · 0 |
+| Gemini | hard | 6/6 · 0 · 0/0 · 0 | 4/5 · 0 · 1/0 · 0 | 9/11 · 1 · 1/0 · 0 | 2/5 · 1 · 2/0 · 0 |
+| Gemini + Tesseract | clean | 6/6 · 0 · 0/0 · 0 | 4/5 · 0 · 1/0 · 0 | 10/11 · 0 · 1/0 · 0 | 5/5 · 0 · 0/0 · 0 |
+| Gemini + Tesseract | degraded | 6/6 · 0 · 0/0 · 0 | 4/5 · 0 · 1/0 · 0 | 10/11 · 0 · 1/0 · 0 | 5/5 · 0 · 0/0 · 0 |
+| Gemini + Tesseract | hard | 6/6 · 0 · 0/0 · 0 | 4/5 · 0 · 1/2 · 2 | 9/11 · 1 · 1/6 · 7 | 3/5 · 0 · 2/1 · 1 |
+| Tesseract only | clean | 6/6 · 0 · 0/0 · 0 | 4/5 · 0 · 1/0 · 0 | 10/11 · 0 · 1/0 · 0 | 4/5 · 0 · 1/0 · 0 |
+| Tesseract only | degraded | 5/6 · 0 · 1/4 · 0 | 1/5 · 0 · 4/1 · 0 | 3/11 · 0 · 8/0 · 0 | 1/5 · 0 · 4/1 · 0 |
+| Tesseract only | hard | 4/6 · 0 · 2/1 · 0 | 0/5 · 0 · 5/0 · 0 | 2/11 · 0 · 9/2 · 0 | 0/5 · 0 · 5/0 · 0 |
+
+### Disaster relief (35 fields per image set)
+
+Gemini and Tesseract-only: identical to run 1 (Gemini 35/35 on every set, 0 accepted wrong; Tesseract-only
+35/35, 18/35, 16/35 with 2, 2 wrong values accepted on degraded and hard). Gemini + Tesseract: 35/35 on every set;
+cross-check fired 6 → 2 (degraded) and 15 → 11 (hard), all on correct readings; case flag precision 0.231 → 0.500
+(degraded) and 0.200 → 0.250 (hard), recall 1.000.
+
+### What each fix did
+
+- **Day-first dates.** Every Gemini read in run 2 copied the dates as printed ("01/10/2026", "31/03/2031") and the
+  code parsed them: **36 of 36 land date readings correct across the six Gemini reads, no swap**, and LA-09 no
+  longer raises a false `document_expired`. (Run 1 had one month-first swap in six reads of LA-09's date. With n this small, "no swap in run 2" shows
+  the mechanism works, not a rate.)
+- **Cross-check punctuation.** Firings 35 → 23 across all sets; on correct readings 34 → 21. Rescoring run 1's own
+  readings offline with the new comparison gives 35 → 24: the 11 punctuation-only firings are gone and the one real
+  catch stays. In run 2 it caught 2 wrong readings (LA-09 survey "301/17", LA-13 unit "H"); both were also caught by
+  `survey_no_match` / `invalid_value`.
+- **Review at or below 0.85.** Removed LA-11's damaged name at 0.85 from "accepted wrong" in clean and degraded.
+  **Cost: Tesseract reports exactly 0.85 for four correct land dates on degraded images (LA-09, 11, 12, 13), which
+  are now withheld** (Tesseract-only degraded: unneeded reviews 2 → 6, and those cases raise `validity_unknown`).
+  In the combined system those fields come from Gemini, so it does not affect the system as deployed.
+- **Names with symbols fail.** LA-11's `name_match` is now raised in every Gemini system and image set (land flag
+  recall 1.000 everywhere for Gemini and Gemini + Tesseract). In Gemini + Tesseract / hard the damaged name was read at
+  0.90 (above the threshold) and accepted; the name match still failed, so the case is flagged.
+
+### Remaining failures (run 2, every wrong value that passed the confidence gate)
+
+| System / images | Field | Read | Truth | Confidence | Stopped later? |
+|---|---|---|---|---|---|
+| Gemini / clean | LA-11 area | 9?0 | 900 | 0.90 | Yes: `invalid_value` |
+| Gemini / hard | LA-09 survey number | 301/17 | 301/7 | 0.95 | Yes: `survey_no_match` |
+| Gemini / hard | LA-13 area unit | H | ha | 0.95 | Yes: `invalid_value` |
+| Gemini + Tesseract / hard | LA-11 name | L?ta Sh1rodkar | Lata Shirodkar | 0.90 | Yes: `name_match` fails (new) |
+| Tesseract only / degraded | DR-03 village; DR-07 house number | "Aldona’"; ": H-9" | Aldona; H-9 | 0.93; 0.85 | Not traced (baseline only) |
+| Tesseract only / hard | DR-01 village; DR-06 house type | "Siolim,"; "? Hut" | Siolim; hut | 0.91; 0.86 | Not traced; DR-06 raised `invalid_value` |
+
+The DR-07 house number ": H-9" is at 0.8533, just above the threshold. Every remaining Gemini wrong value is caught
+by a deterministic check after extraction, but each was read at 0.90 to 0.95: model confidence still does not
+separate right from wrong. Case-flag precision on hard images stays low (0.25 to 0.26 for Gemini + Tesseract):
+on these images the cross-check still sends 8 correct land fields and 11 correct relief fields to review.
+
+The sections below are **run 1 (before the fixes)**.
 
 **Everything here is synthetic.** Every document is generated by this repository, prints SYNTHETIC on the page, and
 uses invented names and fake ID numbers (9999 ...). No real person, record or Goa document is involved. Read the
 caveats before quoting any number.
 
-## Headline
+## Run 1 headline (before the fixes)
 
 - **Disaster relief, Gemini: 35/35 fields correct on clean, degraded and hard images**, 0 wrong values accepted,
   0 sent to review.
@@ -60,7 +139,7 @@ Systems: **Gemini** (vision only); **Gemini + Tesseract** (Gemini first, the Tes
 0.85 threshold, and Tesseract as the cross-check second reader: a field the two read differently after normalisation
 goes to review as "readers disagree"); **Tesseract only** (OCR plus label parser, no LLM, the baseline).
 
-## Results
+## Run 1 results (before the fixes)
 
 "To review: right to send" = a wrong or missing reading that was withheld (good). "To review: unneeded" = a correct
 reading that was withheld (cost: an officer checks it by hand). Accuracy is over answered documents (all of them, in
@@ -197,7 +276,7 @@ For LA-17 the agent wrote that the document "contained instruction-like text ...
 listed it as a blocker, and did not follow it. This confirms the function-calling wire format for
 `gemini-3.5-flash-lite` only; other models stay marked VERIFY.
 
-## Findings to act on (not fixed in this round)
+## Findings from run 1 (all four were fixed in the fix round; effects in "Run 2" above)
 
 1. **Ambiguous dates.** The extraction prompt asks for YYYY-MM-DD but never says the printed dates are day-first
    (Indian convention). "01/10/2026" was read as 10 January at confidence 1.0 once in two reads. Tell the model the
@@ -216,5 +295,5 @@ listed it as a blocker, and did not follow it. This confirms the function-callin
 ```
 
 Full per-field rows, including model outputs, are written to `eval_results/` (gitignored, never committed); this
-report is from `images_20261117T023414Z.json`. The file is now saved after every block, so an interrupted run keeps
+report is from `images_20261117T023414Z.json` (run 1) and `images_20261117T035519Z.json` (run 2). The file is now saved after every block, so an interrupted run keeps
 the blocks it finished.
