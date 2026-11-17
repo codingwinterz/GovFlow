@@ -55,7 +55,12 @@ Fuller detail is in `docs/KNOWN_LIMITATIONS.md`.
   self-check, rule simulator (read-only what-if over the synthetic set). Agent loop with a deterministic fallback.
 - Cross-check: when Tesseract is installed it reads each document again; a field the two readers read differently
   after normalisation goes to review as "readers disagree", whatever the confidence (skipped if Tesseract finds
-  nothing for the field).
+  nothing for the field). Punctuation at either end of a reading is ignored when comparing.
+- Review rule: a reading at or below `confidence_threshold` (0.85) goes to review (`app/confidence.py`, used at
+  every accept/withhold point).
+- Dates are day first: the prompt says DD/MM/YYYY and asks for the date as printed; `field_types` parses
+  DD/MM/YYYY (and ISO) day first and rejects anything only valid month first.
+- Name match: a name containing digits or symbols ("L?ta Sh1rodkar") fails outright.
 - Default model `gemini-3.5-flash-lite` (`GEMINI_MODEL` overrides).
 - Synthetic document images for both schemes (land 7, relief 7), each clean, degraded and hard (stamp, one
   handwriting-style field, phone-photo look), all labelled SYNTHETIC. LA-11's image prints its damaged scan text.
@@ -75,7 +80,7 @@ Fuller detail is in `docs/KNOWN_LIMITATIONS.md`.
 - Demo database re-seeded 2026-11-16 after the backdating fix: Submitted and Days open agree for all 23 open cases.
 
 ### Tests (all green at commit time)
-- Python: 845 passed (`pytest -q`, about 3 minutes).
+- Python: 904 passed (`pytest -q`, about 3 minutes).
 - Frontend: 65 logic (`npm test`) + 25 browser (`npm run test:layout`); `npm run test:all` runs both. Build clean.
 
 ### Still marked VERIFY
@@ -95,15 +100,16 @@ Fuller detail is in `docs/KNOWN_LIMITATIONS.md`.
   (survey number); `market_value_per_sqm` Rs 100 to 1,00,000.
 
 ### Open items
-- Live evaluation (`docs/EVAL_RESULTS.md`, 17 Nov 2026, synthetic only) on `gemini-3.5-flash-lite` only (other
-  models were unreachable on 16 Nov). Gemini: relief 35/35 clean, degraded and hard; land 24/27, 25/27, 21/27 with
-  3, 2, 2 wrong values passing the confidence gate. 0 provider errors.
-- Ambiguous dates: the extraction prompt does not say dates are day-first; "01/10/2026" was read as 10 Jan at
-  confidence 1.0 once (false `document_expired` on LA-09). Fix the prompt or parse dates in code.
-- Cross-check over-flags: 34 of its 35 firings were on correct readings, 1 catch (also caught by `invalid_value`).
-  Strip leading/trailing punctuation (11 of the 34) and decide whether to keep it on for hard documents.
-- LA-11: the damaged name "L?ta Sh1rodkar" passes at confidence 0.85 (the test is `< 0.85`) and passes
-  `name_match` at 0.917 (non-letters dropped). Decide on the threshold boundary and name normalisation.
+- **Feature freeze from 2026-11-17.** No new features; only fixes, docs and demo preparation.
+- Live evaluation (`docs/EVAL_RESULTS.md`, two runs on 17 Nov 2026, synthetic only) on `gemini-3.5-flash-lite`
+  only (other models were unreachable on 16 Nov). After the fix round, Gemini: relief 35/35 on clean, degraded and
+  hard; land 25/27, 25/27, 21/27 with 1, 0, 2 wrong values passing the confidence gate, every one caught later by
+  a deterministic check. Dates 36/36. 0 provider errors.
+- Model confidence still does not separate right from wrong: the remaining wrong values were read at 0.90 to 0.95.
+- Cross-check still over-flags on hard images: 21 of its 23 firings were on correct readings (2 catches, both also
+  caught by other checks). Decide whether to keep it on for hard documents.
+- Cost of the at-or-below rule: Tesseract gives exactly 0.85 to four correct land dates on degraded images, now
+  withheld (affects the Tesseract-only baseline, not Gemini + Tesseract).
 - Hindi, Marathi and Konkani text needs native-speaker review.
 - Goa rural multiplier: notified value unknown (default 1.0 above).
 - Current relief schedule for Goa: amounts follow the 2022-26 norms, labelled "to be confirmed".

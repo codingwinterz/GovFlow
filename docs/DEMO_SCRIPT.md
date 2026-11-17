@@ -49,7 +49,7 @@ cd web && npm run dev                                   # terminal 2, open http:
 - **Login:** role `officer`, user `O-1` (*switch user* in the header).
 - **Click:** Queue (filter status *in_officer_review*) → note flagged cases are listed first →
   open **LA-11** (low-quality scan).
-- **Say:** "Fields below the confidence threshold are highlighted and routed to a human; the name mismatch
+- **Say:** "Fields at or below the confidence threshold are highlighted and routed to a human; the name mismatch
   is flagged with both values. Every value shows its document, field, page and method."
 - **Optional:** open **LA-07** (missing mutation record flag) or **LA-14** (banner *extraction unavailable,
   retry*). **LIVE GEMINI:** the Retry button on LA-14. **Fallback:** do not click; point at the banner.

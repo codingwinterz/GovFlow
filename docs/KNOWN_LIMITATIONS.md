@@ -68,20 +68,22 @@ None of these may be used for a real decision until checked against official sou
   handwriting-style field, simulated phone photo). Gemini: relief 35/35 on all three; land 24/27, 25/27, 21/27,
   with 2 to 3 wrong values per set passing the confidence gate. No real handwriting, Devanagari or real Goa
   documents; one run, and two reads of the same image already differed on 2 fields.
-- **Model confidence is not a reliable signal.** Gemini read an ambiguous "01/10/2026" month-first at confidence
-  1.0 (the prompt does not say dates are day-first), and copied LA-11's damaged name at exactly 0.85, which passes
-  because the test is `< 0.85`. It did lower confidence on some hard images. The officer's confirmation of
-  amount-driving fields is the backstop, not the threshold.
-- **Name matching tolerates damage:** "L?ta Sh1rodkar" passes against "Lata Shirodkar" at 0.917 because non-letters
-  are dropped before the fuzzy compare.
+- **Model confidence is not a reliable signal.** In run 1 Gemini read an ambiguous "01/10/2026" month-first at
+  confidence 1.0; dates are now copied as printed and parsed day first in code. After the fix round the remaining
+  wrong readings were still at 0.90 to 0.95. A reading at or below 0.85 now goes to review, but the officer's
+  confirmation of amount-driving fields is the backstop, not the threshold.
+- **Dates only in DD/MM/YYYY (or ISO).** A written month ("1 Oct 2026") or a two-digit year is rejected and goes to
+  review; real documents in other formats will be over-flagged rather than misread.
+- **Name match rejects symbols:** a name containing digits or symbols fails outright. A name printed with an
+  unusual character (for example "&") would fail too and need the officer.
 - The Tesseract baseline's label parser knows the synthetic document layouts, so its accuracy is generous.
 - **Cross-check (readers disagree).** When Tesseract is installed it reads each document again; a field it reads
   differently from Gemini (after normalising case, spacing, digit grouping, dates and unit synonyms) goes to
   review. It only speaks when Tesseract finds the field: its label parser knows the synthetic layouts, so on real
-  documents it will often find nothing and stay silent. It over-flags heavily: on the 17 Nov run it fired 35 times,
-  34 on correct readings, and caught 1 wrong reading that `invalid_value` also caught (hard images: 10 of 24 correct
-  land fields and 15 of 35 correct relief fields sent to review). 11 of the 34 are stray punctuation Tesseract adds;
-  the rest are Tesseract misreads.
+  documents it will often find nothing and stay silent. Punctuation at either end of a reading is now ignored.
+  It still over-flags on hard images: in run 2 it fired 23 times, 21 on correct readings, and caught 2 wrong
+  readings that other checks also caught. The false alarms are Tesseract misreads, not something normalisation
+  can remove.
 - Gemini's confidence scores are self-reported, not calibrated; the 0.85 threshold depends on them. So a
   document cannot vouch for itself where it matters: the fields that drive an amount (land area and unit;
   relief damage %, house type, area type) must be confirmed by the officer at their current value before
