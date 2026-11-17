@@ -86,7 +86,16 @@ Fuller detail is in `docs/KNOWN_LIMITATIONS.md`.
   submitted value. No voice anywhere. Each verify entry names
   who to check with (`verify_with`: the Collectorate, the issuing office, the relief office); source names are
   plain words; a reply cites only the top entry.
+- Citizen document pre-check (`GET /public/precheck`, `POST /public/precheck`, self-check page): stateless, no
+  sign-in, in-memory only. Validates scheme and citizen-uploadable document type (excluding `application`), enforces
+  the 14 MB body cap, 10 MB file cap and file-signature check, and runs extraction (Gemini when available, OCR
+  fallback), typed coercion, plausible ranges, document age/validity, cross-check and single-document checks in
+  memory. Zero storage on disk, DB or logs; writes one minimal `audit_log` row (`document_precheck`: document type,
+  result category, timing, fallback flag) only after YAML validation. Plain-language feedback with zero `snake_case`,
+  `what_we_read` shown only for name and area fields (never ID numbers), output guard on both primary and OCR
+  fallback paths rejecting decision words and rupee mentions, plus its own per-client rate limiter and daily cap.
 - Default model `gemini-3.5-flash-lite` (`GEMINI_MODEL` overrides).
+
 - Synthetic document images for both schemes (land 7, relief 7), each clean, degraded and hard (stamp, one
   handwriting-style field, phone-photo look), all labelled SYNTHETIC. LA-11's image prints its damaged scan text.
 - Injection defences: prompts call document text and tool results untrusted data; per-field `plausible` ranges in
@@ -107,8 +116,9 @@ Fuller detail is in `docs/KNOWN_LIMITATIONS.md`.
 - Demo database re-seeded 2026-11-16 after the backdating fix: Submitted and Days open agree for all 23 open cases.
 
 ### Tests (all green at commit time)
-- Python: 1062 passed (`pytest -q`, about 5 minutes; with little free memory, run in batches).
-- Frontend: 71 logic (`npm test`) + 32 browser (`npm run test:layout`); `npm run test:all` runs both. Build clean.
+- Python: 1091 passed (`pytest -q`, about 5 minutes; with little free memory, run in batches: 509 + 242 + 340).
+- Frontend: 76 logic (`npm test`) + 35 browser (`npm run test:layout`); `npm run test:all` runs both. Build clean.
+
 
 ### Still marked VERIFY
 - Land acquisition (`rules/land_acquisition.yaml`): notification references (source); 60-day SLA; record-of-rights
@@ -139,6 +149,8 @@ Fuller detail is in `docs/KNOWN_LIMITATIONS.md`.
   granted 2026-11-17: the tenant / mundkar rule and the deficiency notice.
 - Voice assistant: planned, not built. Multilingual helper: planned (Sahayak is English only).
 - A second freeze exception, 2026-11-17: Sahayak (text only, English only).
+- A third freeze exception, 2026-11-17: citizen document pre-check (`POST /public/precheck`, in memory, zero storage).
+
 - Deficiency notices name fields in English (YAML labels) even in the hi/mr/kok drafts.
 - Live evaluation (`docs/EVAL_RESULTS.md`, two runs on 17 Nov 2026, synthetic only) on `gemini-3.5-flash-lite`
   only (other models were unreachable on 16 Nov). After the fix round, Gemini: relief 35/35 on clean, degraded and

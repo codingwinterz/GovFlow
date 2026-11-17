@@ -153,3 +153,7 @@ button.link { background: none; border: none; color: var(--accent); padding: 2px
 .drawer .source { overflow-wrap: anywhere; }
 .chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 12px; }
 .chip { min-height: 24px; background: none; color: var(--accent); text-align: left; white-space: normal; }
+/* Citizen document pre-check card: 24 px minimum touch targets and clean wrapping on 390 px screens */
+.precheck button, .precheck select, .precheck input { min-height: 24px; max-width: 100%; }
+.precheck-result, .precheck-live { overflow-wrap: anywhere; }
+

@@ -27,11 +27,11 @@ from app import tools
 from app.agent import AgentReply, run_agent
 from app import sla
 from app.analytics import analytics
-from app.audit import log_action
+from app.audit import log_action, log_precheck
 from app.auth import AUTH_ENV, INSECURE_ENV, issue_token, read_token
 from app.body_limit import MAX_BODY_BYTES, BodyLimit
 from app.upload_check import content_problem
-from app.citizen import RateLimiter, citizen_view, code_matches
+from app.citizen import ClientRateLimiter, RateLimiter, citizen_view, code_matches
 from app.env_file import env_value
 from app.citizen import citizen_secret as default_citizen_secret
 from app.confidence import needs_review_for_confidence
@@ -40,13 +40,21 @@ from app import sahayak
 
 SAHAYAK_DAILY_CAP = 200     # provider calls per day; past it, answers come from the entries verbatim
 SAHAYAK_RATE_LIMIT = 20     # questions per client per ten minutes
-from app.extraction import EXTRACTION_UNAVAILABLE_MESSAGE, ProviderError
+PRECHECK_DAILY_CAP = 100    # provider calls per day; past it, pre-check falls back to OCR only
+PRECHECK_RATE_LIMIT = 10    # pre-checks per client per ten minutes
+PRECHECK_MEDIA_TYPES = {".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".pdf": "application/pdf"}
+from app.extraction import EXTRACTION_UNAVAILABLE_MESSAGE, Page, ProviderError
 from app.case_store import load_case
 from app.models import AuditLog, Case, CompensationItemRow, Document, ExtractedField, RuleResultRow
 from app.models import VerificationFlag, india_date, iso_utc, make_engine, queue_key
 from app.privacy import mask_identifiers
 from app.rules_engine import overall_from
-from app.self_check import NoSelfCheck, public_questions, self_check
+from app.self_check import (
+    PRECHECK_DISCLAIMER, PRECHECK_LANGUAGE_NOTE, PRECHECK_NOTHING_SAVED_NOTE,
+    NoSelfCheck, precheck_document, precheck_documents, public_precheck_schemes,
+    public_questions, self_check,
+)
+
 from app.simulator import knobs, simulate
 from app.rules_loader import RULES_DIR, Scheme, case_input_names, is_scheme, load_scheme_by_name, scheme_names
 
@@ -110,6 +118,15 @@ class SahayakIn(BaseModel):
     message: str = Field(min_length=1, max_length=sahayak.MAX_MESSAGE)
     scheme: Optional[str] = Field(None, max_length=64)
     self_check: Optional[sahayak.SelfCheckSummary] = None    # ids and statuses only, never free text
+
+
+class PrecheckIn(BaseModel):
+    model_config = {"extra": "forbid"}
+    scheme: str = Field(min_length=1, max_length=64)
+    document_type: str = Field(min_length=1, max_length=64)
+    filename: str = Field(min_length=1, max_length=255)
+    content_base64: str = Field(min_length=1)
+
 
 
 class SimulateIn(BaseModel):
@@ -248,7 +265,9 @@ def create_app(engine: Optional[Engine] = None, agent_llm_factory: Optional[Call
                clock: Callable[[], float] = time.monotonic,
                now: Callable[[], datetime] = lambda: datetime.now(timezone.utc),
                sahayak_llm_factory: Optional[Callable[[], Any]] = None,
-               sahayak_daily_cap: int = SAHAYAK_DAILY_CAP, sahayak_rate_limit: int = SAHAYAK_RATE_LIMIT) -> FastAPI:
+               sahayak_daily_cap: int = SAHAYAK_DAILY_CAP, sahayak_rate_limit: int = SAHAYAK_RATE_LIMIT,
+               precheck_daily_cap: int = PRECHECK_DAILY_CAP,
+               precheck_rate_limit: int = PRECHECK_RATE_LIMIT) -> FastAPI:
     app = FastAPI(title="GovFlow", version="0.1.0")
     app.add_middleware(BodyLimit, max_bytes=MAX_BODY_BYTES)   # 413 before any handler reads an oversized body
     secret = citizen_secret or default_citizen_secret()   # None: status lookups answer 503, never a weak default
@@ -259,6 +278,9 @@ def create_app(engine: Optional[Engine] = None, agent_llm_factory: Optional[Call
     sahayak_limiter = sahayak.RateLimiter(clock, limit=sahayak_rate_limit)  # its own, per client
     sahayak_budget = sahayak.DailyBudget(sahayak_daily_cap, today=lambda: now().date())
     sahayak_llm: dict[str, Any] = {}
+    precheck_limiter = ClientRateLimiter(clock, limit=precheck_rate_limit)
+    precheck_budget = sahayak.DailyBudget(precheck_daily_cap, today=lambda: now().date())
+
 
     def actor_dep(authorization: Optional[str] = Header(None), x_role: Optional[str] = Header(None),
                   x_user: Optional[str] = Header(None)) -> Actor:
@@ -393,6 +415,67 @@ def create_app(engine: Optional[Engine] = None, agent_llm_factory: Optional[Call
             raise HTTPException(404, "no_self_check") from None
         except ValueError as exc:
             raise HTTPException(400, str(exc)) from None
+
+    @app.get("/public/precheck")
+    def precheck_options() -> dict[str, Any]:
+        """Schemes and citizen-uploadable document types (excluding application). No sign-in."""
+        return {
+            "schemes": public_precheck_schemes(),
+            "disclaimer": PRECHECK_DISCLAIMER,
+            "language_note": PRECHECK_LANGUAGE_NOTE,
+            "nothing_saved_note": PRECHECK_NOTHING_SAVED_NOTE,
+        }
+
+    @app.post("/public/precheck")
+    def run_precheck(body: PrecheckIn, request: Request,
+                     session: Session = Depends(session_dep)) -> dict[str, Any]:
+        """No sign-in, stateless, in-memory only. Stores nothing on disk, DB or logs; writes one minimal audit row."""
+        client = request.client.host if request.client else "unknown"
+        if not precheck_limiter.allow(client):
+            raise HTTPException(429, "too_many_attempts")
+
+        if not is_scheme(body.scheme):
+            raise HTTPException(422, "unknown scheme")
+        scheme = load_scheme_by_name(body.scheme)
+        allowed_docs = {d.id for d in precheck_documents(scheme)}
+        if body.document_type not in allowed_docs:
+            raise HTTPException(422, "unknown document_type")
+        suffix = Path(body.filename).suffix.lower()
+        if suffix not in UPLOAD_TYPES:
+            raise HTTPException(400, f"Unsupported file type {suffix or '(none)'}; use {sorted(UPLOAD_TYPES)}")
+        if len(body.content_base64) > MAX_BASE64_CHARS:
+            raise HTTPException(400, "File too large (max 10 MB)")
+        try:
+            content = base64.b64decode(body.content_base64, validate=True)
+        except (binascii.Error, ValueError):
+            raise HTTPException(400, "content_base64 is not valid base64") from None
+        if len(content) > MAX_UPLOAD_BYTES:
+            raise HTTPException(400, "File too large (max 10 MB)")
+        problem = content_problem(suffix, content)
+        if problem:
+            raise HTTPException(400, problem)
+
+        started = clock()
+        page = (Page(number=1, text=content.decode("utf-8")) if suffix == ".txt"
+                else Page(number=1, image_bytes=content, media_type=PRECHECK_MEDIA_TYPES[suffix]))
+        try:
+            provider = extraction_factory() if extraction_factory else None
+        except Exception:
+            provider = None
+        allow_provider = provider is not None and precheck_budget.take()
+        ref_date = date.fromisoformat(india_date(now()))
+        result = precheck_document(
+            scheme, body.document_type, page, reference_date=ref_date,
+            provider=provider if allow_provider else None,
+            cross_check=second_reader() if allow_provider else None,
+            allow_provider=allow_provider,
+        )
+        elapsed_ms = max(0, int(round((clock() - started) * 1000)))
+        log_precheck(session, body.document_type, result.readable, elapsed_ms, result.used_fallback, scheme.version)
+        session.commit()
+
+        return mask_identifiers(result.model_dump())
+
 
     @app.get("/cases")
     def list_cases(status: Optional[str] = None, scheme: Optional[str] = None, actor: Actor = Depends(actor_dep),

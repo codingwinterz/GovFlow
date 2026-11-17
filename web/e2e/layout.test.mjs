@@ -420,3 +420,121 @@ test("the tracking page's status pill is as wide as its text, not the page", asy
   assert.match(await page.locator(".citizen-view").innerText(), /17 Nov 2026/);   // round E, in the browser
   await close();
 });
+
+// --- Citizen document pre-check card (in memory, zero storage) -----------------------------------------------------
+
+const PRECHECK_OPTIONS = {
+  schemes: [
+    {
+      scheme: "land_acquisition",
+      title: "Land acquisition compensation",
+      documents: [
+        { id: "ownership_record", label: "Ownership record (Form I & XIV)" },
+        { id: "identity_proof", label: "Identity proof" },
+      ],
+    },
+    {
+      scheme: "disaster_relief",
+      title: "Disaster relief: housing damage",
+      documents: [
+        { id: "identity_proof", label: "Identity proof" },
+        { id: "damage_assessment", label: "Damage assessment report" },
+      ],
+    },
+  ],
+  disclaimer: "A quick check, not an application. An officer reviews every document.",
+  language_note: "Document pre-check feedback is in English.",
+  nothing_saved_note: "Nothing is saved: your file and its text are checked in memory and never stored.",
+};
+
+const PRECHECK_REPLY = {
+  scheme_label: "Land acquisition compensation",
+  document_label: "Ownership record (Form I & XIV)",
+  readable: "partly",
+  fields: [
+    { label: "Name", status: "found", what_we_read: "Ramesh Naik" },
+    { label: "Survey number", status: "could not read", what_we_read: null },
+    { label: "Area", status: "found", what_we_read: "1200 sqm" },
+  ],
+  issues: ["Could not read clearly: Survey number."],
+  next_steps: ["Bring a clearer copy or the original Ownership record (Form I & XIV) so every detail can be read."],
+  used_fallback: true,
+  disclaimer: "A quick check, not an application. An officer reviews every document.",
+  language: "en",
+  language_note: "Document pre-check feedback is in English.",
+  nothing_saved_note: "Nothing is saved: your file and its text are checked in memory and never stored.",
+};
+
+function precheckApi({ options = () => ({ json: PRECHECK_OPTIONS }), run = () => ({ json: PRECHECK_REPLY }) } = {}) {
+  return (url, method) => {
+    const path = new URL(url).pathname;
+    if (path.endsWith("/public/self-check")) return { json: SELF_CHECK };
+    if (path.endsWith("/public/precheck")) return method === "POST" ? run() : options();
+    return { json: [] };
+  };
+}
+
+test("document pre-check at 390px: no sideways scroll, 24 px targets, English note, nothing-saved disclosure, and no application option", async () => {
+  const { page, close } = await open("#/citizen/check", precheckApi());
+  await page.locator("section.precheck select").first().waitFor();
+  const m = await page.evaluate(() => {
+    const box = (el) => el.getBoundingClientRect();
+    const card = document.querySelector("section.precheck");
+    const small = [...card.querySelectorAll("button, select, input")]
+      .filter((el) => { const b = box(el); return b.width > 0 && (b.width < 24 || b.height < 24); }).length;
+    const docOptions = [...card.querySelectorAll("select")[1].options].map((o) => o.value);
+    return { small, scroll: document.documentElement.scrollWidth, vw: document.documentElement.clientWidth,
+      text: card.innerText, docOptions };
+  });
+  assert.equal(m.scroll, m.vw, "page scrolls sideways");
+  assert.equal(m.small, 0, "control under 24x24 px");
+  assert.ok(!m.docOptions.includes("application"), "application must not be offered in pre-check");
+  assert.match(m.text, /Document pre-check feedback is in English\./);
+  assert.match(m.text, /Nothing is saved/);
+  assert.match(m.text, /A quick check, not an application\. An officer reviews every document\./);
+  await close();
+});
+
+test("document pre-check announces results via aria-live and shows what we read for name and area", async () => {
+  const { page, close } = await open("#/citizen/check", precheckApi());
+  await page.locator("section.precheck input[type=file]").setInputFiles({
+    name: "ownership.txt",
+    mimeType: "text/plain",
+    buffer: Buffer.from("Name: Ramesh Naik\nArea: 1200 sqm\n"),
+  });
+  await page.getByRole("button", { name: "Check document" }).click();
+  const live = page.locator("section.precheck [role=status][aria-live=polite]");
+  await live.getByText("Readable: Partly").waitFor();
+  const content = await live.innerText();
+  assert.match(content, /Name: found — What we read: Ramesh Naik/);
+  assert.match(content, /Area: found — What we read: 1200 sqm/);
+  assert.match(content, /Survey number: could not read/);
+  assert.match(content, /Checked with OCR fallback only\./);
+  assert.match(content, /Issues found/);
+  assert.match(content, /Next steps/);
+  await close();
+});
+
+test("document pre-check errors offer Retry for options and for checking a document", async () => {
+  let failOptions = true, failRun = true;
+  const { page, close } = await open("#/citizen/check", precheckApi({
+    options: () => (failOptions ? { status: 500, json: {} } : { json: PRECHECK_OPTIONS }),
+    run: () => (failRun ? { status: 500, json: {} } : { json: PRECHECK_REPLY }),
+  }));
+  await page.locator("section.precheck [role=alert]").getByText("Could not load the document pre-check options.").waitFor();
+  failOptions = false;
+  await page.locator("section.precheck").getByRole("button", { name: "Retry" }).click();
+  await page.locator("section.precheck select").first().waitFor();
+  await page.locator("section.precheck input[type=file]").setInputFiles({
+    name: "ownership.txt",
+    mimeType: "text/plain",
+    buffer: Buffer.from("Name: Ramesh Naik\n"),
+  });
+  await page.getByRole("button", { name: "Check document" }).click();
+  await page.locator("section.precheck [role=alert]").getByText("Could not check the document just now.").waitFor();
+  failRun = false;
+  await page.locator("section.precheck").getByRole("button", { name: "Retry" }).click();
+  await page.locator("section.precheck [role=status]").getByText("Readable: Partly").waitFor();
+  await close();
+});
+

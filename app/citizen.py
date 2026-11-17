@@ -85,6 +85,36 @@ class RateLimiter:
         self.failures_by_case[case_ref].append(self.clock())
 
 
+class ClientRateLimiter:
+    """Sliding window per client address with once-per-window memory sweep (used by public pre-check)."""
+
+    def __init__(self, clock: Callable[[], float], limit: int = 10, window: float = 600.0):
+        self.clock, self.limit, self.window = clock, limit, window
+        self.by_client: dict[str, deque] = defaultdict(deque)
+        self._last_sweep = clock()
+
+    def _recent(self, q: deque) -> deque:
+        while q and q[0] <= self.clock() - self.window:
+            q.popleft()
+        return q
+
+    def _sweep(self) -> None:
+        if self.clock() - self._last_sweep < self.window:
+            return
+        self._last_sweep = self.clock()
+        for key in [k for k, q in self.by_client.items() if not self._recent(q)]:
+            del self.by_client[key]
+
+    def allow(self, client: str) -> bool:
+        self._sweep()
+        q = self._recent(self.by_client[client])
+        if len(q) >= self.limit:
+            return False
+        q.append(self.clock())
+        return True
+
+
+
 def _missing(session: Session, case: Case) -> list[dict[str, str]]:
     if CITIZEN_STATUS.get(case.status) in ("approved", "rejected", "closed"):
         return []
