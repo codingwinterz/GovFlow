@@ -1,6 +1,6 @@
 // Translation templates with fixed placeholders. Templates contain no numbers: amounts and dates are
 // formatted here, by code, from API values. No LLM generates or translates any text or number.
-import { formatRupees, maskIdentifiers } from "./format.js";
+import { formatDay, formatRupees, maskIdentifiers } from "./format.js";
 import { readableFormula } from "./display.js";
 
 export function placeholders(template) {
@@ -28,7 +28,7 @@ export function noticeLines(needed, caseRef, dict) {
         ? { document: t(dict, `documents.${item.document}`), fields: item.field_labels.join(", ") }
         : { document: t(dict, `documents.${item.document}`) }) });
   lines.push({ kind: "footer", text: t(dict, "deficiency.footer") });
-  lines.push({ kind: "date", text: t(dict, "deficiency.date", { date: needed.date }) });
+  lines.push({ kind: "date", text: t(dict, "deficiency.date", { date: formatDay(needed.date) }) });
   return lines;
 }
 
@@ -48,7 +48,7 @@ export function citizenLines(view, dict) {
   if (view.decision) {
     lines.push({ kind: "heading", text: t(dict, "decision.title") });
     lines.push({ kind: "decision", text: t(dict, `decision.${view.decision.decision}`) });
-    lines.push({ kind: "date", text: t(dict, "decision.date", { date: view.decision.date }) });
+    lines.push({ kind: "date", text: t(dict, "decision.date", { date: formatDay(view.decision.date) }) });
   }
   if (view.amounts) {
     lines.push({ kind: "heading", text: t(dict, "amounts.title") });

@@ -34,6 +34,16 @@ def india_date(ts: datetime) -> str:
     return as_utc(ts).astimezone(IST).date().isoformat()
 
 
+# Month abbreviations as the browser's en-IN date format writes them ("Sept"), so both sides agree.
+_MONTHS = ("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sept", "Oct", "Nov", "Dec")
+
+
+def india_day(ts: datetime) -> str:
+    """The same India date for people to read: "17 Nov 2026" (as the web's formatDay)."""
+    d = as_utc(ts).astimezone(IST).date()
+    return f"{d.day} {_MONTHS[d.month - 1]} {d.year}"
+
+
 def queue_key(case: "Case") -> tuple[bool, datetime]:
     """Officer queue order: flagged cases first, then oldest submission (or creation) first."""
     return (not case.confidence_flag, as_utc(case.submitted_at or case.created_at))

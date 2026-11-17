@@ -76,6 +76,8 @@ Fuller detail is in `docs/KNOWN_LIMITATIONS.md`.
   field) with fixed templates (`deficiency.*` in the en/hi/mr/kok files) and YAML labels; no LLM. Preview, then
   send: stored (`deficiency_notices`), audit row `deficiency_notice_sent`, case to the existing `needs_info`. The
   tracking page shows "Documents needed" and prints it. Never approves, rejects or computes.
+- Citizen dates (decision date, notice date) read "17 Nov 2026" in every language (web `formatDay`; the notice
+  text from `models.india_day`, same month spellings).
 - Sahayak (self-check page): text-only, English-only helper, `POST /public/sahayak` (no sign-in). Keyword
   retrieval (top 3) over `rules/sahayak_knowledge.yaml` (7 sourced entries, not a scheme); Gemini may phrase an
   answer from those entries only (no tools, low temperature); a guard (numbers, rupees, decision words, websites,

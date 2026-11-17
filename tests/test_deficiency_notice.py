@@ -233,3 +233,19 @@ def test_replacement_documents_continue_the_existing_flow(engine, tmp_path):
         kinds = {f.kind for f in s.query(VerificationFlag).filter_by(case_id="LA-07")}
         assert "missing_document" not in kinds
         assert s.query(DeficiencyNotice).filter_by(case_id="LA-07").count() == 1
+
+
+# --- citizen dates read "17 Nov 2026", as the web formats them (bug-fix round E) -----------------------------------
+
+def test_india_day_is_the_friendly_india_date():
+    from datetime import datetime, timezone
+    from app.models import india_day
+    assert india_day(datetime(2026, 11, 17, 6, 0, tzinfo=timezone.utc)) == "17 Nov 2026"
+    assert india_day(datetime(2026, 9, 7, 6, 0, tzinfo=timezone.utc)) == "7 Sept 2026"           # en-IN spelling
+    assert india_day(datetime(2026, 11, 16, 19, 0, tzinfo=timezone.utc)) == "17 Nov 2026"        # 00:30 IST next day
+
+
+def test_the_notice_text_dates_the_notice_in_the_friendly_format(app):
+    import re
+    lines = call(app, "GET", "/cases/LA-07/notice?language=en", headers=staff("officer", "O-1"))[1]["lines"]
+    assert re.fullmatch(r"Notice issued on \d{1,2} (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sept|Oct|Nov|Dec) \d{4}", lines[-1])

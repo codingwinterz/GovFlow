@@ -29,7 +29,7 @@ from app.resolutions import open_resolution_flags, resolution_problem
 from app.deficiency import LANGUAGES as NOTICE_LANGUAGES, NoticeItem
 from app.deficiency import build_items as build_notice_items, render as render_notice
 from app.facts import build_facts
-from app.models import DeficiencyNotice, india_date
+from app.models import DeficiencyNotice, india_day
 from app.rules_engine import EligibilityResult, overall_from
 from app.rules_engine import check_eligibility as check_eligibility_pure
 from app.rules_loader import RULES_DIR, Scheme, amount_fields, is_scheme, load_scheme_by_name
@@ -328,7 +328,7 @@ def _notice(session: Session, case_id: str, role: str, language: str) -> tuple[C
     case_in = load_case(session, case_id)
     checks = verification.verify_documents(scheme, case_in, competing_cases(session, case_in.scheme)).checks
     items = build_notice_items(scheme, checks, build_facts(scheme, case_in))
-    lines = render_notice(items, language, scheme, case_id, india_date(datetime.now(timezone.utc)))
+    lines = render_notice(items, language, scheme, case_id, india_day(datetime.now(timezone.utc)))
     return case, scheme, NoticePreview(case_id=case_id, language=language, items=items, lines=lines)
 
 

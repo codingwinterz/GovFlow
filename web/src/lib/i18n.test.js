@@ -77,7 +77,8 @@ test("why-this-amount lines use API amounts formatted by code and cite the offic
     const text = lines.map((l) => l.text).join("\n");
     assert.match(text, /₹75,00,000\.00/);
     assert.match(text, /₹1,72,00,000\.00/);
-    assert.match(text, /2026-11-20/);
+    assert.match(text, /20 Nov 2026/, lang);                // the friendly date, in every language
+    assert.doesNotMatch(text, /2026-11-20/);
     assert.ok(text.includes("Area (sq m) × Market value per sq m × Rural multiplier with Area (sq m) = 2500"), lang);
     assert.doesNotMatch(text, /_/, lang);       // the basis reads as words, never identifiers
   }
@@ -105,7 +106,7 @@ test("an open rights entry shows only a plain notice, in every language", () => 
 
 test("documents-needed notice lists exactly the stored items, in each language, with no unknown key", async () => {
   const { noticeLines } = await import("./i18n.js");
-  const needed = { date: "17 Nov 2026", language: "en", items: [
+  const needed = { date: "2026-11-17", language: "en", items: [            // ISO from the API
     { kind: "missing", document: "mutation_record", fields: [], field_labels: [] },
     { kind: "unreadable", document: "ownership_record", fields: ["name", "area"], field_labels: ["Name", "Area"] },
     { kind: "name_mismatch", document: "identity_proof", fields: [], field_labels: [] }] };
