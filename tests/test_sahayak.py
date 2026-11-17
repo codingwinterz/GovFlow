@@ -301,3 +301,16 @@ def test_the_loader_rejects_unclear_verify_or_source_wording(tmp_path, entry, wh
     path.write_text(yaml.safe_dump({"entries": [{**base, **entry}]}), encoding="utf-8")
     with pytest.raises(KnowledgeError):
         load_knowledge(path)
+
+
+# --- a 422 never echoes what was sent (bug-fix round F) -----------------------------------------------------------
+
+def test_an_over_long_message_gets_422_without_echoing_it(env):
+    _, app, _ = env
+    secret = "Borgeskar 9999 1234 5678 private " + "x" * 500
+    status, body = _post(app, {"message": secret})
+    assert status == 422
+    assert body["detail"][0]["loc"] == ["body", "message"] and "500" in body["detail"][0]["msg"]
+    text = json.dumps(body)
+    assert "Borgeskar" not in text and "private" not in text and "xxxx" not in text
+    assert all(set(d) <= {"type", "loc", "msg"} for d in body["detail"])

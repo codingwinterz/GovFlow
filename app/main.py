@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import Any, Callable, Iterator, Literal, Optional
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import Engine
@@ -289,6 +290,13 @@ def create_app(engine: Optional[Engine] = None, agent_llm_factory: Optional[Call
     @app.exception_handler(tools.ToolError)
     async def _conflict(request: Request, exc: tools.ToolError) -> JSONResponse:
         return JSONResponse({"detail": str(exc)}, status_code=409)
+
+    @app.exception_handler(RequestValidationError)
+    async def _invalid(request: Request, exc: RequestValidationError) -> JSONResponse:
+        """422 with where and why, never the submitted value: a citizen's over-long Sahayak message (or any other
+        input) is not echoed back."""
+        detail = [{k: e[k] for k in ("type", "loc", "msg") if k in e} for e in exc.errors()]
+        return JSONResponse({"detail": detail}, status_code=422)
 
     @app.exception_handler(PermissionError)
     async def _forbidden(request: Request, exc: PermissionError) -> JSONResponse:
