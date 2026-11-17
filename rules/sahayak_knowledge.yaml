@@ -1,6 +1,7 @@
 # Sahayak knowledge base: the only material the helper may answer from. Plain English, short.
-# Each entry: id, keywords, title, answer, steps (optional), source {name, url: a URL or "VERIFY"}, verify.
-# verify: true -> the reply carries a "Verify with the Collectorate" tag. Optional: scheme (only offered for that
+# Each entry: id, keywords, title, answer, steps (optional), source {name, url: a URL or "VERIFY"}, verify,
+# verify_with (when verify is true). Source names are shown to citizens: plain words, no file paths or "_".
+# verify: true -> verify_with is required and the reply carries the tag "Verify with <verify_with>". Optional: scheme (only offered for that
 # scheme); documents_from_scheme: true (steps are filled from the scheme YAML's required documents).
 # Rules for writing entries: no fees, no deadlines, no amounts, no eligibility verdicts, no legal conclusions.
 # Never use the words the output guard rejects (approved, rejected, sanctioned, entitled, guaranteed).
@@ -19,7 +20,7 @@ entries:
       name: "goaonline.gov.in for the digitally signed copy; dslr.goa.gov.in is described as informational only by a commercial guide"
       url: "https://goaonline.gov.in"
     verify: true
-
+    verify_with: the Collectorate
   - id: name_spelling_mismatch
     keywords: [name, spelling, spelt, spelled, mismatch, different name, borges, borgeskar, surname, does not match,
                name change, typo]
@@ -36,7 +37,7 @@ entries:
       name: "General guidance; the correction procedure depends on the issuing office"
       url: "VERIFY"
     verify: true
-
+    verify_with: the issuing office
   - id: tenant_or_mundkar_entry
     scheme: land_acquisition
     keywords: [tenant, tenancy, mundkar, other rights, rights, record of rights entry, encumbrance, kul, occupant]
@@ -84,10 +85,10 @@ entries:
       The self-check asks roughly what share of your house was damaged, as written on the damage assessment
       report if you have one. It is a guide only: an officer checks the assessment report itself.
     source:
-      name: "GovFlow disaster relief self-check (rules/disaster_relief.yaml)"
+      name: "GovFlow disaster relief self-check questions"
       url: "VERIFY"
     verify: true
-
+    verify_with: the relief office
   - id: relief_notified_area
     scheme: disaster_relief
     keywords: [notified, notified area, affected area, area, village, disaster area, affected]
@@ -96,6 +97,7 @@ entries:
       The self-check asks whether your house is in the area notified as affected by the disaster. If you are
       not sure, say so to the officer, who checks it against the damage assessment.
     source:
-      name: "GovFlow disaster relief self-check (rules/disaster_relief.yaml)"
+      name: "GovFlow disaster relief self-check questions"
       url: "VERIFY"
     verify: true
+    verify_with: the relief office

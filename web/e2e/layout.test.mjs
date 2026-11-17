@@ -267,8 +267,8 @@ const TOPICS = { topics: [{ id: "relief_notified_area", title: "What is a notifi
   { id: "what_this_tool_does", title: "What does this helper do?" }], guide: "", language_note: "" };
 const FALLBACK = { answer: "The self-check asks whether your house is in the area notified as affected.",
   used_fallback: true, reason: "guard", language: "en", entries: [{ id: "relief_notified_area",
-    title: "What is a notified area?", verify: true, tag: "Verify with the Collectorate",
-    source: { name: "GovFlow disaster relief self-check", url: "VERIFY" } }] };
+    title: "What is a notified area?", verify: true, tag: "Verify with the relief office",
+    source: { name: "GovFlow disaster relief self-check questions", url: "VERIFY" } }] };
 
 function sahayakApi({ ask = () => ({ json: FALLBACK }), topics = () => ({ json: TOPICS }) } = {}) {
   return (url, method) => {
@@ -305,8 +305,8 @@ test("a Sahayak fallback answer is announced and shows its source and the verify
   const reply = page.locator(".drawer [role=status][aria-live=polite]");
   await reply.getByText("The self-check asks whether").waitFor();
   const text = await reply.innerText();
-  assert.match(text, /Source: GovFlow disaster relief self-check \(source to be confirmed\)/);
-  assert.match(text, /Verify with the Collectorate/);
+  assert.match(text, /Source: GovFlow disaster relief self-check questions \(source to be confirmed\)/);
+  assert.match(text, /Verify with the relief office/);
   await close();
 });
 

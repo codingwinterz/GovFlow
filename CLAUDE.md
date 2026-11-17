@@ -79,7 +79,9 @@ Fuller detail is in `docs/KNOWN_LIMITATIONS.md`.
   retrieval (top 3) over `rules/sahayak_knowledge.yaml` (7 sourced entries, not a scheme); Gemini may phrase an
   answer from those entries only (no tools, low temperature); a guard (numbers, rupees, decision words, websites,
   offices not in the entries) or any provider failure falls back to the entry text verbatim. Own rate limit, daily
-  provider cap, message never stored (audit row: length and entry ids). No voice anywhere.
+  provider cap, message never stored (audit row: length and entry ids). No voice anywhere. Each verify entry names
+  who to check with (`verify_with`: the Collectorate, the issuing office, the relief office); source names are
+  plain words; a reply cites only the top entry.
 - Default model `gemini-3.5-flash-lite` (`GEMINI_MODEL` overrides).
 - Synthetic document images for both schemes (land 7, relief 7), each clean, degraded and hard (stamp, one
   handwriting-style field, phone-photo look), all labelled SYNTHETIC. LA-11's image prints its damaged scan text.

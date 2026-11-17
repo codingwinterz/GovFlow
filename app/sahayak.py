@@ -25,7 +25,7 @@ KNOWLEDGE_PATH = RULES_DIR / KNOWLEDGE_FILE
 TOP_K = 3
 MAX_MESSAGE = 500
 MAX_ANSWER = 1200
-VERIFY_TAG = "Verify with the Collectorate"
+
 GUIDE = "Sahayak is a guide, not a decision. Only an officer decides."
 LANGUAGE_NOTE = "Sahayak answers in English."
 NO_MATCH = ("I can't help with that here. Try the self-check questions on this page, or ask an officer at the office "
@@ -52,8 +52,15 @@ class KnowledgeError(ValueError):
 
 class Source(BaseModel):
     model_config = {"extra": "forbid"}
-    name: str = Field(min_length=1)
+    name: str = Field(min_length=1)    # shown to citizens: plain words, no file paths or identifiers
     url: str = Field(min_length=1)     # an https URL, or "VERIFY" when there is no confirmed public source
+
+    @field_validator("name")
+    @classmethod
+    def _plain_name(cls, v: str) -> str:
+        if "_" in v or "/" in v:
+            raise ValueError(f"source name must be plain words (no '_' or '/'), got {v!r}")
+        return v
 
     @field_validator("url")
     @classmethod
@@ -72,6 +79,7 @@ class Entry(BaseModel):
     steps: list[str] = []
     source: Source
     verify: bool
+    verify_with: Optional[str] = None  # who to check with when verify is true: "the Collectorate", "the issuing office"
     scheme: Optional[str] = None
     documents_from_scheme: bool = False
 
@@ -82,6 +90,8 @@ class Entry(BaseModel):
             raise ValueError(f"{self.id}: entry text uses a decision word; the guard would reject its own fallback")
         if self.scheme is not None and not is_scheme(self.scheme):
             raise ValueError(f"{self.id}: unknown scheme {self.scheme!r}")
+        if self.verify and not (self.verify_with or "").strip():
+            raise ValueError(f"{self.id}: verify: true needs verify_with (who the citizen should check with)")
         return self
 
 
@@ -241,7 +251,7 @@ class EntryRef(BaseModel):
     title: str
     source: Source
     verify: bool
-    tag: Optional[str] = None          # VERIFY_TAG when verify is true
+    tag: Optional[str] = None          # "Verify with <verify_with>" when verify is true
 
 
 class SahayakReply(BaseModel):
@@ -255,7 +265,8 @@ class SahayakReply(BaseModel):
 
 
 def _ref(e: Entry) -> EntryRef:
-    return EntryRef(id=e.id, title=e.title, source=e.source, verify=e.verify, tag=VERIFY_TAG if e.verify else None)
+    return EntryRef(id=e.id, title=e.title, source=e.source, verify=e.verify,
+                    tag=f"Verify with {e.verify_with}" if e.verify else None)
 
 
 def build_prompt(message: str, entries: list[Entry], scheme: Optional[Scheme],
@@ -288,4 +299,5 @@ def respond(message: str, entries_all: list[Entry], llm: Optional[SahayakLLM], b
     allowed = "\n".join(entry_text(e, scheme) for e in entries) + "\n" + (summary.model_dump_json() if summary else "")
     if guard_problems(text, allowed):
         return fallback("guard")
-    return SahayakReply(answer=text.strip(), used_fallback=False, entries=refs)
+    # Only the top entry is cited: the other retrieved entries gave context but may not be what the answer used.
+    return SahayakReply(answer=text.strip(), used_fallback=False, entries=refs[:1])

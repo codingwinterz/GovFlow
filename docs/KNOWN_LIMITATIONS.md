@@ -122,7 +122,8 @@ None of these may be used for a real decision until checked against official sou
 - **Multilingual helper: planned.** Sahayak answers in English only, whatever the page language, and says so.
 - **Sahayak** (the self-check page's helper) answers only from `rules/sahayak_knowledge.yaml`: seven entries,
   keyword retrieval (no synonyms or spelling tolerance, so an unusual wording may find nothing and get the fixed
-  "I can't help with that here" reply). Entries marked VERIFY carry a "Verify with the Collectorate" tag; four
+  "I can't help with that here" reply). Entries marked VERIFY carry a "Verify with …" tag naming who to check with (the Collectorate, the issuing
+  office or the relief office); four
   are marked (which land record, name spelling, and the two relief self-check topics) and six give VERIFY as
   their source URL (all but the land record entry). The Gemini wording path is tested offline only (never exercised live); its temperature is a
   VERIFY. The guard is pattern-based: it rejects numbers, rupee mentions, decision words, websites and office

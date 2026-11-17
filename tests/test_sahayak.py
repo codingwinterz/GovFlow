@@ -261,3 +261,43 @@ def test_topics_for_the_chips(env):
     status, body = call(app, "GET", "/public/sahayak?scheme=disaster_relief")
     ids = [t["id"] for t in body["topics"]]
     assert status == 200 and "relief_notified_area" in ids and "land_record_to_bring" not in ids
+
+
+# --- per-entry "verify with" wording, plain source names, one source per answer (bug-fix round C) -----------------
+
+@pytest.mark.parametrize("message, scheme, entry_id, tag", [
+    ("which land record do I bring", "land_acquisition", "land_record_to_bring", "Verify with the Collectorate"),
+    ("my name is Borges on one and Borgeskar on another", None, "name_spelling_mismatch",
+     "Verify with the issuing office"),
+    ("what does notified area mean", "disaster_relief", "relief_notified_area", "Verify with the relief office"),
+    ("what does the damage percentage mean", "disaster_relief", "relief_damage_share", "Verify with the relief office"),
+])
+def test_each_verify_entry_names_who_to_verify_with(message, scheme, entry_id, tag):
+    (ref,) = _ask(message, None, scheme=scheme).entries
+    assert (ref.id, ref.tag) == (entry_id, tag)
+
+
+def test_no_source_name_shows_a_file_path_or_an_underscore():
+    for e in KB:
+        assert "_" not in e.source.name and "/" not in e.source.name and ".yaml" not in e.source.name, e.id
+
+
+def test_an_llm_answer_lists_only_the_top_entrys_source():
+    # "which land record" retrieves the land-record entry and the documents entry; only the top one is cited
+    assert len(retrieve("which land record do I bring", KB, "land_acquisition")) == 2
+    reply = _ask("which land record do I bring", Fake("Bring Form I & XIV."))
+    assert reply.used_fallback is False and [e.id for e in reply.entries] == ["land_record_to_bring"]
+
+
+@pytest.mark.parametrize("entry, why", [
+    ({"verify": True}, "verify without verify_with"),
+    ({"source": {"name": "rules/disaster_relief.yaml", "url": "VERIFY"}}, "file path in the source name"),
+    ({"source": {"name": "disaster_relief self-check", "url": "VERIFY"}}, "underscore in the source name"),
+])
+def test_the_loader_rejects_unclear_verify_or_source_wording(tmp_path, entry, why):
+    base = {"id": "x", "keywords": ["x"], "title": "X", "answer": "x", "source": {"name": "n", "url": "VERIFY"},
+            "verify": False}
+    path = tmp_path / "kb.yaml"
+    path.write_text(yaml.safe_dump({"entries": [{**base, **entry}]}), encoding="utf-8")
+    with pytest.raises(KnowledgeError):
+        load_knowledge(path)

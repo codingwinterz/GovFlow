@@ -104,7 +104,8 @@ cd web && npm run dev                                   # terminal 2, open http:
   claim is approved").
 - **Say:** "Sahayak answers only from a small, sourced knowledge base, in English. A guard rejects any amount,
   decision word, website or office that is not in its notes, and then it shows the note itself, with its source and
-  a *verify with the Collectorate* tag. It never says anyone qualifies, and it does not store the question."
+  a *verify with …* tag naming who to check with. It never says anyone qualifies, and it does not store the
+  question."
 - **Fallback:** with no Gemini key (or the daily cap reached) every answer is the note itself, marked as such.
 
 ### 8. Rule simulator (2:45, ~15 s)
