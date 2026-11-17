@@ -349,3 +349,30 @@ test("opening another case shows a loading state, never the previous case's head
   assert.equal(await page.getByText("LA-01").count(), 0);
   await close();
 });
+
+// --- keyboard focus is visible on every control, including radios, checkboxes and text areas (round B) ---------------
+
+test("keyboard focus is visible on radios, checkboxes, text areas and inputs of the decision panel", async () => {
+  const { page, close } = await open("#/officer/cases/LA-01", (url) => ({ json: url.endsWith("/cases/LA-01") ? CASE : [] }),
+    { login: OFFICER_LOGIN });
+  await page.locator("section.decision form").waitFor();
+  await page.getByLabel("Approve").check();
+  await page.locator(".confirm-item").first().waitFor();
+  await page.getByLabel("Approve").focus();
+  const seen = [];
+  for (let i = 0; i < 12; i++) {
+    const f = await page.evaluate(() => {
+      const el = document.activeElement;
+      if (!el || !el.closest("section.decision")) return null;
+      const s = getComputedStyle(el);
+      return { what: `${el.tagName.toLowerCase()}${el.type ? `[${el.type}]` : ""}`,
+        visible: s.outlineStyle !== "none" && parseFloat(s.outlineWidth) >= 2 };
+    });
+    if (f) seen.push(f);
+    await page.keyboard.press("Tab");
+  }
+  const kinds = new Set(seen.map((f) => f.what));
+  for (const k of ["input[radio]", "input[checkbox]", "textarea[textarea]"]) assert.ok(kinds.has(k), `never reached ${k}`);
+  assert.deepEqual(seen.filter((f) => !f.visible).map((f) => f.what), []);
+  await close();
+});
