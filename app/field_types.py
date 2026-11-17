@@ -17,6 +17,7 @@ _PLAIN_NUMBER = re.compile(r"[+-]?(\d+(\.\d*)?|\.\d+)")
 _WESTERN_GROUPED = re.compile(r"[+-]?\d{1,3}(,\d{3})+" + _FRACTION)          # 100,000  1,234,567
 _INDIAN_GROUPED = re.compile(r"[+-]?\d{1,2}(,\d{2})*,\d{3}" + _FRACTION)    # 1,00,000  12,34,567
 _ISO_DATE = re.compile(r"\d{4}-\d{2}-\d{2}")
+_DAY_FIRST_DATE = re.compile(r"(\d{1,2})([/.-])(\d{1,2})\2(\d{4})")   # DD/MM/YYYY, DD-MM-YYYY, DD.MM.YYYY
 
 Coerced = tuple[Optional[Any], Optional[str]]   # (value, None) or (None, reason)
 
@@ -57,12 +58,15 @@ def _date(value: Any) -> Coerced:
     if isinstance(value, date):
         return value, None
     text = str(value).strip()
-    if _ISO_DATE.fullmatch(text):
-        try:
+    try:
+        if _ISO_DATE.fullmatch(text):
             return date.fromisoformat(text), None
-        except ValueError:
-            pass
-    return None, f"{value!r} is not an ISO date (YYYY-MM-DD)"
+        m = _DAY_FIRST_DATE.fullmatch(text)
+        if m:   # Goa documents print dates day first: 01/10/2026 is 1 October, never 10 January
+            return date(int(m.group(4)), int(m.group(3)), int(m.group(1))), None
+    except ValueError:
+        pass    # e.g. 01/13/2026 (only valid month first) or 31/02/2026: rejected, never swapped
+    return None, f"{value!r} is not a date (YYYY-MM-DD, or day first DD/MM/YYYY)"
 
 
 def _unit(value: Any) -> Coerced:

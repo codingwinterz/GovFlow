@@ -44,7 +44,8 @@ def test_number_rejects_anything_else_with_a_reason(raw, reason):
 @pytest.mark.parametrize("raw, value, error", [
     ("2026-11-15", date(2026, 11, 15), None), (" 2026-11-15 ", date(2026, 11, 15), None),
     (date(2026, 1, 2), date(2026, 1, 2), None),
-    ("15/11/2026", None, "not an ISO date"), ("2026-02-30", None, "not an ISO date"), ("", None, "empty"),
+    ("15/11/2026", date(2026, 11, 15), None), ("11/15/2026", None, "not a date"),   # day first only
+    ("2026-02-30", None, "not a date"), ("", None, "empty"),
 ])
 def test_date(raw, value, error):
     got, why = coerce("date", raw)
@@ -105,7 +106,7 @@ def test_invalid_document_value_never_falls_back_to_a_default():
 
 def test_invalid_date_makes_validity_unknown_not_valid():
     case = _dr01(80)
-    case.documents["identity_proof"].fields["expiry_date"].value = "31/12/2030"
+    case.documents["identity_proof"].fields["expiry_date"].value = "12/31/2030"   # month first: not a day-first date
     result = assess_case(DR, case, [])
     kinds = {f.kind for f in result.verification.flags}
     assert {"invalid_value", "validity_unknown"} <= kinds

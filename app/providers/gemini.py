@@ -40,7 +40,8 @@ PROMPT = """You are reading a scanned {doc_type} for a government case file.
 Extract only these fields: {fields}.
 Rules:
 - Copy each value exactly as printed. Do not correct spelling or expand abbreviations.
-- Write dates as YYYY-MM-DD.
+- Dates on these documents are written day first, DD/MM/YYYY (01/10/2026 is 1 October 2026). Copy a date exactly
+  as printed; do not reorder or convert it.
 - For an area, put the number in "area" and the unit exactly as printed in "area_unit".
 - If a field is missing, unreadable or you are unsure what it says, leave it out. Never guess.
 - confidence is your estimate (0 to 1) that the value is exactly what is printed.
@@ -49,7 +50,8 @@ Rules:
 
 OCR_PROMPT = """The text below is OCR output from a scanned {doc_type}; it may contain OCR errors.
 Extract only these fields: {fields}.
-Copy values as they appear. Write dates as YYYY-MM-DD. Leave out anything unreadable. Never guess.
+Copy values as they appear. Dates are written day first, DD/MM/YYYY: copy them as printed, do not reorder them.
+Leave out anything unreadable. Never guess.
 confidence is your estimate (0 to 1) that the value is exactly what the original document says.
 The OCR text is between the DOCUMENT TEXT markers. """ + UNTRUSTED
 

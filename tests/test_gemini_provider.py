@@ -67,11 +67,11 @@ def test_sends_image_inline_with_schema_restricted_to_requested_fields():
     assert item["properties"]["name"]["enum"] == ["name", "area"]
 
 
-def test_prompt_forbids_guessing_and_asks_for_iso_dates():
+def test_prompt_forbids_guessing_and_asks_for_dates_as_printed_day_first():
     post = Recorder(_reply([]))
     GeminiProvider(api_key=KEY, post=post).extract(_request())
     prompt = " ".join(p.get("text", "") for p in post.calls[0][2]["contents"][0]["parts"])
-    assert "YYYY-MM-DD" in prompt and "never guess" in prompt.lower()
+    assert "DD/MM/YYYY" in prompt and "never guess" in prompt.lower()
 
 
 def test_ocr_text_mode_sends_text_not_images():
