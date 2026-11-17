@@ -376,3 +376,25 @@ test("keyboard focus is visible on radios, checkboxes, text areas and inputs of 
   assert.deepEqual(seen.filter((f) => !f.visible).map((f) => f.what), []);
   await close();
 });
+
+// --- the queue shows paused clocks and how many cases wait for the citizen (round D) ----------------------------------
+
+test("the queue counts cases waiting for the citizen, links to them, and marks their clock as paused", async () => {
+  const row = (id, status) => ({ case_id: id, scheme: "land_acquisition", status, confidence_flag: false, flags: [],
+    flags_count: 0, days_open: 27, sla_days: 60, overdue: false, submitted_at: "2026-10-21T06:00:00Z" });
+  const requested = [];
+  const { page, close } = await open("#/officer", (url) => {
+    const u = new URL(url);
+    if (!u.pathname.endsWith("/cases")) return { json: [] };
+    requested.push(u.searchParams.get("status"));
+    return { json: u.searchParams.get("status") === "needs_info" ? [row("LA-05", "needs_info")] : [row("LA-02", "in_officer_review")] };
+  }, { login: OFFICER_LOGIN, width: 1280 });
+  await page.locator(".waiting-count").getByText("More information needed: 1").waitFor();
+  assert.equal(await page.getByText("clock paused").count(), 0);          // the default filter shows LA-02 only
+  await page.getByRole("button", { name: "Show these cases" }).click();
+  await page.locator("table tbody tr", { hasText: "LA-05" }).waitFor();
+  const cell = await page.locator("table tbody tr", { hasText: "LA-05" }).locator("td.num").innerText();
+  assert.match(cell, /27\s*clock paused/);
+  assert.equal(await page.locator("select").first().inputValue(), "needs_info");
+  await close();
+});

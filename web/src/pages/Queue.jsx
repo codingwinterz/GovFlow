@@ -26,7 +26,9 @@ export default function Queue() {
   if (status) params.set("status", status);
   if (scheme) params.set("scheme", scheme);
   const cases = useApi(`/cases?${params}`);
+  const waiting = useApi("/cases?status=needs_info");          // shown whatever the filter: they wait on the citizen
   const termsOf = (id) => (schemes.data || []).find((s) => s.scheme === id)?.terms;
+  const waitingCount = Array.isArray(waiting.data) ? waiting.data.length : null;
 
   return (
     <section>
@@ -34,6 +36,14 @@ export default function Queue() {
       <p className="muted">
         Order comes from the API: cases with verification flags first, then oldest submission first.
       </p>
+      {waitingCount !== null && (
+        <p className="waiting-count">
+          <strong>{appLabel("status", "needs_info")}: {waitingCount}</strong>{" "}
+          <span className="muted">(waiting for the citizen; their SLA clock is paused)</span>{" "}
+          {waitingCount > 0 && status !== "needs_info" &&
+            <button type="button" className="link" onClick={() => setStatus("needs_info")}>Show these cases</button>}
+        </p>
+      )}
       <div className="filters">
         <label>Status
           <select value={status} onChange={(e) => setStatus(e.target.value)}>
@@ -64,6 +74,7 @@ export default function Queue() {
                   <td><Reason flags={c.flags} terms={termsOf(c.scheme)} /></td>
                   <td className="num" title={`Target ${c.sla_days} days for this scheme. A flag only: nothing changes automatically.`}>
                     {c.days_open}{c.overdue && <span className="badge warn">overdue</span>}
+                    {c.status === "needs_info" && <span className="badge" title="Waiting for the citizen: days open do not grow">clock paused</span>}
                   </td>
                   <td title={formatDate(c.submitted_at)}>{formatDay(c.submitted_at)}</td>
                 </tr>

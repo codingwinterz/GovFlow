@@ -55,7 +55,8 @@ Fuller detail is in `docs/KNOWN_LIMITATIONS.md`.
   self-check, rule simulator (read-only what-if over the synthetic set). Agent loop with a deterministic fallback.
 - SLA pause: the clock stops while a case is in `needs_info` (from the send-back or deficiency notice to the next
   document added, read from audit-log timestamps; `app/sla.py` `waiting_times`). Days open excludes the wait and a
-  waiting case is never overdue. Nothing is written and no status moves.
+  waiting case is never overdue. Nothing is written and no status moves. The queue marks those cases "clock
+  paused" and always shows how many there are, with a link to that filter.
 - Cross-check: when Tesseract is installed it reads each document again; a field the two readers read differently
   after normalisation goes to review as "readers disagree", whatever the confidence (skipped if Tesseract finds
   nothing for the field). Punctuation at either end of a reading is ignored when comparing.
