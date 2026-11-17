@@ -256,3 +256,75 @@ for (const hash of PAGES) {
     assert.equal(m.scrollWidth, m.vw, "page scrolls sideways");
   });
 }
+
+// --- Sahayak helper drawer (text only, English only) ---------------------------------------------------------------
+
+const SELF_CHECK = [{ scheme: "disaster_relief", labels: { title: "Disaster relief: housing damage" },
+  guide_label: "This is a guide, not a decision. Only an officer decides.", documents: [], terms: {},
+  questions: [{ field: "damage_assessment.notified_area", prompt: "Is your house in the notified area?",
+    choices: ["yes", "no"], type: "one_of" }] }];
+const TOPICS = { topics: [{ id: "relief_notified_area", title: "What is a notified area?" },
+  { id: "what_this_tool_does", title: "What does this helper do?" }], guide: "", language_note: "" };
+const FALLBACK = { answer: "The self-check asks whether your house is in the area notified as affected.",
+  used_fallback: true, reason: "guard", language: "en", entries: [{ id: "relief_notified_area",
+    title: "What is a notified area?", verify: true, tag: "Verify with the Collectorate",
+    source: { name: "GovFlow disaster relief self-check", url: "VERIFY" } }] };
+
+function sahayakApi({ ask = () => ({ json: FALLBACK }), topics = () => ({ json: TOPICS }) } = {}) {
+  return (url, method) => {
+    const path = new URL(url).pathname;
+    if (path.endsWith("/public/self-check")) return { json: SELF_CHECK };
+    if (path.endsWith("/public/sahayak")) return method === "POST" ? ask() : topics();
+    return { json: [] };
+  };
+}
+
+test("Sahayak drawer at 390px: no sideways scroll, 24 px targets, guide banner, English note", async () => {
+  const { page, close } = await open("#/citizen/check", sahayakApi());
+  await page.getByRole("button", { name: "Sahayak" }).click();
+  await page.locator(".chip").first().waitFor();
+  const m = await page.evaluate(() => {
+    const box = (el) => el.getBoundingClientRect();
+    const small = [...document.querySelectorAll(".drawer button, .drawer textarea")]
+      .filter((el) => { const b = box(el); return b.width > 0 && (b.width < 24 || b.height < 24); }).length;
+    return { small, scroll: document.documentElement.scrollWidth, vw: window.innerWidth,
+      drawer: Math.round(box(document.querySelector(".drawer")).width), text: document.querySelector(".drawer").innerText };
+  });
+  assert.equal(m.scroll, m.vw, "page scrolls sideways");
+  assert.equal(m.drawer, m.vw, "drawer should be full width on a phone");
+  assert.equal(m.small, 0);
+  assert.match(m.text, /Sahayak answers in English\./);
+  assert.match(m.text, /A guide, not a decision\. Only an officer decides\./);
+  await close();
+});
+
+test("a Sahayak fallback answer is announced and shows its source and the verify tag", async () => {
+  const { page, close } = await open("#/citizen/check", sahayakApi());
+  await page.getByRole("button", { name: "Sahayak" }).click();
+  await page.getByRole("button", { name: "What is a notified area?" }).click();
+  const reply = page.locator(".drawer [role=status][aria-live=polite]");
+  await reply.getByText("The self-check asks whether").waitFor();
+  const text = await reply.innerText();
+  assert.match(text, /Source: GovFlow disaster relief self-check \(source to be confirmed\)/);
+  assert.match(text, /Verify with the Collectorate/);
+  await close();
+});
+
+test("Sahayak errors offer Retry, for the question and for the suggestions", async () => {
+  let failAsk = true, failTopics = true;
+  const { page, close } = await open("#/citizen/check", sahayakApi({
+    ask: () => (failAsk ? { status: 500, json: {} } : { json: FALLBACK }),
+    topics: () => (failTopics ? { status: 500, json: {} } : { json: TOPICS }) }));
+  await page.getByRole("button", { name: "Sahayak" }).click();
+  await page.locator(".drawer [role=alert]").getByText("Could not load the suggested questions.").waitFor();
+  failTopics = false;
+  await page.locator(".drawer").getByRole("button", { name: "Retry" }).click();
+  await page.locator(".chip").first().waitFor();
+  await page.locator(".drawer textarea").fill("what is a notified area");
+  await page.getByRole("button", { name: "Ask" }).click();
+  await page.locator(".drawer [role=alert]").getByText("Sahayak could not answer just now.").waitFor();
+  failAsk = false;
+  await page.locator(".drawer").getByRole("button", { name: "Retry" }).click();
+  await page.locator(".drawer [role=status]").getByText("The self-check asks whether").waitFor();
+  await close();
+});

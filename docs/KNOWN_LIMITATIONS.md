@@ -117,7 +117,19 @@ None of these may be used for a real decision until checked against official sou
 - The rule simulator runs over the synthetic set only, not over live cases.
 
 ## Product scope
-- **Voice assistant: planned**, not built. There is no voice input or spoken output anywhere in the product.
+- **Voice assistant: planned**, not built. There is no voice input or spoken output anywhere in the product
+  (Sahayak is text only).
+- **Multilingual helper: planned.** Sahayak answers in English only, whatever the page language, and says so.
+- **Sahayak** (the self-check page's helper) answers only from `rules/sahayak_knowledge.yaml`: seven entries,
+  keyword retrieval (no synonyms or spelling tolerance, so an unusual wording may find nothing and get the fixed
+  "I can't help with that here" reply). Entries marked VERIFY carry a "Verify with the Collectorate" tag; four
+  are marked (which land record, name spelling, and the two relief self-check topics) and six give VERIFY as
+  their source URL (all but the land record entry). The Gemini wording path is tested offline only (never exercised live); its temperature is a
+  VERIFY. The guard is pattern-based: it rejects numbers, rupee mentions, decision words, websites and office
+  names not in the retrieved entries, so a harmful sentence without any of those could pass; anything it rejects
+  falls back to the entry text. Rate limit (20 per client per ten minutes) and daily provider cap (200) are in
+  memory: they reset on restart and count the proxy's address behind a proxy. The message is never stored (the
+  audit row keeps its length and the matched entry ids).
 - **Deficiency notice ("Request documents")**: it asks only for what a citizen can fix (missing, expired or
   unreadable documents, a name mismatch, a missing entry); anything else (survey or house mismatch, duplicate
   claims, implausible values, tenant / mundkar entries, extraction outages) is left to the officer. Field names

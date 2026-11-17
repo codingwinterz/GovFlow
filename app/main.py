@@ -35,6 +35,10 @@ from app.env_file import env_value
 from app.citizen import citizen_secret as default_citizen_secret
 from app.confidence import needs_review_for_confidence
 from app.resolutions import open_resolution_flags
+from app import sahayak
+
+SAHAYAK_DAILY_CAP = 200     # provider calls per day; past it, answers come from the entries verbatim
+SAHAYAK_RATE_LIMIT = 20     # questions per client per ten minutes
 from app.extraction import EXTRACTION_UNAVAILABLE_MESSAGE, ProviderError
 from app.case_store import load_case
 from app.models import AuditLog, Case, CompensationItemRow, Document, ExtractedField, RuleResultRow
@@ -43,7 +47,7 @@ from app.privacy import mask_identifiers
 from app.rules_engine import overall_from
 from app.self_check import NoSelfCheck, public_questions, self_check
 from app.simulator import knobs, simulate
-from app.rules_loader import RULES_DIR, Scheme, case_input_names, load_scheme_by_name
+from app.rules_loader import RULES_DIR, Scheme, case_input_names, is_scheme, load_scheme_by_name, scheme_names
 
 
 def officer_inputs(scheme: Scheme) -> list[str]:
@@ -52,7 +56,7 @@ def officer_inputs(scheme: Scheme) -> list[str]:
 
 
 def _all_schemes() -> list[Scheme]:
-    return [load_scheme_by_name(p.stem) for p in sorted(RULES_DIR.glob("*.yaml"))]
+    return [load_scheme_by_name(name) for name in scheme_names()]
 
 ROLES = ("citizen", "clerk", "officer", "admin")   # admin: rule simulator only
 UPLOAD_TYPES = {".txt", ".png", ".jpg", ".jpeg", ".pdf"}
@@ -98,6 +102,13 @@ class StatusLookup(BaseModel):
 class SelfCheckIn(BaseModel):
     scheme: str = Field(max_length=64)
     answers: dict[str, str] = {}
+
+
+class SahayakIn(BaseModel):
+    model_config = {"extra": "forbid"}
+    message: str = Field(min_length=1, max_length=sahayak.MAX_MESSAGE)
+    scheme: Optional[str] = Field(None, max_length=64)
+    self_check: Optional[sahayak.SelfCheckSummary] = None    # ids and statuses only, never free text
 
 
 class SimulateIn(BaseModel):
@@ -232,13 +243,19 @@ def create_app(engine: Optional[Engine] = None, agent_llm_factory: Optional[Call
                upload_dir: Optional[Path] = None, citizen_secret: Optional[str] = None,
                auth_secret: Optional[str] = None, demo_insecure: Optional[bool] = None,
                clock: Callable[[], float] = time.monotonic,
-               now: Callable[[], datetime] = lambda: datetime.now(timezone.utc)) -> FastAPI:
+               now: Callable[[], datetime] = lambda: datetime.now(timezone.utc),
+               sahayak_llm_factory: Optional[Callable[[], Any]] = None,
+               sahayak_daily_cap: int = SAHAYAK_DAILY_CAP, sahayak_rate_limit: int = SAHAYAK_RATE_LIMIT) -> FastAPI:
     app = FastAPI(title="GovFlow", version="0.1.0")
     app.add_middleware(BodyLimit, max_bytes=MAX_BODY_BYTES)   # 413 before any handler reads an oversized body
     secret = citizen_secret or default_citizen_secret()   # None: status lookups answer 503, never a weak default
     signing = auth_secret or env_value(AUTH_ENV)          # None: sign-in answers 503 and no token is accepted
     insecure = demo_insecure if demo_insecure is not None else env_value(INSECURE_ENV) == "1"
     limiter = RateLimiter(clock)
+    knowledge = sahayak.load_knowledge()                                    # fail at start-up, not mid-chat
+    sahayak_limiter = sahayak.RateLimiter(clock, limit=sahayak_rate_limit)  # its own, per client
+    sahayak_budget = sahayak.DailyBudget(sahayak_daily_cap, today=lambda: now().date())
+    sahayak_llm: dict[str, Any] = {}
 
     def actor_dep(authorization: Optional[str] = Header(None), x_role: Optional[str] = Header(None),
                   x_user: Optional[str] = Header(None)) -> Actor:
@@ -312,6 +329,42 @@ def create_app(engine: Optional[Engine] = None, agent_llm_factory: Optional[Call
             raise HTTPException(404, "not_found")
         return citizen_view(session, case)
 
+    def _sahayak_llm() -> Any:
+        """Built once; None when no provider is configured or it cannot be built (answers then come from entries)."""
+        if "llm" not in sahayak_llm:
+            try:
+                sahayak_llm["llm"] = sahayak_llm_factory() if sahayak_llm_factory else None
+            except Exception:
+                sahayak_llm["llm"] = None
+        return sahayak_llm["llm"]
+
+    @app.get("/public/sahayak")
+    def sahayak_topics(scheme: Optional[str] = None) -> dict[str, Any]:
+        """Suggested questions (entry titles). No sign-in."""
+        if scheme is not None and not is_scheme(scheme):
+            raise HTTPException(422, "unknown scheme")
+        topics = [{"id": e.id, "title": e.title} for e in knowledge if e.scheme in (None, scheme) or scheme is None]
+        return {"topics": topics, "guide": sahayak.GUIDE, "language_note": sahayak.LANGUAGE_NOTE}
+
+    @app.post("/public/sahayak")
+    def sahayak_ask(body: SahayakIn, request: Request, session: Session = Depends(session_dep)) -> dict[str, Any]:
+        """No sign-in. Answers only from the knowledge base; never decides, estimates or advises. The message is not
+        stored: the audit row keeps its length and the matched entry ids only."""
+        client = request.client.host if request.client else "unknown"
+        if not sahayak_limiter.allow(client):
+            raise HTTPException(429, "too_many_attempts")
+        if body.scheme is not None and not is_scheme(body.scheme):
+            raise HTTPException(422, "unknown scheme")
+        problem = sahayak.summary_problem(body.self_check, body.scheme)
+        if problem:
+            raise HTTPException(422, problem)
+        reply = sahayak.respond(body.message, knowledge, _sahayak_llm(), sahayak_budget, body.scheme, body.self_check)
+        log_action(session, None, "citizen:public", "sahayak_query",
+                   {"message_length": len(body.message), "entries": [e.id for e in reply.entries],
+                    "used_fallback": reply.used_fallback, "reason": reply.reason, "scheme": body.scheme})
+        session.commit()
+        return mask_identifiers(reply.model_dump())
+
     @app.get("/public/self-check")
     def self_check_questions() -> list[dict[str, Any]]:
         return [q for q in (public_questions(s) for s in _all_schemes()) if q]
@@ -322,7 +375,7 @@ def create_app(engine: Optional[Engine] = None, agent_llm_factory: Optional[Call
         client = request.client.host if request.client else "unknown"
         if not limiter.allow(client, f"self-check:{body.scheme}"):
             raise HTTPException(429, "too_many_attempts")
-        if not tools.SCHEME_NAME.match(body.scheme) or not (RULES_DIR / f"{body.scheme}.yaml").is_file():
+        if not is_scheme(body.scheme):
             raise HTTPException(404, "no_self_check")
         try:
             return self_check(load_scheme_by_name(body.scheme), body.answers).model_dump()
@@ -466,7 +519,7 @@ def create_app(engine: Optional[Engine] = None, agent_llm_factory: Optional[Call
                                                   language=body.language).model_dump())
 
     def _known_scheme(name: str) -> None:
-        if not tools.SCHEME_NAME.match(name) or not (RULES_DIR / f"{name}.yaml").is_file():
+        if not is_scheme(name):
             raise HTTPException(404, f"Unknown scheme {name!r}")
 
     @app.get("/simulate/{scheme}")
@@ -554,7 +607,14 @@ def _default_extraction() -> Any:
     return GeminiProvider()
 
 
+def _default_sahayak() -> Any:
+    from app.env_file import load_env_file
+    from app.providers.gemini_sahayak import GeminiSahayak
+    load_env_file(Path(__file__).resolve().parent.parent / ".env")
+    return GeminiSahayak()
+
+
 app = create_app(agent_llm_factory=_default_llm, extraction_factory=_default_extraction,
-                 cross_check_factory=_default_cross_check,
+                 cross_check_factory=_default_cross_check, sahayak_llm_factory=_default_sahayak,
                  citizen_secret=default_citizen_secret(DOTENV), auth_secret=env_value(AUTH_ENV, DOTENV),
                  demo_insecure=env_value(INSECURE_ENV, DOTENV) == "1")

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { t } from "../lib/i18n.js";
 import { readable, termLabel } from "../lib/display.js";
 import { readList } from "../lib/states.js";
+import Sahayak from "./Sahayak.jsx";
 
 class CheckError extends Error {}
 
@@ -46,7 +47,10 @@ export default function SelfCheck({ dict }) {
 
   return (
     <section className="card">
-      <h1>{t(dict, "nav.self_check")}</h1>
+      <div className="self-head">
+        <h1>{t(dict, "nav.self_check")}</h1>
+        <Sahayak scheme={scheme?.scheme} result={result} />
+      </div>
       {scheme && <p className="banner warn"><strong>{scheme.guide_label}</strong></p>}
       {loading && <p className="muted" role="status">{t(dict, "self.loading")}</p>}
       {!loading && schemes.length === 0 && !error && <p className="muted">{t(dict, "self.none")}</p>}

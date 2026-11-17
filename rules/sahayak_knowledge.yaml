@@ -1,0 +1,101 @@
+# Sahayak knowledge base: the only material the helper may answer from. Plain English, short.
+# Each entry: id, keywords, title, answer, steps (optional), source {name, url: a URL or "VERIFY"}, verify.
+# verify: true -> the reply carries a "Verify with the Collectorate" tag. Optional: scheme (only offered for that
+# scheme); documents_from_scheme: true (steps are filled from the scheme YAML's required documents).
+# Rules for writing entries: no fees, no deadlines, no amounts, no eligibility verdicts, no legal conclusions.
+# Never use the words the output guard rejects (approved, rejected, sanctioned, entitled, guaranteed).
+
+entries:
+  - id: land_record_to_bring
+    scheme: land_acquisition
+    keywords: [land record, record of rights, form i, form xiv, form i & xiv, "7/12", ownership record,
+               goaonline, dslr, which document, which record, digitally signed, survey]
+    title: Which land record should I bring?
+    answer: >-
+      Bring Form I & XIV (the record of rights) for your survey number. A digitally signed copy is obtained
+      through goaonline.gov.in. The view on dslr.goa.gov.in may be informational only, so check with the
+      Collectorate whether the on-screen view is accepted.
+    source:
+      name: "goaonline.gov.in for the digitally signed copy; dslr.goa.gov.in is described as informational only by a commercial guide"
+      url: "https://goaonline.gov.in"
+    verify: true
+
+  - id: name_spelling_mismatch
+    keywords: [name, spelling, spelt, spelled, mismatch, different name, borges, borgeskar, surname, does not match,
+               name change, typo]
+    title: My name is spelt differently on two documents
+    answer: >-
+      If your name is spelt differently on different documents (for example Borges on one and Borgeskar on
+      another), bring supporting documents that show both spellings refer to the same person. Ask the office
+      that issued the document how to correct its record.
+    steps:
+      - Bring the documents with each spelling.
+      - Bring any document that shows both spellings belong to you.
+      - Ask the office that issued the document how its record can be corrected.
+    source:
+      name: "General guidance; the correction procedure depends on the issuing office"
+      url: "VERIFY"
+    verify: true
+
+  - id: tenant_or_mundkar_entry
+    scheme: land_acquisition
+    keywords: [tenant, tenancy, mundkar, other rights, rights, record of rights entry, encumbrance, kul, occupant]
+    title: The record shows a tenant or mundkar entry
+    answer: >-
+      A tenant or mundkar entry on the record of rights means the rights in the land need additional
+      verification under the Goa, Daman and Diu Agricultural Tenancy Act, 1964 and the Goa, Daman and Diu
+      Mundkars (Protection from Eviction) Act, 1975. This helper cannot tell you what the entry means for you.
+      An officer will look into it and record how it is resolved.
+    source:
+      name: "The Goa, Daman and Diu Agricultural Tenancy Act, 1964; The Goa, Daman and Diu Mundkars (Protection from Eviction) Act, 1975"
+      url: "VERIFY"
+    verify: false
+
+  - id: document_missing_expired_unreadable
+    keywords: [missing, expired, old, unreadable, blurred, blurry, not clear, document, documents, lost,
+               which documents, what to bring, bring]
+    title: A document is missing, expired or unreadable
+    answer: >-
+      Each scheme lists the documents it needs. If one is missing, bring it. If one has expired or is too old,
+      bring a current one. If a copy cannot be read, bring a clearer copy or the original.
+    documents_from_scheme: true
+    source:
+      name: "GovFlow scheme rules (the documents each scheme's YAML file requires)"
+      url: "VERIFY"
+    verify: false
+
+  - id: what_this_tool_does
+    keywords: [what is this, what does, sahayak, helper, decide, decision, eligible, eligibility, claim, status,
+               who decides, officer, help]
+    title: What does this helper do?
+    answer: >-
+      Sahayak is a guide. It explains the documents and checks using fixed notes, and it cannot decide anything:
+      it does not say whether you qualify or how much you may receive. Officers make every decision.
+    source:
+      name: "GovFlow"
+      url: "VERIFY"
+    verify: false
+
+  - id: relief_damage_share
+    scheme: disaster_relief
+    keywords: [damage, damaged, percentage, percent, how much damage, damage assessment, assessment, house damage]
+    title: What does the damage question in the self-check mean?
+    answer: >-
+      The self-check asks roughly what share of your house was damaged, as written on the damage assessment
+      report if you have one. It is a guide only: an officer checks the assessment report itself.
+    source:
+      name: "GovFlow disaster relief self-check (rules/disaster_relief.yaml)"
+      url: "VERIFY"
+    verify: true
+
+  - id: relief_notified_area
+    scheme: disaster_relief
+    keywords: [notified, notified area, affected area, area, village, disaster area, affected]
+    title: What is a notified area?
+    answer: >-
+      The self-check asks whether your house is in the area notified as affected by the disaster. If you are
+      not sure, say so to the officer, who checks it against the damage assessment.
+    source:
+      name: "GovFlow disaster relief self-check (rules/disaster_relief.yaml)"
+      url: "VERIFY"
+    verify: true

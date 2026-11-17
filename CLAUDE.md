@@ -75,6 +75,11 @@ Fuller detail is in `docs/KNOWN_LIMITATIONS.md`.
   field) with fixed templates (`deficiency.*` in the en/hi/mr/kok files) and YAML labels; no LLM. Preview, then
   send: stored (`deficiency_notices`), audit row `deficiency_notice_sent`, case to the existing `needs_info`. The
   tracking page shows "Documents needed" and prints it. Never approves, rejects or computes.
+- Sahayak (self-check page): text-only, English-only helper, `POST /public/sahayak` (no sign-in). Keyword
+  retrieval (top 3) over `rules/sahayak_knowledge.yaml` (7 sourced entries, not a scheme); Gemini may phrase an
+  answer from those entries only (no tools, low temperature); a guard (numbers, rupees, decision words, websites,
+  offices not in the entries) or any provider failure falls back to the entry text verbatim. Own rate limit, daily
+  provider cap, message never stored (audit row: length and entry ids). No voice anywhere.
 - Default model `gemini-3.5-flash-lite` (`GEMINI_MODEL` overrides).
 - Synthetic document images for both schemes (land 7, relief 7), each clean, degraded and hard (stamp, one
   handwriting-style field, phone-photo look), all labelled SYNTHETIC. LA-11's image prints its damaged scan text.
@@ -94,8 +99,8 @@ Fuller detail is in `docs/KNOWN_LIMITATIONS.md`.
 - Demo database re-seeded 2026-11-16 after the backdating fix: Submitted and Days open agree for all 23 open cases.
 
 ### Tests (all green at commit time)
-- Python: 1002 passed (`pytest -q`, about 5 minutes; with little free memory, run in two batches).
-- Frontend: 68 logic (`npm test`) + 25 browser (`npm run test:layout`); `npm run test:all` runs both. Build clean.
+- Python: 1049 passed (`pytest -q`, about 5 minutes; with little free memory, run in batches).
+- Frontend: 71 logic (`npm test`) + 28 browser (`npm run test:layout`); `npm run test:all` runs both. Build clean.
 
 ### Still marked VERIFY
 - Land acquisition (`rules/land_acquisition.yaml`): notification references (source); 60-day SLA; record-of-rights
@@ -114,13 +119,18 @@ Fuller detail is in `docs/KNOWN_LIMITATIONS.md`.
   mundkar / other-rights entries; which resolution document applies in an acquisition; that the empty-value list
   covers how Goa's records write an empty column. Basis cited: the Goa, Daman and Diu Agricultural Tenancy Act,
   1964 and the Goa, Daman and Diu Mundkars (Protection from Eviction) Act, 1975.
+- Sahayak (`rules/sahayak_knowledge.yaml`): entries with verify: true (land_record_to_bring, name_spelling_mismatch,
+  relief_damage_share, relief_notified_area) and every source given as VERIFY (name_spelling_mismatch,
+  tenant_or_mundkar_entry, document_missing_expired_unreadable, what_this_tool_does, relief_damage_share,
+  relief_notified_area); `app/providers/gemini_sahayak.py` temperature 0.1 (never run live).
 - Plausibility ranges (placeholders, not legal values): land `area_sqm` 10 to 500,000 (holding) and 10 to 5,000,000
   (survey number); `market_value_per_sqm` Rs 100 to 1,00,000.
 
 ### Open items
 - **Feature freeze from 2026-11-17.** No new features; only fixes, docs and demo preparation. One exception
   granted 2026-11-17: the tenant / mundkar rule and the deficiency notice.
-- Voice assistant: planned, not built.
+- Voice assistant: planned, not built. Multilingual helper: planned (Sahayak is English only).
+- A second freeze exception, 2026-11-17: Sahayak (text only, English only).
 - Deficiency notices name fields in English (YAML labels) even in the hi/mr/kok drafts.
 - Live evaluation (`docs/EVAL_RESULTS.md`, two runs on 17 Nov 2026, synthetic only) on `gemini-3.5-flash-lite`
   only (other models were unreachable on 16 Nov). After the fix round, Gemini: relief 35/35 on clean, degraded and

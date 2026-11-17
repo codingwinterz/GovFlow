@@ -32,7 +32,7 @@ from app.facts import build_facts
 from app.models import DeficiencyNotice, india_date
 from app.rules_engine import EligibilityResult, overall_from
 from app.rules_engine import check_eligibility as check_eligibility_pure
-from app.rules_loader import RULES_DIR, Scheme, amount_fields, load_scheme_by_name
+from app.rules_loader import RULES_DIR, Scheme, amount_fields, is_scheme, load_scheme_by_name
 
 _MEDIA_TYPES = {".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".pdf": "application/pdf"}
 
@@ -376,7 +376,7 @@ SCHEME_NAME = re.compile(r"^[a-z][a-z0-9_]{0,63}$")   # becomes a file name unde
 
 def create_case(session: Session, case_id: str, scheme_name: str, reference_date: date,
                 inputs: Optional[dict[str, Any]] = None, actor: str = "system") -> Case:
-    if not SCHEME_NAME.match(scheme_name) or not (RULES_DIR / f"{scheme_name}.yaml").is_file():
+    if not SCHEME_NAME.match(scheme_name) or not is_scheme(scheme_name):
         raise InvalidInput(f"Unknown scheme {scheme_name!r}")
     scheme = load_scheme_by_name(scheme_name)
     if session.get(Case, case_id) is not None:

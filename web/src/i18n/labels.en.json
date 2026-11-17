@@ -87,6 +87,7 @@
     "officer_decision": "Officer decision",
     "flag_resolution": "Resolution recorded by officer",
     "deficiency_notice_sent": "Documents requested from citizen",
+    "sahayak_query": "Sahayak helper question (text not stored)",
     "rule_simulation": "Rule simulation",
     "submit_to_officer": "Sent to officer",
     "update_inputs": "Inputs updated",

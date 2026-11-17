@@ -3,11 +3,11 @@
 import pytest
 import yaml
 
-from app.rules_loader import RULES_DIR, RulesError, known_terms, load_scheme_by_name, parse_scheme, term_label
+from app.rules_loader import RULES_DIR, RulesError, known_terms, load_scheme_by_name, parse_scheme, scheme_names, term_label
 from tests.asgi_client import call
 from tests.auth_headers import staff
 
-SCHEMES = sorted(p.stem for p in RULES_DIR.glob("*.yaml"))
+SCHEMES = scheme_names()        # every scheme YAML (not the Sahayak knowledge base)
 
 
 @pytest.mark.parametrize("name", SCHEMES)

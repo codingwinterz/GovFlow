@@ -492,5 +492,19 @@ def load_scheme(path: Path) -> Scheme:
     return parse_scheme(yaml.safe_load(Path(path).read_text(encoding="utf-8")))
 
 
+KNOWLEDGE_FILE = "sahayak_knowledge.yaml"   # the helper's knowledge base lives in rules/ but is not a scheme
+
+
+def scheme_names() -> list[str]:
+    """Every scheme YAML in rules/ (the knowledge base file is not a scheme)."""
+    return sorted(p.stem for p in RULES_DIR.glob("*.yaml") if p.name != KNOWLEDGE_FILE)
+
+
+def is_scheme(name: str) -> bool:
+    return name in scheme_names()
+
+
 def load_scheme_by_name(name: str) -> Scheme:
+    if f"{name}.yaml" == KNOWLEDGE_FILE:
+        raise RulesError(f"{KNOWLEDGE_FILE} is the helper's knowledge base, not a scheme")
     return load_scheme(RULES_DIR / f"{name}.yaml")
