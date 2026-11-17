@@ -7,6 +7,7 @@ import {
 } from "../lib/format.js";
 import { href } from "../lib/router.js";
 import { appLabel, flagLabel, readable, readableFormula, termLabel } from "../lib/display.js";
+import { DICTS } from "../i18n/index.js";
 
 function RetryBanner({ caseId, docs, onDone, terms }) {
   const docName = (doc) => termLabel(terms, doc.doc_type);
@@ -205,6 +206,53 @@ function DecisionPanel({ caseId, confirmFields = [], resolutionsNeeded = [], ter
   );
 }
 
+// "Request documents": a notice built by the server from the open problems the citizen can fix (fixed
+// templates, no LLM). Preview first; sending stores it, audits it and moves the case to "More information needed".
+function RequestDocuments({ caseId, onDone }) {
+  const [language, setLanguage] = useState("en");
+  const [preview, setPreview] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const run = async (method) => {
+    setBusy(true);
+    setError("");
+    try {
+      const path = `/cases/${encodeURIComponent(caseId)}/notice`;
+      const r = method === "GET" ? await api("GET", `${path}?language=${language}`) : await api("POST", path, { language });
+      setPreview(r);
+      if (method === "POST") onDone();
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <section className="card">
+      <h2>Request documents</h2>
+      <p className="muted">Asks the citizen only for what they can fix: missing, expired or unreadable documents, a
+        name that does not match, a missing entry. It does not approve, reject or change any amount.</p>
+      <label>Language of the notice{" "}
+        <select value={language} onChange={(e) => { setLanguage(e.target.value); setPreview(null); }}>
+          {Object.entries(DICTS).map(([code, dict]) => (
+            <option key={code} value={code}>{dict["_meta.language"]}{code === "en" ? "" : " (draft translation)"}</option>
+          ))}
+        </select>
+      </label>
+      <div className="actions">
+        <button onClick={() => run("GET")} disabled={busy}>Preview notice</button>
+        {preview && preview.items.length > 0 && preview.language === language &&
+          <button onClick={() => run("POST")} disabled={busy}>Send to citizen</button>}
+      </div>
+      {preview && preview.items.length === 0 && <p className="muted">Nothing on this case is for the citizen to fix.</p>}
+      {preview && preview.items.length > 0 && (
+        <div className="notice-preview">{preview.lines.map((line, i) => <p key={i}>{line}</p>)}</div>
+      )}
+      {error && <p className="error">{error}</p>}
+    </section>
+  );
+}
+
 export default function CasePage({ id, login }) {
   const detail = useApi(`/cases/${encodeURIComponent(id)}`);
   const [running, setRunning] = useState(false);
@@ -259,6 +307,7 @@ export default function CasePage({ id, login }) {
               <tr key={k}><td>{termLabel(d.terms, k)}</td><td>{maskIdentifiers(v)}</td><td className="small muted">source: case inputs (officer/clerk)</td></tr>
             ))}</tbody></table>
           </section>
+          {login.role === "officer" && d.status === "in_officer_review" && <RequestDocuments caseId={d.case_id} onDone={detail.reload} />}
           {login.role === "officer" && d.status === "in_officer_review" && <DecisionPanel caseId={d.case_id} confirmFields={d.confirm_fields} resolutionsNeeded={d.resolutions_needed} terms={d.terms} onDone={detail.reload} />}
         </>
       )}

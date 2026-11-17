@@ -19,7 +19,7 @@ from app.audit import log_action
 from app.env_file import env_value
 from app.case_store import load_case
 from app.facts import build_facts
-from app.models import AuditLog, Case, CompensationItemRow, india_date
+from app.models import AuditLog, Case, CompensationItemRow, DeficiencyNotice, india_date
 from app.privacy import mask_identifiers
 from app.resolutions import open_resolution_flags
 from app.rules_loader import load_scheme_by_name
@@ -113,6 +113,23 @@ def _amounts(session: Session, case: Case, version: str) -> Optional[dict[str, A
             "terms": load_scheme_by_name(case.scheme).terms}   # so the basis reads as words, not identifiers
 
 
+def _documents_needed(session: Session, case: Case) -> Optional[dict[str, Any]]:
+    """The latest deficiency notice, while the case waits for it: status needs_info and the last move into
+    needs_info was this notice (not a plain send-back). Items are ids and YAML labels; the browser renders them."""
+    if case.status != "needs_info":
+        return None
+    last = (session.query(AuditLog).filter(AuditLog.case_id == case.id,
+                                           AuditLog.action.in_(("deficiency_notice_sent", "officer_decision")))
+            .order_by(AuditLog.id.desc()).first())
+    if last is None or last.action != "deficiency_notice_sent":
+        return None
+    notice = (session.query(DeficiencyNotice).filter_by(case_id=case.id)
+              .order_by(DeficiencyNotice.id.desc()).first())
+    if notice is None:
+        return None
+    return {"items": json.loads(notice.items_json), "language": notice.language, "date": india_date(notice.created_at)}
+
+
 def citizen_view(session: Session, case: Case) -> dict[str, Any]:
     scheme = load_scheme_by_name(case.scheme)
     status = CITIZEN_STATUS.get(case.status, "received")
@@ -123,7 +140,8 @@ def citizen_view(session: Session, case: Case) -> dict[str, Any]:
     notices = ([] if status in ("approved", "rejected", "closed") else
                [c.citizen_notice for c in open_resolution_flags(session, case.id, scheme) if c.citizen_notice])
     view = {"case_ref": case.id, "scheme": case.scheme, "status": status, "next_step": next_step,
-            "missing": missing, "notices": notices, "decision": _decision(session, case),
+            "missing": missing, "notices": notices, "documents_needed": _documents_needed(session, case),
+            "decision": _decision(session, case),
             "amounts": _amounts(session, case, scheme.version)}
     log_action(session, case.id, "citizen:public", "citizen_status_viewed",
                {"returned": sorted(k for k, v in view.items() if v)}, scheme.version)

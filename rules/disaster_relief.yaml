@@ -44,6 +44,7 @@ verification_checks:
     across: [application, identity_proof, residence_proof]
     tolerance: fuzzy_0.9
     severity: high
+    citizen_remedy: name_mismatch    # deficiency notice: a corrected document or proof of a change of name
   - id: house_match                # the assessed house is the applicant's residence
     fields: [house_number, village]
     across: [residence_proof, damage_assessment]

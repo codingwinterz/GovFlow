@@ -20,8 +20,10 @@ from tests.asgi_client import call
 
 DATA = Path(__file__).resolve().parent.parent / "data" / "synthetic"
 SECRET = "test-secret"
-ALLOWED_KEYS = {"case_ref", "scheme", "status", "next_step", "missing", "notices", "decision", "amounts"}
-# notices: translation keys only (e.g. "rights_verification"), never flag detail
+ALLOWED_KEYS = {"case_ref", "scheme", "status", "next_step", "missing", "notices", "documents_needed", "decision",
+                "amounts"}
+# notices: translation keys only (e.g. "rights_verification"), never flag detail;
+# documents_needed: the stored deficiency notice (document ids and YAML field labels) while the case waits for it
 
 
 class Clock:

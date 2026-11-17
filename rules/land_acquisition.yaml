@@ -67,6 +67,7 @@ verification_checks:
     across: [application, ownership_record, identity_proof]
     tolerance: fuzzy_0.9
     severity: high
+    citizen_remedy: name_mismatch    # deficiency notice: a corrected document or proof of a change of name
   - id: survey_no_match
     fields: [survey_number]
     across: [ownership_record, survey_sheet]

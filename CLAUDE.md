@@ -67,6 +67,11 @@ Fuller detail is in `docs/KNOWN_LIMITATIONS.md`.
   total is labelled "Total for the holding, not the owner's share", approval needs the officer's resolution
   (reference + date, audit row `flag_resolution`), and the citizen page shows "additional verification of rights
   is in progress". LA-18 (tenant), LA-19 (mundkar), LA-20 (Nil / dash), LA-21 (whitespace only).
+- Deficiency notice: officer-only "Request documents" on cases in review. Built from the open problems a citizen
+  can fix (missing, expired or unreadable document, name mismatch where the YAML says `citizen_remedy`, missing
+  field) with fixed templates (`deficiency.*` in the en/hi/mr/kok files) and YAML labels; no LLM. Preview, then
+  send: stored (`deficiency_notices`), audit row `deficiency_notice_sent`, case to the existing `needs_info`. The
+  tracking page shows "Documents needed" and prints it. Never approves, rejects or computes.
 - Default model `gemini-3.5-flash-lite` (`GEMINI_MODEL` overrides).
 - Synthetic document images for both schemes (land 7, relief 7), each clean, degraded and hard (stamp, one
   handwriting-style field, phone-photo look), all labelled SYNTHETIC. LA-11's image prints its damaged scan text.
@@ -86,8 +91,8 @@ Fuller detail is in `docs/KNOWN_LIMITATIONS.md`.
 - Demo database re-seeded 2026-11-16 after the backdating fix: Submitted and Days open agree for all 23 open cases.
 
 ### Tests (all green at commit time)
-- Python: 965 passed (`pytest -q`, about 4 minutes).
-- Frontend: 67 logic (`npm test`) + 25 browser (`npm run test:layout`); `npm run test:all` runs both. Build clean.
+- Python: 995 passed (`pytest -q`, about 4 minutes).
+- Frontend: 68 logic (`npm test`) + 25 browser (`npm run test:layout`); `npm run test:all` runs both. Build clean.
 
 ### Still marked VERIFY
 - Land acquisition (`rules/land_acquisition.yaml`): notification references (source); 60-day SLA; record-of-rights
@@ -112,6 +117,9 @@ Fuller detail is in `docs/KNOWN_LIMITATIONS.md`.
 ### Open items
 - **Feature freeze from 2026-11-17.** No new features; only fixes, docs and demo preparation. One exception
   granted 2026-11-17: the tenant / mundkar rule and the deficiency notice.
+- Voice assistant: planned, not built.
+- The SLA timer keeps counting while a case waits for the citizen (`needs_info`). Decide whether it should pause.
+- Deficiency notices name fields in English (YAML labels) even in the hi/mr/kok drafts.
 - Live evaluation (`docs/EVAL_RESULTS.md`, two runs on 17 Nov 2026, synthetic only) on `gemini-3.5-flash-lite`
   only (other models were unreachable on 16 Nov). After the fix round, Gemini: relief 35/35 on clean, degraded and
   hard; land 25/27, 25/27, 21/27 with 1, 0, 2 wrong values passing the confidence gate, every one caught later by

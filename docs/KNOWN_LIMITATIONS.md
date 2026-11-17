@@ -117,6 +117,15 @@ None of these may be used for a real decision until checked against official sou
 - The rule simulator runs over the synthetic set only, not over live cases.
 
 ## Product scope
+- **Voice assistant: planned**, not built. There is no voice input or spoken output anywhere in the product.
+- **Deficiency notice ("Request documents")**: it asks only for what a citizen can fix (missing, expired or
+  unreadable documents, a name mismatch, a missing entry); anything else (survey or house mismatch, duplicate
+  claims, implausible values, tenant / mundkar entries, extraction outages) is left to the officer. Field names
+  in the notice come from the YAML labels, which are English, so a Hindi, Marathi or Konkani notice still names
+  fields in English; those translations are drafts. Nothing is sent to the citizen: the notice appears on the
+  tracking page (and prints from there). It reuses the existing "More information needed" status, and the SLA
+  timer keeps counting while the case waits for the citizen. Open flags stay on the case until verification runs
+  again on the new documents.
 - The award letter is produced with the browser's *Save as PDF*; there is no server-side PDF.
 - SLA overdue is a flag only: nothing escalates or changes status automatically.
 - SQLite single file, no schema migrations: a schema change needs a re-seed.

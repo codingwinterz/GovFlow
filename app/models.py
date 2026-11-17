@@ -111,6 +111,19 @@ class CompensationItemRow(Base):
     formula_note: Mapped[str]
 
 
+class DeficiencyNotice(Base):
+    """A "documents needed" notice an officer sent. Items are structured (document and field ids); lines are the
+    exact text sent, in the chosen language. Kept for the record; the citizen page shows the latest one."""
+    __tablename__ = "deficiency_notices"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    case_id: Mapped[str] = mapped_column(ForeignKey("cases.id"))
+    language: Mapped[str]
+    items_json: Mapped[str]
+    lines_json: Mapped[str]
+    officer_id: Mapped[str]
+    created_at: Mapped[datetime] = mapped_column(default=_now)
+
+
 class AuditLog(Base):
     __tablename__ = "audit_log"
     id: Mapped[int] = mapped_column(primary_key=True)

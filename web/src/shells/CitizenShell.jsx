@@ -26,7 +26,7 @@ export default function CitizenShell({ route }) {
 
   return (
     <div className="shell citizen" lang={htmlLang(lang)} data-theme={theme}>
-      <header className="topbar">
+      <header className="topbar no-print">
         <div className="topbar-inner">
           <a className="brand" href={href("citizen-home")}>GovFlow <span className="brand-sub">{t(dict, "nav.citizen_services")}</span></a>
           <nav aria-label={t(dict, "nav.citizen_services")}>

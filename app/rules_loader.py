@@ -133,6 +133,8 @@ class VerificationCheck(BaseModel):
     approval_needs_resolution: bool = False
     total_label: Optional[str] = None     # ... the total is shown with this label ...
     citizen_notice: Optional[str] = None  # ... and the citizen page shows this translation key (notice.<key>)
+    # What the citizen can do when this check is not passed, for the deficiency notice. None: nothing (left out).
+    citizen_remedy: Optional[Literal["name_mismatch"]] = None
 
     @property
     def fuzzy_threshold(self) -> Optional[float]:

@@ -119,6 +119,10 @@ class DecisionIn(BaseModel):
     resolutions: dict[str, dict[str, Any]] = {}
 
 
+class NoticeIn(BaseModel):
+    language: str = Field("en", max_length=8)
+
+
 class _NoLLM:
     """Stands in when no agent LLM is configured: run_agent then uses the deterministic pipeline."""
     name, model = "none", None
@@ -444,6 +448,21 @@ def create_app(engine: Optional[Engine] = None, agent_llm_factory: Optional[Call
                                              decision=body.decision, comment=body.comment,
                                              confirmed=body.confirmed_fields,
                                              resolutions=body.resolutions).model_dump()
+
+    @app.get("/cases/{case_id}/notice")
+    def notice_preview(case_id: str, language: str = "en", actor: Actor = Depends(actor_dep),
+                       session: Session = Depends(session_dep)) -> dict[str, Any]:
+        """Preview a "documents needed" notice. Officer only; changes nothing."""
+        _require(actor, "officer")
+        return mask_identifiers(tools.preview_notice(session, case_id, role=actor.role, language=language).model_dump())
+
+    @app.post("/cases/{case_id}/notice")
+    def notice_send(case_id: str, body: NoticeIn, actor: Actor = Depends(actor_dep),
+                    session: Session = Depends(session_dep)) -> dict[str, Any]:
+        """Send it: stored, audit-logged, case moves to needs_info. Officer only. Not a decision."""
+        _require(actor, "officer")
+        return mask_identifiers(tools.send_notice(session, case_id, role=actor.role, officer_id=actor.user,
+                                                  language=body.language).model_dump())
 
     def _known_scheme(name: str) -> None:
         if not tools.SCHEME_NAME.match(name) or not (RULES_DIR / f"{name}.yaml").is_file():

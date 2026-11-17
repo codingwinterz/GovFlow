@@ -15,6 +15,23 @@ export function t(dict, key, vars = {}) {
   });
 }
 
+// The "documents needed" notice from its stored items, in the reader's language. Same fixed templates as the
+// server's copy (app/deficiency.py); document names from the dictionary, field names from the scheme's YAML labels.
+export function noticeLines(needed, caseRef, dict) {
+  const lines = [
+    { kind: "heading", text: t(dict, "deficiency.title") },
+    { kind: "intro", text: t(dict, "deficiency.intro", { case_ref: caseRef }) },
+  ];
+  for (const item of needed.items)
+    lines.push({ kind: "item", text: t(dict, `deficiency.${item.kind}`,
+      item.kind === "unreadable" || item.kind === "missing_field"
+        ? { document: t(dict, `documents.${item.document}`), fields: item.field_labels.join(", ") }
+        : { document: t(dict, `documents.${item.document}`) }) });
+  lines.push({ kind: "footer", text: t(dict, "deficiency.footer") });
+  lines.push({ kind: "date", text: t(dict, "deficiency.date", { date: needed.date }) });
+  return lines;
+}
+
 // The citizen page as a list of lines: { kind, text }.
 export function citizenLines(view, dict) {
   const lines = [

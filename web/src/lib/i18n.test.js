@@ -102,3 +102,26 @@ test("an open rights entry shows only a plain notice, in every language", () => 
     assert.doesNotMatch(lines[0].text, /⟦/);                     // the key exists in this language
   }
 });
+
+test("documents-needed notice lists exactly the stored items, in each language, with no unknown key", async () => {
+  const { noticeLines } = await import("./i18n.js");
+  const needed = { date: "17 Nov 2026", language: "en", items: [
+    { kind: "missing", document: "mutation_record", fields: [], field_labels: [] },
+    { kind: "unreadable", document: "ownership_record", fields: ["name", "area"], field_labels: ["Name", "Area"] },
+    { kind: "name_mismatch", document: "identity_proof", fields: [], field_labels: [] }] };
+  const en = noticeLines(needed, "LA-07", DICTS.en).map((l) => l.text);
+  assert.deepEqual(en, [
+    "Documents needed",
+    "To continue with application LA-07, please bring the following to the office:",
+    "Mutation record: not submitted. Please bring it.",
+    "Ownership record: we could not read Name, Area. Please bring a clearer copy or the original.",
+    "Identity proof: the name does not match your application. Please bring a corrected copy or proof of the change of name.",
+    "This notice only asks for documents. It is not a decision on your application.",
+    "Notice issued on 17 Nov 2026",
+  ]);
+  for (const lang of LANGS) {
+    const text = noticeLines(needed, "LA-07", DICTS[lang]).map((l) => l.text).join("\n");
+    assert.doesNotMatch(text, /⟦|_/);                          // every key exists; no snake_case reaches the page
+    assert.equal(noticeLines(needed, "LA-07", DICTS[lang]).filter((l) => l.kind === "item").length, 3);
+  }
+});

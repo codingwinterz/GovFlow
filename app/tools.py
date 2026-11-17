@@ -26,6 +26,10 @@ from app.extraction import (
 )
 from app.models import Case, CompensationItemRow, queue_key, Document, ExtractedField, RuleResultRow, VerificationFlag
 from app.resolutions import open_resolution_flags, resolution_problem
+from app.deficiency import LANGUAGES as NOTICE_LANGUAGES, NoticeItem
+from app.deficiency import build_items as build_notice_items, render as render_notice
+from app.facts import build_facts
+from app.models import DeficiencyNotice, india_date
 from app.rules_engine import EligibilityResult, overall_from
 from app.rules_engine import check_eligibility as check_eligibility_pure
 from app.rules_loader import RULES_DIR, Scheme, amount_fields, load_scheme_by_name
@@ -304,6 +308,50 @@ def record_officer_decision(session: Session, case_id: str, role: str, officer_i
                scheme.version)
     session.commit()
     return result
+
+
+class NoticePreview(BaseModel):
+    case_id: str
+    language: str
+    items: list[NoticeItem]
+    lines: list[str]
+
+
+def _notice(session: Session, case_id: str, role: str, language: str) -> tuple[Case, Scheme, NoticePreview]:
+    if role != "officer":
+        raise PermissionError("Only the officer role can request documents from a citizen")
+    case, scheme = _case(session, case_id)
+    if case.status != "in_officer_review":
+        raise ToolError(f"Case {case_id} is {case.status}; documents can be requested only during officer review")
+    if language not in NOTICE_LANGUAGES:
+        raise InvalidInput(f"Unknown language {language!r}; use one of {', '.join(NOTICE_LANGUAGES)}")
+    case_in = load_case(session, case_id)
+    checks = verification.verify_documents(scheme, case_in, competing_cases(session, case_in.scheme)).checks
+    items = build_notice_items(scheme, checks, build_facts(scheme, case_in))
+    lines = render_notice(items, language, scheme, case_id, india_date(datetime.now(timezone.utc)))
+    return case, scheme, NoticePreview(case_id=case_id, language=language, items=items, lines=lines)
+
+
+def preview_notice(session: Session, case_id: str, role: str, language: str = "en") -> NoticePreview:
+    """What a "documents needed" notice would say, from the open problems the citizen can fix. Changes nothing."""
+    return _notice(session, case_id, role, language)[2]
+
+
+def send_notice(session: Session, case_id: str, role: str, officer_id: str, language: str = "en") -> NoticePreview:
+    """Store the notice, write an audit row and move the case to needs_info (more information needed).
+    Never approves, rejects or computes anything. Problems with no citizen action are not included."""
+    case, scheme, notice = _notice(session, case_id, role, language)
+    if not notice.items:
+        raise ToolError("No open problem on this case is one the citizen can fix by bringing a document")
+    items = [i.model_dump() for i in notice.items]
+    session.add(DeficiencyNotice(case_id=case_id, language=language, items_json=json.dumps(items),
+                                 lines_json=json.dumps(notice.lines, ensure_ascii=False), officer_id=officer_id))
+    previous, case.status = case.status, "needs_info"
+    log_action(session, case_id, f"officer:{officer_id}", "deficiency_notice_sent",
+               {"language": language, "items": items, "lines": notice.lines, "previous_status": previous,
+                "status": case.status, "officer_id": officer_id}, scheme.version)
+    session.commit()
+    return notice
 
 
 def add_document(session: Session, case_id: str, doc_type: str, file_path: str, actor: str = "system") -> Document:
