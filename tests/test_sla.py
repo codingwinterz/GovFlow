@@ -100,3 +100,88 @@ def test_overdue_is_a_flag_only(env):
     with Session(engine) as s:
         after = ({c.id: c.status for c in s.query(Case)}, s.scalar(select(func.count()).select_from(AuditLog)))
     assert after == before
+
+
+# --- the clock pauses while the case waits for the citizen (needs_info) ------------------------------------------
+# Waiting time comes from the audit log: a send-back decision or a deficiency notice starts it; the next document
+# added (previous status needs_info) ends it. Rows are inserted at chosen times (the log is append-only).
+
+import json as _json
+
+
+def _event(s, case_id, action, at, **payload):
+    s.add(AuditLog(case_id=case_id, actor="test", action=action, payload_json=_json.dumps(payload), ts=at,
+                   rules_version="test"))
+
+
+def _wait(engine, case_id, created_days_ago, start_days_ago, end_days_ago=None, via="officer_decision"):
+    with Session(engine) as s:
+        case = s.get(Case, case_id)
+        case.created_at = NOW - timedelta(days=created_days_ago)
+        start = {"decision": "send_back"} if via == "officer_decision" else {}
+        _event(s, case_id, via, NOW - timedelta(days=start_days_ago), **start)
+        if end_days_ago is None:
+            case.status = "needs_info"
+        else:
+            _event(s, case_id, "add_document", NOW - timedelta(days=end_days_ago), previous_status="needs_info")
+            case.status = "received"
+        s.commit()
+
+
+def test_a_case_that_waited_ten_days_shows_days_open_without_the_wait(env):
+    engine, get = env
+    _wait(engine, "LA-02", created_days_ago=30, start_days_ago=25, end_days_ago=15)
+    assert _queue(get)["LA-02"]["days_open"] == 20                    # 30 days old, 10 of them waiting
+
+
+def test_days_open_stops_while_waiting_and_resumes_when_documents_arrive(env):
+    engine, get = env
+    _wait(engine, "LA-02", created_days_ago=30, start_days_ago=12)    # waiting for the last 12 days
+    assert _queue(get)["LA-02"]["days_open"] == 18                    # frozen at the 18 days before the wait
+
+
+def test_a_deficiency_notice_also_pauses_the_clock(env):
+    engine, get = env
+    _wait(engine, "LA-02", created_days_ago=30, start_days_ago=25, end_days_ago=15, via="deficiency_notice_sent")
+    assert _queue(get)["LA-02"]["days_open"] == 20
+
+
+def test_overdue_does_not_fire_while_waiting_but_does_after_documents_arrive(env):
+    engine, get = env
+    la = load_scheme_by_name("land_acquisition").sla_days
+    _wait(engine, "LA-01", created_days_ago=la + 40, start_days_ago=10)    # past the SLA, now waiting
+    row = _queue(get)["LA-01"]
+    assert row["days_open"] == la + 30 and row["overdue"] is False
+    assert "LA-01" not in {c["case_id"] for c in get("/analytics")[1]["overdue_cases"]}
+    with Session(engine) as s:                                             # documents arrive: the clock resumes
+        _event(s, "LA-01", "add_document", NOW - timedelta(days=2), previous_status="needs_info")
+        s.get(Case, "LA-01").status = "received"
+        s.commit()
+    row = _queue(get)["LA-01"]
+    assert row["days_open"] == la + 32 and row["overdue"] is True          # 8 days of the 10 were waiting
+
+
+def test_a_document_added_outside_a_wait_does_not_change_days_open(env):
+    engine, get = env
+    with Session(engine) as s:
+        s.get(Case, "LA-02").created_at = NOW - timedelta(days=30)
+        _event(s, "LA-02", "add_document", NOW - timedelta(days=5), previous_status="received")
+        s.commit()
+    assert _queue(get)["LA-02"]["days_open"] == 30
+
+
+def test_the_real_tools_write_what_the_clock_reads(env, tmp_path):
+    from app.sla import waiting_times
+    from app.tools import add_document
+    engine, _ = env
+    path = tmp_path / "id.txt"
+    path.write_text("Name: Prakash Kamat (synthetic)", encoding="utf-8")
+    with Session(engine) as s:
+        verify_documents(s, "LA-02"); check_eligibility(s, "LA-02"); compute_compensation(s, "LA-02")
+        submit_to_officer(s, "LA-02")
+        record_officer_decision(s, "LA-02", role="officer", officer_id="O-1", decision="send_back", comment="ID copy")
+        open_wait = waiting_times(s, datetime.now(timezone.utc) + timedelta(days=3))["LA-02"]
+        assert timedelta(days=3) <= open_wait < timedelta(days=3, minutes=5)    # still waiting: runs to "now"
+        add_document(s, "LA-02", "identity_proof", str(path))
+        closed = waiting_times(s, datetime.now(timezone.utc) + timedelta(days=3))["LA-02"]
+        assert closed < timedelta(minutes=5)                                     # ended when the document arrived

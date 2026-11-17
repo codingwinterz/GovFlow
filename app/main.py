@@ -345,8 +345,9 @@ def create_app(engine: Optional[Engine] = None, agent_llm_factory: Optional[Call
             flags.setdefault(row.case_id, []).append({"kind": row.kind, "severity": row.severity})   # no detail text
         cases = sorted(query.all(), key=queue_key)
         decided, at = sla.decision_times(session), now()
+        waited = sla.waiting_times(session, at)
         return [{**_case_summary(c, len(flags.get(c.id, []))), "flags": flags.get(c.id, []),
-                 **sla.sla_view(c, at, decided)} for c in cases]
+                 **sla.sla_view(c, at, decided, waited)} for c in cases]
 
     @app.get("/analytics")
     def get_analytics(stuck_days: float = 7, actor: Actor = Depends(actor_dep),

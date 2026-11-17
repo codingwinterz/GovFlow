@@ -43,9 +43,9 @@ def analytics(session: Session, stuck_days: float = 7, now: Optional[datetime] =
                      "last_movement": iso_utc(moved[c.id])}
                     for c in cases if c.status not in CLOSED and moved[c.id] <= cutoff),
                    key=lambda s: moved[s["case_id"]])   # sort on the instant, not its text
-    decided = sla.decision_times(session)
-    overdue = [{"case_id": c.id, "status": c.status, "scheme": c.scheme, **sla.sla_view(c, now, decided)}
-               for c in cases if sla.sla_view(c, now, decided)["overdue"]]
+    decided, waited = sla.decision_times(session), sla.waiting_times(session, now)
+    overdue = [{"case_id": c.id, "status": c.status, "scheme": c.scheme, **sla.sla_view(c, now, decided, waited)}
+               for c in cases if sla.sla_view(c, now, decided, waited)["overdue"]]
     overdue_by_status: dict[str, int] = {}
     overdue_by_scheme: dict[str, int] = {}
     for o in overdue:

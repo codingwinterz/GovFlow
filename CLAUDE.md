@@ -53,6 +53,9 @@ Fuller detail is in `docs/KNOWN_LIMITATIONS.md`.
   expected outcomes. LA-17 and DR-15 carry prompt-injection text at confidence 1.0 and must end in review.
 - Tools: rules engine, compensation, extraction (Gemini vision, Tesseract fallback), verification, SLA, analytics,
   self-check, rule simulator (read-only what-if over the synthetic set). Agent loop with a deterministic fallback.
+- SLA pause: the clock stops while a case is in `needs_info` (from the send-back or deficiency notice to the next
+  document added, read from audit-log timestamps; `app/sla.py` `waiting_times`). Days open excludes the wait and a
+  waiting case is never overdue. Nothing is written and no status moves.
 - Cross-check: when Tesseract is installed it reads each document again; a field the two readers read differently
   after normalisation goes to review as "readers disagree", whatever the confidence (skipped if Tesseract finds
   nothing for the field). Punctuation at either end of a reading is ignored when comparing.
@@ -91,7 +94,7 @@ Fuller detail is in `docs/KNOWN_LIMITATIONS.md`.
 - Demo database re-seeded 2026-11-16 after the backdating fix: Submitted and Days open agree for all 23 open cases.
 
 ### Tests (all green at commit time)
-- Python: 995 passed (`pytest -q`, about 4 minutes).
+- Python: 1002 passed (`pytest -q`, about 5 minutes; with little free memory, run in two batches).
 - Frontend: 68 logic (`npm test`) + 25 browser (`npm run test:layout`); `npm run test:all` runs both. Build clean.
 
 ### Still marked VERIFY
@@ -118,7 +121,6 @@ Fuller detail is in `docs/KNOWN_LIMITATIONS.md`.
 - **Feature freeze from 2026-11-17.** No new features; only fixes, docs and demo preparation. One exception
   granted 2026-11-17: the tenant / mundkar rule and the deficiency notice.
 - Voice assistant: planned, not built.
-- The SLA timer keeps counting while a case waits for the citizen (`needs_info`). Decide whether it should pause.
 - Deficiency notices name fields in English (YAML labels) even in the hi/mr/kok drafts.
 - Live evaluation (`docs/EVAL_RESULTS.md`, two runs on 17 Nov 2026, synthetic only) on `gemini-3.5-flash-lite`
   only (other models were unreachable on 16 Nov). After the fix round, Gemini: relief 35/35 on clean, degraded and

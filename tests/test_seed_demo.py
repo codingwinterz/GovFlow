@@ -1,12 +1,15 @@
 """The demo seed script builds a realistic, fully synthetic database without any network call."""
 
 import json
+from datetime import timedelta
 
 import pytest
 from sqlalchemy.orm import Session
 
 from app.models import AuditLog, Case, Document, ExtractedField, make_engine
 from scripts.seed_demo import seed
+from tests.asgi_client import call            # imported at collection: its event loop predates the network guard
+from tests.auth_headers import staff
 
 
 CODE_SECRET = "test-code-secret"
@@ -31,17 +34,38 @@ def test_seed_covers_the_dashboard_states(seeded):
 
 
 def test_days_open_counts_from_the_submitted_date_for_every_open_submitted_case(seeded):
-    """The queue's "Submitted" and "Days open" columns must agree: days open = now - submitted date."""
+    """The queue's "Submitted" and "Days open" columns must agree: days open = (now - submitted date) minus the time
+    spent waiting for the citizen (needs_info), as read from the audit log."""
     from datetime import datetime, timezone
     from app.models import as_utc
-    from app.sla import sla_view
+    from app.sla import decision_times, sla_view, waiting_times
     _, s = seeded
     now = datetime.now(timezone.utc)
+    decided, waited = decision_times(s), waiting_times(s, now)
     open_submitted = [c for c in s.query(Case) if c.submitted_at and c.status not in ("approved", "rejected", "withdrawn")]
     assert len(open_submitted) >= 10
     for c in open_submitted:
-        assert sla_view(c, now, {})["days_open"] == (now - as_utc(c.submitted_at)).days, c.id
+        expected = (now - as_utc(c.submitted_at) - waited.get(c.id, timedelta())).days
+        assert sla_view(c, now, decided, waited)["days_open"] == expected, c.id
     assert len({as_utc(c.submitted_at).date() for c in open_submitted}) > 5      # spread, not all today
+
+
+def test_the_demo_queue_pauses_the_sent_back_case(seeded, tmp_path):
+    """LA-05 is sent back by the seed (needs_info). Its send-back is audit-logged at the real seed time, so five days
+    later its days open must not have moved, while a case that is not waiting has moved on five days."""
+    from datetime import datetime, timezone
+    from app.main import create_app
+    _, s = seeded
+    assert s.get(Case, "LA-05").status == "needs_info"
+    engine = s.get_bind()
+    now = datetime.now(timezone.utc)
+    queue_at = lambda at: {c["case_id"]: c for c in call(create_app(engine=engine, upload_dir=tmp_path, now=lambda: at),
+                                                          "GET", "/cases", headers=staff("officer", "O-1", at=at))[1]}
+    today, later = queue_at(now), queue_at(now + timedelta(days=5))
+    assert later["LA-05"]["days_open"] == today["LA-05"]["days_open"]          # paused while waiting
+    assert later["LA-05"]["overdue"] is False
+    moving = next(cid for cid, c in today.items() if c["status"] == "in_officer_review")
+    assert later[moving]["days_open"] == today[moving]["days_open"] + 5         # the clock still runs elsewhere
 
 
 def test_seed_shows_low_confidence_fields_and_an_unavailable_document(seeded):

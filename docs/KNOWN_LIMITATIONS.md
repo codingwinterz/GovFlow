@@ -123,11 +123,15 @@ None of these may be used for a real decision until checked against official sou
   claims, implausible values, tenant / mundkar entries, extraction outages) is left to the officer. Field names
   in the notice come from the YAML labels, which are English, so a Hindi, Marathi or Konkani notice still names
   fields in English; those translations are drafts. Nothing is sent to the citizen: the notice appears on the
-  tracking page (and prints from there). It reuses the existing "More information needed" status, and the SLA
-  timer keeps counting while the case waits for the citizen. Open flags stay on the case until verification runs
-  again on the new documents.
+  tracking page (and prints from there). It reuses the existing "More information needed" status. Open flags stay
+  on the case until verification runs again on the new documents.
 - The award letter is produced with the browser's *Save as PDF*; there is no server-side PDF.
 - SLA overdue is a flag only: nothing escalates or changes status automatically.
+- **The SLA clock pauses while a case waits for the citizen** ("More information needed"): from the send-back
+  or deficiency notice to the next document added, read from the audit log's real timestamps; a waiting case is
+  never shown overdue. The pause ends only when a document is added, so a citizen who replies by phone or in
+  person without a new document leaves the clock paused until an officer acts. The demo seed's intake dates are
+  backdated but its audit times are real, so its sent-back case (LA-05) starts waiting at seed time.
 - SQLite single file, no schema migrations: a schema change needs a re-seed.
 - The duplicate-claim check compares keys exactly (after normalisation); it does not catch near-identical
   survey or house numbers.
