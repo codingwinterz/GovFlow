@@ -1,6 +1,7 @@
 """Cross-document verification checks, driven entirely by the scheme YAML."""
 
 import re
+import unicodedata
 from itertools import combinations
 from typing import Literal, Optional
 
@@ -40,6 +41,17 @@ class VerificationResult(BaseModel):
 
 
 # --- comparison helpers -------------------------------------------------------
+
+_NAME_PUNCTUATION = set("'’.-")   # D'Souza, D’Souza, R. K. Naik, Anne-Marie
+
+
+def has_non_name_characters(name: str) -> bool:
+    """True if the name holds a character no name has: a digit, "?", "#", "/", "_" and so on. Letters and
+    combining marks in any script (Devanagari vowel signs are marks), spaces, apostrophes, dots and hyphens are
+    fine. A damaged reading ("L?ta Sh1rodkar") must not be normalised into a pass."""
+    return any(not (c.isspace() or c in _NAME_PUNCTUATION or unicodedata.category(c)[0] in "LM")
+               for c in str(name))
+
 
 def _normalise_name(name: str) -> str:
     return " ".join(re.sub(r"[^a-z ]", " ", str(name).lower()).split())
@@ -114,6 +126,12 @@ def _field_check(check: VerificationCheck, facts: CaseFacts, threshold: float) -
             if len({_normalise_exact(v) for v in per_doc.values()}) > 1:
                 return CheckResult(status="fail", detail=f"{f} differs: {per_doc}", **base)
         return CheckResult(status="pass", detail="All values match exactly.", **base)
+
+    damaged = [f"{d}.{f}={v!r}" for f, per_doc in values.items() for d, v in per_doc.items()
+               if has_non_name_characters(str(v))]
+    if damaged:
+        return CheckResult(status="fail", detail=f"{'; '.join(damaged)}: contains characters not found in names "
+                                                 "(digits or symbols)", **base)
 
     worst: Optional[tuple[Status, float, str, bool]] = None
     for f, per_doc in values.items():
