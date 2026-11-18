@@ -24,8 +24,9 @@ repo at that commit. For anything that changes later, `CLAUDE.md` "Current state
 - **Pitch in one line:** one AI agent, many government schemes; schemes are YAML files; the AI reads and explains, and
   deterministic code and the officer decide.
 - **Feature freeze since 17 Nov 2026.** Approved exceptions, all built: the tenant / mundkar rule, the deficiency notice,
-  the SLA pause, Sahayak (text-only, English-only). **One approved exception remains, not built:** the citizen
-  document pre-check (full spec in section 8).
+  the SLA pause, Sahayak (text-only, English-only), and the citizen document pre-check (`POST /public/precheck`,
+  section 8).
+
 - All case data is **synthetic**. No real citizen data is ever committed (CLAUDE.md rule 7).
 
 ## 2. Architecture and how it works
@@ -192,10 +193,11 @@ repo at that commit. For anything that changes later, `CLAUDE.md` "Current state
 - **Status `needs_info` reused** for the deficiency notice; the SLA clock pauses there.
 - **Sahayak answers only from a sourced knowledge base** with a guard and a verbatim fallback, English only, no voice.
 
-## 5. Current state (at `d73da8c`, 17 Nov 2026)
+## 5. Current state (at `2981b68`, 18 Nov 2026)
 
-- **Tests, all green:** Python **1062** passed (three batches: 509 + 213 + 340); frontend **71** logic + **32** browser;
+- **Tests, all green:** Python **1091** passed (three batches: 509 + 242 + 340); frontend **76** logic + **35** browser;
   build clean.
+
 - **Commits:** 76 on `main`, pushed to `origin/main`.
 - **Last checks:** a full verification click-through on a throwaway database (17 Nov) found no critical or high
   issues; its medium and low findings were fixed in the bug-fix round below. A live Sahayak run (8 questions) stayed
@@ -317,9 +319,8 @@ Browser tests need Google Chrome; they start their own Vite server and mock the 
   with a 1x1 red PNG, through `GeminiClient(pace_seconds=0)._call_once(...)` from `app/providers/gemini.py`, after
   `load_env_file` on `.env`. Print only the model, pass or fail, the time and the reply ("Red"), never the key.
 
-## 8. Next planned work
+## 8. Final approved exception (built in `2981b68`): citizen document pre-check
 
-### The one remaining approved exception: citizen document pre-check
 
 - **Endpoint:** `POST /public/precheck`, no sign-in, stateless. Scheme id and document type validated against the
   YAML; one file, with the same 14 MB cap and signature check as the officer upload.

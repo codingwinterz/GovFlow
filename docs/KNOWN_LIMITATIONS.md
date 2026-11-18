@@ -134,7 +134,16 @@ None of these may be used for a real decision until checked against official sou
   falls back to the entry text. Rate limit (20 per client per ten minutes) and daily provider cap (200) are in
   memory: they reset on restart and count the proxy's address behind a proxy. The message is never stored (the
   audit row keeps its length and the matched entry ids).
+- **Citizen document pre-check (`POST /public/precheck`)**: checks one citizen-uploadable document at a time in
+  memory (excluding the clerk's `application` form) and answers in English only, whatever the page language. Because it
+  sees a single document without a case, it checks readability, typed coercion, plausible ranges, document age/expiry,
+  damaged name characters and single-document recorded entries (such as a tenant or mundkar entry on Form I & XIV),
+  but cannot check whether names, survey numbers or house numbers match across documents or whether a duplicate claim
+  exists. Its rate limit (10 per client per ten minutes) and daily provider cap (100) are in memory and reset on
+  restart. Nothing is stored on disk, in case/document tables or in logs; the audit row keeps only the document type,
+  readability category (`yes` / `partly` / `no`), elapsed milliseconds and whether the OCR fallback was used.
 - **Deficiency notice ("Request documents")**: it asks only for what a citizen can fix (missing, expired or
+
   unreadable documents, a name mismatch, a missing entry); anything else (survey or house mismatch, duplicate
   claims, implausible values, tenant / mundkar entries, extraction outages) is left to the officer. Field names
   in the notice come from the YAML labels, which are English, so a Hindi, Marathi or Konkani notice still names
