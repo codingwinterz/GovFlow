@@ -107,6 +107,12 @@ Fuller detail is in `docs/KNOWN_LIMITATIONS.md`.
   `no_competing_claim`. The officer sees the other case's reference in the flag; the citizen sees only
   `notice.claim_verification` ("Additional verification is in progress."). Co-owners are flagged too (decided
   2026-11-18): LA-14 and LA-15 (both 77/1) now end in review; LA-12 and LA-13 (45/2) carry it as well.
+- Extended Officer/Admin Analytics (`GET /analytics`, `#/officer/analytics`): accessible to `clerk`, `officer`, and `admin`
+  roles; read-only queries over existing tables returning `by_scheme_and_status` across all loaded YAML schemes and
+  lifecycle stages, `overdue_count` / `overdue_by_scheme` respecting `sla_days` and `needs_info` pauses, `average_days_open`
+  / `average_days_open_by_scheme` excluding `needs_info` waiting intervals, `liability` (`committed_total`, `pending_total`,
+  `combined_total` and per-scheme breakdowns, excluding `rejected` and `withdrawn`), and `flags` (`total_count`,
+  `open_count`, `resolved_count`, `by_kind`, `by_severity`, `by_scheme`). Zero frontend arithmetic.
 
 - Synthetic document images for both schemes (land 7, relief 7), each clean, degraded and hard (stamp, one
   handwriting-style field, phone-photo look), all labelled SYNTHETIC. LA-11's image prints its damaged scan text.

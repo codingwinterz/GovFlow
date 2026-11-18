@@ -19,7 +19,7 @@ test("officer navigation per role", () => {
   const pages = (role) => officerNav(role).map((n) => n.page);
   assert.deepEqual(pages("officer"), ["queue", "intake", "analytics", "simulator"]);
   assert.deepEqual(pages("clerk"), ["queue", "intake", "analytics"]);
-  assert.deepEqual(pages("admin"), ["simulator"]);
+  assert.deepEqual(pages("admin"), ["analytics", "simulator"]);
   assert.deepEqual(pages("citizen"), []);
   assert.deepEqual(pages(undefined), []);
   for (const role of ["officer", "clerk", "admin"])
@@ -33,8 +33,9 @@ test("officer pages are allowed by role, never to citizens", () => {
   }
   assert.deepEqual(["queue", "case", "intake", "analytics"].map((p) => allowed("clerk", p)), [true, true, true, true]);
   assert.deepEqual(["audit", "award", "simulator"].map((p) => allowed("clerk", p)), [false, false, false]);
-  assert.deepEqual(["simulator", "queue", "case"].map((p) => allowed("admin", p)), [true, false, false]);
+  assert.deepEqual(["analytics", "simulator", "queue", "case"].map((p) => allowed("admin", p)), [true, true, false, false]);
 });
+
 
 test("the citizen shell and its pages import nothing from the officer side", () => {
   const citizenFiles = ["shells/CitizenShell.jsx", "pages/CitizenHome.jsx", "pages/Track.jsx", "pages/SelfCheck.jsx"];

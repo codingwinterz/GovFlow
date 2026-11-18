@@ -17,8 +17,9 @@ const OFFICER_NAV = [
 const ACCESS = {
   officer: ["queue", "case", "audit", "award", "intake", "analytics", "simulator"],
   clerk: ["queue", "case", "intake", "analytics"],
-  admin: ["simulator"],
+  admin: ["analytics", "simulator"],
 };
+
 
 export function allowed(role, page) {
   return (ACCESS[role] || []).includes(page);

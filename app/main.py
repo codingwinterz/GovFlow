@@ -499,8 +499,9 @@ def create_app(engine: Optional[Engine] = None, agent_llm_factory: Optional[Call
     @app.get("/analytics")
     def get_analytics(stuck_days: float = 7, actor: Actor = Depends(actor_dep),
                       session: Session = Depends(session_dep)) -> dict[str, Any]:
-        _require(actor, "clerk", "officer")
+        _require(actor, "clerk", "officer", "admin")
         return analytics(session, stuck_days=stuck_days, now=now())
+
 
     @app.get("/schemes")
     def schemes(actor: Actor = Depends(actor_dep)) -> list[dict[str, Any]]:

@@ -54,8 +54,27 @@ for (const theme of ["light", "dark"]) {
 const ANALYTICS = {
   total_cases: 30, by_status: { in_officer_review: 21, approved: 6, needs_info: 3 },
   per_scheme: { land_acquisition: 18, disaster_relief: 12 },
+  by_scheme_and_status: {
+    land_acquisition: { received: 0, extracted: 0, verified: 0, in_officer_review: 12, needs_info: 2, approved: 4, rejected: 0, withdrawn: 0 },
+    disaster_relief: { received: 0, extracted: 0, verified: 0, in_officer_review: 9, needs_info: 1, approved: 2, rejected: 0, withdrawn: 0 },
+  },
   average_processing_seconds: 86400, decided_cases: 6, average_processing_source: "decided_cases",
+  average_days_open: 14.5, average_days_open_by_scheme: { land_acquisition: 16.2, disaster_relief: 12.0 },
+  average_days_open_source: "cases.submitted_at -> reference_date minus needs_info waiting",
   overdue_count: 4, overdue_source: "sla", overdue_by_status: { in_officer_review: 4 }, overdue_by_scheme: { land_acquisition: 4 },
+  liability: {
+    committed_total: 4250000, committed_by_scheme: { land_acquisition: 4000000, disaster_relief: 250000 },
+    pending_total: 12500000, pending_by_scheme: { land_acquisition: 11800000, disaster_relief: 700000 },
+    combined_total: 16750000, combined_by_scheme: { land_acquisition: 15800000, disaster_relief: 950000 },
+    source: "compensation_items + cases.status (approved vs open pipeline; excludes rejected/withdrawn)",
+  },
+  flags: {
+    total_count: 7, open_count: 5, resolved_count: 2,
+    by_kind: { name_match: 3, tenant_claim: 2, low_confidence: 2 },
+    by_severity: { high: 5, medium: 2 },
+    by_scheme: { land_acquisition: 5, disaster_relief: 2 },
+    source: "flags + audit_logs.action=flag_resolution",
+  },
   stuck_cases: [], stuck_source: "audit",
 };
 
@@ -78,7 +97,17 @@ for (const width of [1280, 390]) {
       const firstCount = Number(t.querySelector("td.num").textContent);
       return { trackL: track.left, trackR: track.right, trackW: track.width, ticks, firstBar, firstCount };
     }));
+    const layout = await page.evaluate(() => ({
+      vw: document.documentElement.clientWidth,
+      scrollWidth: document.documentElement.scrollWidth,
+      bodyText: document.querySelector("main.content").innerText,
+    }));
     await context.close();
+    assert.equal(layout.scrollWidth, layout.vw, `analytics page scrolls sideways at ${width}px`);
+    assert.match(layout.bodyText, /Average days open \(excluding waiting\)/);
+    assert.match(layout.bodyText, /Cases by scheme and stage/);
+    assert.match(layout.bodyText, /Committed and pending liability/);
+    assert.match(layout.bodyText, /Verification flags/);
     assert.equal(charts.length, 4);
     for (const c of charts) {
       assert.ok(Math.abs(c.trackW - charts[0].trackW) <= 1, `track widths differ: ${charts.map((x) => x.trackW)}`);
