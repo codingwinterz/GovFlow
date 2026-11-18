@@ -116,8 +116,9 @@ Fuller detail is in `docs/KNOWN_LIMITATIONS.md`.
 - Demo database re-seeded 2026-11-16 after the backdating fix: Submitted and Days open agree for all 23 open cases.
 
 ### Tests (all green at commit time)
-- Python: 1091 passed (`pytest -q`, about 5 minutes; with little free memory, run in batches: 509 + 242 + 340).
+- Python: 1094 passed (`pytest -q`, about 5 minutes; with little free memory, run in batches: 509 + 245 + 340).
 - Frontend: 76 logic (`npm test`) + 35 browser (`npm run test:layout`); `npm run test:all` runs both. Build clean.
+
 
 
 ### Still marked VERIFY
