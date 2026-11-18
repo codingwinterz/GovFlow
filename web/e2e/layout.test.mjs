@@ -581,6 +581,21 @@ test("pre-check status pill wraps inside the card at 390px and queue Case column
   assert.ok(Math.abs(qBounds.cellL - qBounds.boxL) <= 1 && qBounds.cellR > qBounds.boxL + 20,
     `sticky case id not visible after scrolling: ${JSON.stringify(qBounds)}`);
   await qClose();
+
+  // The sticky column belongs to the queue only: the audit page's Time column scrolls with the table.
+  const { page: aPage, close: aClose } = await open(
+    "#/officer/cases/LA-01/audit",
+    (url) => ({ json: url.includes("/audit") ? [...Array(4).keys()].map(AUDIT_ROW) : [] }),
+    { login: OFFICER_LOGIN, width: 390 },
+  );
+  await aPage.waitForSelector(".table-scroll table tbody tr");
+  const aPos = await aPage.evaluate(() => {
+    const box = document.querySelector(".table-scroll");
+    return ["thead tr th:nth-child(2)", "tbody tr td:nth-child(2)"]
+      .map((sel) => getComputedStyle(box.querySelector(sel)).position);
+  });
+  assert.deepEqual(aPos, ["static", "static"], `audit Time column is sticky: ${JSON.stringify(aPos)}`);
+  await aClose();
 });
 
 

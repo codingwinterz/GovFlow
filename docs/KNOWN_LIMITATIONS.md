@@ -142,6 +142,8 @@ None of these may be used for a real decision until checked against official sou
   exists. Its rate limit (10 per client per ten minutes) and daily provider cap (100) are in memory and reset on
   restart. Nothing is stored on disk, in case/document tables or in logs; the audit row keeps only the document type,
   readability category (`yes` / `partly` / `no`), elapsed milliseconds and whether the OCR fallback was used.
+- **`used_fallback` has two meanings**: in the pre-check it means "Gemini was not used" (OCR-only result), whereas in
+  case extraction (`app/extraction.py`) it means "Tesseract filled weakly read fields" after Gemini read the document.
 - **Deficiency notice ("Request documents")**: it asks only for what a citizen can fix (missing, expired or
 
   unreadable documents, a name mismatch, a missing entry); anything else (survey or house mismatch, duplicate

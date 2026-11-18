@@ -106,9 +106,9 @@ button.link { background: none; border: none; color: var(--accent); padding: 2px
 .decision { border-color: var(--accent); }
 /* Wide tables scroll inside their own box, so the page never scrolls sideways on a phone */
 .table-scroll { overflow-x: auto; max-width: 100%; }
-.table-scroll th:nth-child(2), .table-scroll td:nth-child(2) { position: sticky; left: 0; z-index: 1;
+.queue-table th:nth-child(2), .queue-table td:nth-child(2) { position: sticky; left: 0; z-index: 1;
   background: var(--surface); white-space: nowrap; }
-.table-scroll tr.flagged td:nth-child(2) { background: var(--flag-bg); }
+.queue-table tr.flagged td:nth-child(2) { background: var(--flag-bg); }
 .confirm .confirm-item { display: flex; gap: 8px; align-items: center; margin: 6px 0; }
 .confirm .confirm-item input { width: 20px; height: 20px; margin: 0; flex: none; }
 
