@@ -144,6 +144,12 @@ None of these may be used for a real decision until checked against official sou
   readability category (`yes` / `partly` / `no`), elapsed milliseconds and whether the OCR fallback was used.
 - **`used_fallback` has two meanings**: in the pre-check it means "Gemini was not used" (OCR-only result), whereas in
   case extraction (`app/extraction.py`) it means "Tesseract filled weakly read fields" after Gemini read the document.
+- **Audit hash chain**: shows a stored row edited, deleted or moved, but on its own it cannot show (a) the newest rows
+  removed from the end, or (b) the whole chain recomputed by someone with write access to the database file: the hash
+  has no secret key. Production would anchor the latest `row_hash` outside the database (printed in a daily report,
+  or sent to a separate log service) and could use an HMAC with a key held outside the database. Two writers racing
+  in SQLite fail with "database is locked" rather than forking the chain; a server database would need the same
+  serialisation. A failed check only reports; it does not stop new rows being written.
 - **Deficiency notice ("Request documents")**: it asks only for what a citizen can fix (missing, expired or
 
   unreadable documents, a name mismatch, a missing entry); anything else (survey or house mismatch, duplicate

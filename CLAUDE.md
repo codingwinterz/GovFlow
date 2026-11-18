@@ -95,6 +95,12 @@ Fuller detail is in `docs/KNOWN_LIMITATIONS.md`.
   `what_we_read` shown only for name and area fields (never ID numbers), output guard on both primary and OCR
   fallback paths rejecting decision words and rupee mentions, plus its own per-client rate limiter and daily cap.
 - Default model `gemini-3.5-flash-lite` (`GEMINI_MODEL` overrides).
+- Hash-chained audit log: every `audit_log` row stores `prev_hash` and `row_hash` = SHA-256(prev_hash + "|" + canonical
+  row: id, ts as stored, case_id, actor, action, payload_json, rules_version); the first row chains on 64 zeros. Set in
+  a `before_flush` hook for every new row (`app/audit_chain.py`); existing rows were chained in id order by the
+  start-up migration, which never fills in a hash-less row once a chain exists. `GET /admin/audit/verify` (officer and
+  admin; 403 clerk) returns ok, rows and the first broken row id, and logs `audit_chain_verified`. Audit page button
+  "Verify log integrity" (checks the whole log, not only that case).
 
 - Synthetic document images for both schemes (land 7, relief 7), each clean, degraded and hard (stamp, one
   handwriting-style field, phone-photo look), all labelled SYNTHETIC. LA-11's image prints its damaged scan text.
@@ -116,8 +122,8 @@ Fuller detail is in `docs/KNOWN_LIMITATIONS.md`.
 - Demo database re-seeded 2026-11-16 after the backdating fix: Submitted and Days open agree for all 23 open cases.
 
 ### Tests (all green at commit time)
-- Python: 1094 passed (`pytest -q`, about 5 minutes; with little free memory, run in batches: 509 + 245 + 340).
-- Frontend: 76 logic (`npm test`) + 36 browser (`npm run test:layout`); `npm run test:all` runs both. Build clean.
+- Python: 1111 passed (`pytest -q`, about 5 minutes; with little free memory, run in batches: 406 + 345 + 360).
+- Frontend: 79 logic (`npm test`) + 38 browser (`npm run test:layout`); `npm run test:all` runs both. Build clean.
 
 
 
@@ -152,6 +158,7 @@ Fuller detail is in `docs/KNOWN_LIMITATIONS.md`.
 - Voice assistant: planned, not built. Multilingual helper: planned (Sahayak is English only).
 - A second freeze exception, 2026-11-17: Sahayak (text only, English only).
 - A third freeze exception, 2026-11-17: citizen document pre-check (`POST /public/precheck`, in memory, zero storage).
+- Fourth freeze exception, 2026-11-18: hash-chained audit log and the duplicate survey-number flag. Frozen again after.
 
 - Deficiency notices name fields in English (YAML labels) even in the hi/mr/kok drafts.
 - Live evaluation (`docs/EVAL_RESULTS.md`, two runs on 17 Nov 2026, synthetic only) on `gemini-3.5-flash-lite`

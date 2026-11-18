@@ -599,3 +599,24 @@ test("pre-check status pill wraps inside the card at 390px and queue Case column
 });
 
 
+
+// --- audit log integrity button ------------------------------------------------------------------------------
+
+for (const [name, verdict, expected] of [
+  ["intact", { ok: true, rows: 12, first_broken_id: null }, /Log intact: all 12 rows chain correctly\./],
+  ["broken", { ok: false, rows: 11, first_broken_id: 5 }, /Log altered: the chain breaks at row #5/],
+]) {
+  test(`audit page: "Verify log integrity" shows the ${name} result as a status`, async () => {
+    const { page, calls, close } = await open("#/officer/cases/LA-01/audit", (url) => (
+      url.includes("/admin/audit/verify") ? { json: verdict }
+        : { json: url.includes("/audit") ? [...Array(3).keys()].map(AUDIT_ROW) : [] }), { login: OFFICER_LOGIN });
+    await page.waitForSelector(".table-scroll table tbody tr");
+    assert.equal(calls.filter((c) => c.includes("/admin/audit/verify")).length, 0, "verified before the click");
+    await page.getByRole("button", { name: "Verify log integrity" }).click();
+    const status = page.locator("[role=status].integrity");
+    await status.waitFor();
+    assert.match(await status.innerText(), expected);
+    assert.deepEqual(calls.filter((c) => c.includes("/admin/audit/verify")), ["GET /api/admin/audit/verify"]);
+    await close();
+  });
+}

@@ -28,6 +28,7 @@ from app.agent import AgentReply, run_agent
 from app import sla
 from app.analytics import analytics
 from app.audit import log_action, log_precheck
+from app.audit_chain import verify_chain
 from app.auth import AUTH_ENV, INSECURE_ENV, issue_token, read_token
 from app.body_limit import MAX_BODY_BYTES, BodyLimit
 from app.upload_check import content_problem
@@ -682,6 +683,17 @@ def create_app(engine: Optional[Engine] = None, agent_llm_factory: Optional[Call
         return mask_identifiers([{"id": r.id, "ts": iso_utc(r.ts), "actor": r.actor, "action": r.action,
                                   "rules_version": r.rules_version, "payload": json.loads(r.payload_json)}
                                  for r in rows])
+
+    @app.get("/admin/audit/verify")
+    def verify_audit_log(actor: Actor = Depends(actor_dep),
+                         session: Session = Depends(session_dep)) -> dict[str, Any]:
+        """Walk the whole hash chain: ok, row count, first broken row id. Officer and admin only. The check is
+        logged after it ran, so the result describes the log as it was found."""
+        _require(actor, "officer", "admin")
+        result = verify_chain(session)
+        log_action(session, None, actor.name, "audit_chain_verified", result)
+        session.commit()
+        return result
 
     return app
 

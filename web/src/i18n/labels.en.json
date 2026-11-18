@@ -86,6 +86,7 @@
     "get_case_status": "Status checked",
     "officer_decision": "Officer decision",
     "flag_resolution": "Resolution recorded by officer",
+    "audit_chain_verified": "Audit log integrity checked",
     "deficiency_notice_sent": "Documents requested from citizen",
     "document_precheck": "Citizen document pre-check (nothing stored)",
     "sahayak_query": "Sahayak helper question (text not stored)",

@@ -3,8 +3,10 @@
 from datetime import date, datetime, timedelta, timezone
 from typing import Optional
 
-from sqlalchemy import DDL, Engine, ForeignKey, String, create_engine, event
+from sqlalchemy import DDL, Engine, ForeignKey, String, create_engine, event, inspect
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column
+
+from app import audit_chain
 
 CASE_STATUSES = ("received", "extracted", "verified", "assessed",
                  "in_officer_review", "approved", "rejected", "needs_info", "withdrawn")
@@ -143,13 +145,30 @@ class AuditLog(Base):
     action: Mapped[str]
     payload_json: Mapped[str]
     rules_version: Mapped[Optional[str]]
+    # Hash chain (app/audit_chain.py): set on every new row just before it is written.
+    prev_hash: Mapped[Optional[str]]
+    row_hash: Mapped[Optional[str]]
 
 
-for _op in ("UPDATE", "DELETE"):
-    event.listen(AuditLog.__table__, "after_create", DDL(
-        f"CREATE TRIGGER audit_log_no_{_op.lower()} BEFORE {_op} ON audit_log "
-        "BEGIN SELECT RAISE(ABORT, 'audit_log is append-only'); END;"
-    ))
+APPEND_ONLY_TRIGGERS = {
+    op: (f"CREATE TRIGGER audit_log_no_{op.lower()} BEFORE {op} ON audit_log "
+         "BEGIN SELECT RAISE(ABORT, 'audit_log is append-only'); END;")
+    for op in ("UPDATE", "DELETE")
+}
+for _sql in APPEND_ONLY_TRIGGERS.values():
+    event.listen(AuditLog.__table__, "after_create", DDL(_sql))
+
+
+@event.listens_for(Session, "before_flush")
+def _chain_audit_rows(session: Session, _flush_context: object, _instances: object) -> None:
+    """Every AuditLog row, however it was added, gets its place in the chain before it is inserted."""
+    new = sorted((o for o in session.new if isinstance(o, AuditLog)), key=lambda o: inspect(o).insert_order)
+    if not new:
+        return
+    for row in new:
+        if row.ts is None:
+            row.ts = _now()
+    audit_chain.chain_new_rows(session.connection(), new)
 
 
 def _add_missing_columns(engine: Engine) -> None:
@@ -158,6 +177,11 @@ def _add_missing_columns(engine: Engine) -> None:
         columns = {row[1] for row in conn.exec_driver_sql("PRAGMA table_info(extracted_fields)")}
         if "review_reason" not in columns:
             conn.exec_driver_sql("ALTER TABLE extracted_fields ADD COLUMN review_reason VARCHAR")
+        audit_columns = {row[1] for row in conn.exec_driver_sql("PRAGMA table_info(audit_log)")}
+        for name in ("prev_hash", "row_hash"):
+            if name not in audit_columns:
+                conn.exec_driver_sql(f"ALTER TABLE audit_log ADD COLUMN {name} VARCHAR")
+        audit_chain.backfill(conn, APPEND_ONLY_TRIGGERS)
 
 
 def make_engine(url: str = "sqlite:///govflow.db") -> Engine:
