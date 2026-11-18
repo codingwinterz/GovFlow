@@ -87,10 +87,12 @@
       "name_match"
     ],
     "LA-12": [
-      "duplicate_claim"
+      "duplicate_claim",
+      "duplicate_survey_claim"
     ],
     "LA-13": [
-      "duplicate_claim"
+      "duplicate_claim",
+      "duplicate_survey_claim"
     ]
   }
 }

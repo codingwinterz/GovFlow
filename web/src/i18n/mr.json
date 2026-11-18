@@ -29,6 +29,7 @@
   "missing.expired": "{document}: मुदत संपली आहे, कृपया वैध कागदपत्र आणा",
   "missing.none": "काहीही कमी नाही.",
   "notice.rights_verification": "हक्कांची अतिरिक्त पडताळणी सुरू आहे.",
+  "notice.claim_verification": "अतिरिक्त पडताळणी सुरू आहे.",
   "deficiency.title": "आवश्यक कागदपत्रे",
   "deficiency.intro": "अर्ज {case_ref} पुढे नेण्यासाठी कृपया पुढील कागदपत्रे कार्यालयात आणा:",
   "deficiency.missing": "{document}: सादर केलेले नाही. कृपया ते आणा.",

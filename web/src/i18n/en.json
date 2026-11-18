@@ -29,6 +29,7 @@
   "missing.expired": "{document}: expired, please bring a valid one",
   "missing.none": "Nothing is missing.",
   "notice.rights_verification": "Additional verification of rights is in progress.",
+  "notice.claim_verification": "Additional verification is in progress.",
   "deficiency.title": "Documents needed",
   "deficiency.intro": "To continue with application {case_ref}, please bring the following to the office:",
   "deficiency.missing": "{document}: not submitted. Please bring it.",

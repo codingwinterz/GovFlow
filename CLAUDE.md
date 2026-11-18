@@ -101,6 +101,12 @@ Fuller detail is in `docs/KNOWN_LIMITATIONS.md`.
   start-up migration, which never fills in a hash-less row once a chain exists. `GET /admin/audit/verify` (officer and
   admin; 403 clerk) returns ok, rows and the first broken row id, and logs `audit_chain_verified`. Audit page button
   "Verify log integrity" (checks the whole log, not only that case).
+- Duplicate survey-number flag (land): `duplicate_survey_claim`, YAML only, on the `duplicate_claim` built-in with
+  `ignore_statuses: [withdrawn]` and no area fields: any other open or decided (approved or rejected) case naming the
+  same survey number (existing `_normalise_exact`), whatever the areas. High severity, needs_review, never fail; feeds
+  `no_competing_claim`. The officer sees the other case's reference in the flag; the citizen sees only
+  `notice.claim_verification` ("Additional verification is in progress."). Co-owners are flagged too (decided
+  2026-11-18): LA-14 and LA-15 (both 77/1) now end in review; LA-12 and LA-13 (45/2) carry it as well.
 
 - Synthetic document images for both schemes (land 7, relief 7), each clean, degraded and hard (stamp, one
   handwriting-style field, phone-photo look), all labelled SYNTHETIC. LA-11's image prints its damaged scan text.
@@ -122,7 +128,7 @@ Fuller detail is in `docs/KNOWN_LIMITATIONS.md`.
 - Demo database re-seeded 2026-11-16 after the backdating fix: Submitted and Days open agree for all 23 open cases.
 
 ### Tests (all green at commit time)
-- Python: 1111 passed (`pytest -q`, about 5 minutes; with little free memory, run in batches: 406 + 345 + 360).
+- Python: 1128 passed (`pytest -q`, about 5 minutes; with little free memory, run in batches: 411 + 352 + 365).
 - Frontend: 79 logic (`npm test`) + 38 browser (`npm run test:layout`); `npm run test:all` runs both. Build clean.
 
 
@@ -149,6 +155,8 @@ Fuller detail is in `docs/KNOWN_LIMITATIONS.md`.
   relief_damage_share, relief_notified_area) and every source given as VERIFY (name_spelling_mismatch,
   tenant_or_mundkar_entry, document_missing_expired_unreadable, what_this_tool_does, relief_damage_share,
   relief_notified_area); `app/providers/gemini_sahayak.py` temperature 0.1 (never run live).
+- Duplicate survey-number flag (`rules/land_acquisition.yaml`, `duplicate_survey_claim`): the source for how a second
+  claim on a survey number already under, or past, an award must be handled (e.g. a reference for apportionment).
 - Plausibility ranges (placeholders, not legal values): land `area_sqm` 10 to 500,000 (holding) and 10 to 5,000,000
   (survey number); `market_value_per_sqm` Rs 100 to 1,00,000.
 

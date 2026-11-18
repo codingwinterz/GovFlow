@@ -150,6 +150,14 @@ None of these may be used for a real decision until checked against official sou
   or sent to a separate log service) and could use an HMAC with a key held outside the database. Two writers racing
   in SQLite fail with "database is locked" rather than forking the chain; a server database would need the same
   serialisation. A failed check only reports; it does not stop new rows being written.
+- **Duplicate survey-number flag (`duplicate_survey_claim`)**: flags every other open or decided case on the same
+  survey number, co-owners included, so a legitimate co-owner claim still goes to review (LA-14, LA-15). The flag is
+  computed when a case is verified: the case submitted first gets it only when it is next verified (new documents,
+  re-run), not at the moment a second claim arrives; the second case always names the first. A rejected claim still
+  counts, which is intended (the land was claimed before) but means a once-rejected duplicate keeps flagging. An
+  unreadable survey number gives a second "cannot check" flag next to `duplicate_claim`'s. Matching is the exact
+  survey-number normalisation (spaces removed, upper case): "45/2" and "45-2" are different numbers. The demo database
+  keeps the flags stored at its last seed until cases are re-verified or the demo is re-seeded.
 - **Deficiency notice ("Request documents")**: it asks only for what a citizen can fix (missing, expired or
 
   unreadable documents, a name mismatch, a missing entry); anything else (survey or house mismatch, duplicate

@@ -5,16 +5,17 @@
     "name_match": "pass",
     "survey_no_match": "pass",
     "duplicate_claim": "pass",
+    "duplicate_survey_claim": "needs_review",
     "tenant_or_mundkar_claim": "pass"
   },
   "eligibility": {
-    "overall": "eligible",
+    "overall": "needs_review",
     "rules": {
       "documents_complete": "pass",
       "valid_ownership": "pass",
       "land_identified": "pass",
       "documents_not_expired": "pass",
-      "no_competing_claim": "pass"
+      "no_competing_claim": "needs_review"
     }
   },
   "compensation": {
@@ -27,5 +28,5 @@
     },
     "total": 12720000
   },
-  "needs_human_review": false
+  "needs_human_review": true
 }

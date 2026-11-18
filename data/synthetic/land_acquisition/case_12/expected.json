@@ -5,6 +5,7 @@
     "name_match": "pass",
     "survey_no_match": "pass",
     "duplicate_claim": "needs_review",
+    "duplicate_survey_claim": "needs_review",
     "tenant_or_mundkar_claim": "pass"
   },
   "eligibility": {

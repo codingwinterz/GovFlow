@@ -21,7 +21,7 @@ from app.case_store import load_case
 from app.facts import build_facts
 from app.models import AuditLog, Case, CompensationItemRow, DeficiencyNotice, india_date
 from app.privacy import mask_identifiers
-from app.resolutions import open_resolution_flags
+from app.resolutions import citizen_notices
 from app.rules_loader import load_scheme_by_name
 
 SECRET_ENV = "GOVFLOW_CITIZEN_SECRET"
@@ -168,7 +168,7 @@ def citizen_view(session: Session, case: Case) -> dict[str, Any]:
     # A key only (translated in the browser): e.g. "additional verification of rights is in progress". No flag
     # detail, names or legal grounds reach the public page.
     notices = ([] if status in ("approved", "rejected", "closed") else
-               [c.citizen_notice for c in open_resolution_flags(session, case.id, scheme) if c.citizen_notice])
+               citizen_notices(session, case.id, scheme))
     view = {"case_ref": case.id, "scheme": case.scheme, "status": status, "next_step": next_step,
             "missing": missing, "notices": notices, "documents_needed": _documents_needed(session, case),
             "decision": _decision(session, case),

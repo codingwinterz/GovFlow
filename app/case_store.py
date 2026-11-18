@@ -7,7 +7,6 @@ from sqlalchemy.orm import Session
 from app.case_model import CaseIn, DocumentIn, FieldValue
 from app.models import Case, Document, ExtractedField
 
-NOT_COMPETING_STATUSES = ("rejected", "withdrawn")
 STATUS_ORDER = ("received", "extracted", "verified", "assessed", "in_officer_review")
 
 
@@ -49,7 +48,7 @@ def load_case(session: Session, case_id: str) -> CaseIn:
 
 
 def competing_cases(session: Session, scheme: str) -> list[CaseIn]:
-    """Cases whose claims count for duplicate checks: everything except rejected or withdrawn."""
-    ids = [c.id for c in session.query(Case).filter(Case.scheme == scheme,
-                                                    Case.status.not_in(NOT_COMPETING_STATUSES))]
+    """Every case of the scheme. Each duplicate check filters by status itself (YAML `ignore_statuses`), because
+    some count decided cases (duplicate_survey_claim) and some do not (duplicate_claim)."""
+    ids = [c.id for c in session.query(Case).filter(Case.scheme == scheme)]
     return [load_case(session, i) for i in ids]

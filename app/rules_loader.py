@@ -10,6 +10,7 @@ import yaml
 from pydantic import BaseModel, ValidationError, model_validator
 
 from app.field_types import FIELD_TYPES
+from app.models import CASE_STATUSES
 from app.safe_eval import UnsafeExpression, check_expression
 
 RULES_DIR = Path(__file__).resolve().parent.parent / "rules"
@@ -123,6 +124,8 @@ class VerificationCheck(BaseModel):
     key: Optional[str] = None
     claimed_area: Optional[str] = None
     total_area: Optional[str] = None
+    # Case statuses that do not count as another claim. None: rejected and withdrawn (approved claims still compete).
+    ignore_statuses: Optional[list[str]] = None
     messages: dict[str, str] = {}     # wording shown to officers; each scheme writes its own
     # recorded_entry: doc.field entries that must be empty; a value equal to one of empty_values (after
     # normalising case, spaces and punctuation) counts as empty.
@@ -146,6 +149,9 @@ class VerificationCheck(BaseModel):
             raise ValueError(f"{self.id}: duplicate_claim needs key")
         if self.total_area and not self.claimed_area:
             raise ValueError(f"{self.id}: total_area needs claimed_area")
+        unknown_statuses = set(self.ignore_statuses or []) - set(CASE_STATUSES)
+        if unknown_statuses:
+            raise ValueError(f"{self.id}: ignore_statuses has unknown case statuses {sorted(unknown_statuses)}")
         required = {"key_unavailable", "no_competitor", "competing"}
         if self.claimed_area and self.total_area:
             required |= {"within_total", "exceeds_total"}

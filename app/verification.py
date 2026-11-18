@@ -15,7 +15,7 @@ from app.rules_loader import Scheme, VerificationCheck
 from app.safe_eval import UnknownName, evaluate
 
 Status = Literal["pass", "fail", "needs_review"]
-NOT_COMPETING_STATUSES = {"rejected", "withdrawn"}   # approved claims still compete for the same land
+NOT_COMPETING_STATUSES = {"rejected", "withdrawn"}   # default; approved claims still compete for the same land
 AREA_TOLERANCE = 1e-6  # relative, absorbs float rounding in unit conversion
 
 
@@ -164,7 +164,8 @@ def _try(expr: Optional[str], facts: CaseFacts) -> Optional[object]:
 
 def _duplicate_check(check: VerificationCheck, scheme: Scheme, case: CaseIn,
                      facts: CaseFacts, other_cases: list[CaseIn]) -> CheckResult:
-    """Another open case with the same key: needs_review, never fail. Wording comes from the YAML."""
+    """Another case with the same key: needs_review, never fail. Which statuses count and the wording come from
+    the YAML (`ignore_statuses`, default rejected and withdrawn)."""
     base = {"check_id": check.id, "severity": check.severity,
             "sources": [e for e in (check.key, check.claimed_area, check.total_area) if e]}
     say = check.messages
@@ -172,9 +173,10 @@ def _duplicate_check(check: VerificationCheck, scheme: Scheme, case: CaseIn,
     if key is None:
         return CheckResult(status="needs_review", detail=say["key_unavailable"].format(key_expr=check.key), **base)
 
+    ignored = NOT_COMPETING_STATUSES if check.ignore_statuses is None else set(check.ignore_statuses)
     competing: list[tuple[str, Optional[float]]] = []
     for other in other_cases:
-        if other.case_id == case.case_id or other.status in NOT_COMPETING_STATUSES:
+        if other.case_id == case.case_id or other.status in ignored:
             continue
         other_facts = build_facts(scheme, other)
         other_key = _try(check.key, other_facts)

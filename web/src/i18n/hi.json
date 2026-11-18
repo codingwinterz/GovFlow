@@ -29,6 +29,7 @@
   "missing.expired": "{document}: अवधि समाप्त, कृपया वैध दस्तावेज़ लाएँ",
   "missing.none": "कोई कमी नहीं है।",
   "notice.rights_verification": "अधिकारों का अतिरिक्त सत्यापन चल रहा है।",
+  "notice.claim_verification": "अतिरिक्त सत्यापन चल रहा है।",
   "deficiency.title": "आवश्यक दस्तावेज़",
   "deficiency.intro": "आवेदन {case_ref} आगे बढ़ाने के लिए कृपया निम्नलिखित कार्यालय में लाएँ:",
   "deficiency.missing": "{document}: जमा नहीं किया गया। कृपया इसे लाएँ।",

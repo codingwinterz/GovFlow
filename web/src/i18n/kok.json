@@ -29,6 +29,7 @@
   "missing.expired": "{document}: मुदत सोंपल्या, उपकार करून वैध कागद हाडात",
   "missing.none": "कांयच उणें ना.",
   "notice.rights_verification": "हक्कांची अदीक पडताळणी चालू आसा.",
+  "notice.claim_verification": "अदीक पडताळणी चालू आसा.",
   "deficiency.title": "गरजेचीं कागदपत्रां",
   "deficiency.intro": "अर्ज {case_ref} फुडें व्हरपाक, उपकार करून हीं कागदपत्रां कार्यालयांत हाडात:",
   "deficiency.missing": "{document}: दिवंक ना. उपकार करून तें हाडात.",

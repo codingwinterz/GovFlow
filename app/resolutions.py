@@ -38,6 +38,19 @@ def open_resolution_flags(session: Session, case_id: str, scheme: Scheme) -> lis
     return [checks[k] for k in checks if k in flagged and k not in resolved]
 
 
+def citizen_notices(session: Session, case_id: str, scheme: Scheme) -> list[str]:
+    """Notice keys for the citizen page, in YAML order: a check with citizen_notice whose flag is on the case
+    (and, if it needs a resolution, not yet resolved). Keys only: no flag detail, other case or name."""
+    open_ids = {c.id for c in open_resolution_flags(session, case_id, scheme)}
+    flagged = {f.kind for f in session.query(VerificationFlag).filter_by(case_id=case_id)}
+    keys: list[str] = []
+    for c in scheme.verification_checks:
+        is_open = c.id in open_ids if c.approval_needs_resolution else c.id in flagged
+        if c.citizen_notice and is_open and c.citizen_notice not in keys:
+            keys.append(c.citizen_notice)
+    return keys
+
+
 def resolution_problem(resolution: Optional[dict[str, Any]], today: date) -> Optional[str]:
     """Why a submitted resolution is not acceptable, or None. It needs a reference and a date not in the future."""
     if not isinstance(resolution, dict):

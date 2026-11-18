@@ -85,6 +85,22 @@ verification_checks:
       competing: "Open cases {ids} also claim {key}; areas unknown, cannot rule out overlap."
       within_total: "Open cases {ids} also claim {key}, but combined area {combined} fits within survey total {total} (co-owners)."
       exceeds_total: "Open cases {ids} also claim {key}; combined area {combined} exceeds survey total {total}."
+  # Same built-in, wider net: any other case naming this survey number, open or decided (approved or rejected; only
+  #   withdrawn cases are left out), whatever the areas, so co-owners are flagged too. Needs review, never fail.
+  #   The officer sees the other case's reference; the citizen sees only notice.claim_verification.
+  # VERIFY: source. No rule found yet on how a Collectorate must treat a second claim on a survey number that is
+  #   already under, or past, an award (for example a reference for apportionment of compensation under the
+  #   Right to Fair Compensation and Transparency in Land Acquisition, Rehabilitation and Resettlement Act, 2013).
+  - id: duplicate_survey_claim
+    builtin: duplicate_claim
+    key: ownership_record.survey_number
+    ignore_statuses: [withdrawn]
+    severity: high
+    citizen_notice: claim_verification
+    messages:
+      key_unavailable: "Cannot check other cases for this survey number: {key_expr} unavailable"
+      no_competitor: "No other open or decided case names survey number {key}."
+      competing: "Case(s) {ids} also name survey number {key} (open or decided). Check them before recommending."
   # recorded_entry (built-in): every listed entry must be empty. Blank, a dash, or one of empty_values (compared
   #   after removing case, spaces and punctuation) is empty. Anything else -> needs_review, never fail: a tenant
   #   or mundkar entry is for the officer to resolve, not a reason to reject. An entry read at or below the
@@ -134,7 +150,7 @@ eligibility_rules:
     fail_reason: "One or more documents are expired or too old."
   - id: no_competing_claim
     clause: "<clause ref>"
-    depends_on: [duplicate_claim]
+    depends_on: [duplicate_claim, duplicate_survey_claim]
     fail_reason: "Another open case claims an overlapping area of the same survey number."
 
 compensation:
@@ -196,6 +212,7 @@ terms:
   name_match: Name check across documents
   survey_no_match: Survey number check
   duplicate_claim: Overlapping claims on this survey number
+  duplicate_survey_claim: Survey number named in another case
   tenant_or_mundkar_claim: Tenant or mundkar entry on the record of rights
   tenant_entry: Tenant entry
   other_rights_entry: Mundkar or other-rights entry
