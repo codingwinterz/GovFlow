@@ -28,6 +28,10 @@ Gemini is called afresh in run 2, so a change can be the fix or run-to-run varia
 | Tesseract only | degraded | 10/27 → 10/27 | 0 → 0 | 17/2 → 17/6 | n/a | 0.294 / 0.833 → 0.273 / 1.000 |
 | Tesseract only | hard | 6/27 → 6/27 | 0 → 0 | 21/3 → 21/3 | n/a | 0.208 / 0.833 → 0.208 / 0.833 |
 
+**Note (18 Nov 2026):** the land case-flag figures (P / R) in this file, both runs, were scored against the expected
+flag list before `duplicate_survey_claim` was added to LA-12 and LA-13 in `messy_labels.json`, so a fresh live run
+would score against the current list. Field counts and all extraction results are unaffected.
+
 Land, run 2, by field type (correct/n · accepted wrong · review right/unneeded · cross-check fired):
 
 | System | Images | date (n=6) | number (n=5) | text (n=11) | unit (n=5) |
@@ -158,6 +162,8 @@ this run).
 | Tesseract only | clean | 7/7 | 24/27 (0.889) | 0 | 3 | 0 | n/a | 1.000 / 0.833 |
 | Tesseract only | degraded | 7/7 | 10/27 (0.370) | 0 | 17 | 2 | n/a | 0.294 / 0.833 |
 | Tesseract only | hard | 7/7 | 6/27 (0.222) | 0 | 21 | 3 | n/a | 0.208 / 0.833 |
+
+Case flags P / R here were scored against the earlier expected flag list (see the note under run 2).
 
 ### Land acquisition: by field type
 

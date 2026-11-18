@@ -9,11 +9,13 @@ Steps marked **LIVE GEMINI** call the Gemini API. If Gemini is slow, out of quot
 ## Before the jury arrives (5 minutes)
 
 ```
-.venv/Scripts/python -m scripts.seed_demo --reset      # 32 synthetic cases, prints citizen codes
+.venv/Scripts/python -m scripts.seed_demo --reset      # 36 synthetic cases (21 land, 15 relief), prints citizen codes
 .venv/Scripts/python -m uvicorn app.main:app            # terminal 1, port 8000
 cd web && npm run dev                                   # terminal 2, open http://127.0.0.1:5173
 ```
 
+- **Run the seed with `--reset` first, every time.** A database seeded before 18 Nov has no `duplicate_survey_claim`
+  flags stored (flags are written when a case is verified), so step 2's duplicate check would not show.
 - Note the citizen codes the seed prints for `LA-01`, `LA-05` and `DR-01`. On the first run the seed writes a
   random `GOVFLOW_CITIZEN_SECRET` to `.env`, so the codes are different on every machine and stay the same on
   re-seeds. Start the API after seeding (it reads the secret at start-up); without it, tracking answers 503.
@@ -51,8 +53,17 @@ cd web && npm run dev                                   # terminal 2, open http:
   open **LA-11** (low-quality scan).
 - **Say:** "Fields at or below the confidence threshold are highlighted and routed to a human; the name mismatch
   is flagged with both values. Every value shows its document, field, page and method."
+- **Duplicate claim:** open **LA-12**. Two high-severity flags: *Overlapping claims on this survey number* (LA-13's
+  area plus this one exceeds the survey total) and *Survey number named in another case* ("Case(s) LA-13 also name
+  survey number 45/2 (open or decided)").
+- **Say:** "Any other open or decided case on the same survey number sends this one to review, never to rejection.
+  The officer sees the other case's reference; the citizen only sees *Additional verification is in progress*, never
+  the other applicant."
 - **Optional:** open **LA-07** (missing mutation record flag) or **LA-14** (banner *extraction unavailable,
   retry*). **LIVE GEMINI:** the Retry button on LA-14. **Fallback:** do not click; point at the banner.
+  In a fresh seed LA-14 shows the banner and no flags yet: it has not been verified. It shares survey 77/1 with its
+  co-owner LA-15, so once its identity proof is read and the case is verified it also carries *Survey number named in
+  another case* (co-owners are flagged too and go to review).
 
 ### 3. Eligibility and compensation (0:55, ~25 s)
 - **Login:** officer `O-1`.
@@ -69,11 +80,12 @@ cd web && npm run dev                                   # terminal 2, open http:
 ### 4. Officer approval, award letter, audit (1:20, ~25 s)
 - **Login:** officer `O-1`.
 - **Click:** on LA-09, Decision panel → *Approve* → Record decision → *Award letter* → *Print / Save as PDF*
-  (show the print preview) → back → *Audit trail*.
+  (show the print preview) → back → *Audit trail* → *Verify log integrity*.
 - **Say:** "Only the officer role can decide. The agent has no approve or reject tool at all. The award
   letter carries the itemised amounts, rule citations, officer id and rules version, with identifiers
   masked. The audit trail is append-only: every tool call, rule result and officer action, with the rules
-  version."
+  version. Every row is hash-chained to the one before, so *Verify log integrity* checks the whole log: *Log
+  intact: all N rows chain correctly*. If a row were edited, deleted or moved, it would name the first broken row."
 
 ### 5. Second scheme by YAML only (1:45, ~25 s)
 - **Show:** the editor tab with `rules/disaster_relief.yaml`.

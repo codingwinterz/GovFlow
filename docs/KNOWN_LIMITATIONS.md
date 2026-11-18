@@ -26,8 +26,11 @@ a screen or a test result as more than it is.
 - **Uploaded documents are stored unencrypted** on local disk under `uploads/` (gitignored). Requests over
   14 MB are refused before they are read, files over 10 MB are refused, and a file's first bytes must match its
   extension (PNG, JPEG, PDF; .txt must be UTF-8 text). There is no malware scanning and no check inside PDFs.
-- **The audit log is append-only only inside SQLite** (triggers reject UPDATE and DELETE). Someone with
-  direct access to the database file can drop the triggers. There are no backups and no external log sink.
+- **The audit log is append-only only inside SQLite** (triggers reject UPDATE and DELETE). Since 18 Nov every row is
+  hash-chained, so an edited, deleted or moved row is now detectable (`GET /admin/audit/verify`, the Audit page's
+  *Verify log integrity*). File-level tampering is still possible: someone who can write the database file can drop
+  the triggers and recompute the whole chain, or cut rows off the end (see *Audit hash chain* below). There are no
+  backups and no external log sink.
 
 ## Legal and policy parameters (all marked `# VERIFY`)
 None of these may be used for a real decision until checked against official sources.
@@ -104,7 +107,7 @@ None of these may be used for a real decision until checked against official sou
   as such; it reaches the officer as data. LA-17 and DR-15 are the injected test cases.
 
 ## Data and testing
-- **All data is synthetic.** 17 land-acquisition and 15 disaster-relief cases (two with injected text),
+- **All data is synthetic.** 21 land-acquisition and 15 disaster-relief cases (two with injected text),
   hand-derived expected outcomes. Document images: 7 land and 7 relief documents, each rendered three ways
   from a computer font: clean, degraded (tilt, blur, faded ink, speckle) and hard (one field in a
   handwriting-style font, a red stamp over the values, a phone-photo look with perspective, a shadow and JPEG

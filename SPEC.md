@@ -31,7 +31,9 @@ The agent orchestrates and explains. Tools decide.
 - `verification_flags(id, case_id, kind, detail, severity)`
 - `rule_results(id, case_id, rule_id, passed, reason, clause, rules_version)`
 - `compensation_items(id, case_id, component, amount, formula_note)`
-- `audit_log(id, ts, case_id, actor, action, payload_json, rules_version)` (append-only, never updated or deleted)
+- `audit_log(id, ts, case_id, actor, action, payload_json, rules_version, prev_hash, row_hash)` (append-only, never
+  updated or deleted; hash-chained: `row_hash` = SHA-256 of `prev_hash` plus the row's canonical fields, the first
+  row chaining on 64 zeros)
 
 Case status flow: `received -> extracted -> verified -> assessed -> in_officer_review -> approved | rejected | needs_info`
 
@@ -101,7 +103,8 @@ About 15 synthetic cases per scheme in `data/synthetic/<scheme>/case_XX.json`, e
 - survey number mismatch
 - area given in different units
 - low-quality scan (low OCR confidence)
-- duplicate claim
+- duplicate claim (overlapping areas on one survey number; and `duplicate_survey_claim`: any other open or decided
+  case naming the same survey number, which sends the case to review and never rejects)
 - compensation edge: zero assets, interest over multiple years
 Report: extraction accuracy on key fields, rule-result match rate, compensation match rate, correct human-review routing.
 
@@ -110,7 +113,8 @@ Report: extraction accuracy on key fields, rule-result match rate, compensation 
 - Case page: documents, extracted fields with confidence, verification flags, per-rule results with clauses, itemised compensation, agent explanation
 - Actions: approve, reject, send back with comment
 - Analytics: cases by status, average processing time, stuck-case list, per-scheme counts
-- Audit trail view per case
+- Audit trail view per case, with a *Verify log integrity* button: `GET /admin/audit/verify` (officer and admin)
+  walks the whole chain and returns ok, the row count and the first broken row id
 
 ## 8. Build order (15 days from Nov 15)
 1. Day 1: repo, schema, rules engine, compensation calculator, synthetic cases, pytest green (no LLM).

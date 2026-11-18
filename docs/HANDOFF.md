@@ -1,7 +1,8 @@
 # GovFlow: handoff for a new session
 
-Written 17 Nov 2026 at commit `d73da8c` (the last code commit before this file). Everything here was checked against the
-repo at that commit. For anything that changes later, `CLAUDE.md` "Current state" is the live source of truth.
+Written 17 Nov 2026 at commit `d73da8c` (the last code commit before this file); synced on 18 Nov 2026 with the code at
+`9b648a6` (see "What changed since the first handoff", section 5). For anything that changes later, `CLAUDE.md`
+"Current state" is the live source of truth.
 
 ## First 5 minutes (checklist)
 
@@ -24,8 +25,9 @@ repo at that commit. For anything that changes later, `CLAUDE.md` "Current state
 - **Pitch in one line:** one AI agent, many government schemes; schemes are YAML files; the AI reads and explains, and
   deterministic code and the officer decide.
 - **Feature freeze since 17 Nov 2026.** Approved exceptions, all built: the tenant / mundkar rule, the deficiency notice,
-  the SLA pause, Sahayak (text-only, English-only), and the citizen document pre-check (`POST /public/precheck`,
-  section 8).
+  the SLA pause, Sahayak (text-only, English-only), the citizen document pre-check (`POST /public/precheck`,
+  section 8), and the fourth, dated 18 Nov 2026: the hash-chained audit log and the duplicate survey-number flag.
+  Frozen again after it.
 
 - All case data is **synthetic**. No real citizen data is ever committed (CLAUDE.md rule 7).
 
@@ -42,8 +44,8 @@ repo at that commit. For anything that changes later, `CLAUDE.md` "Current state
 3. **Validation:** extracted strings are coerced once to their YAML type (`app/field_types.py`; dates are day-first);
    values outside the YAML's plausible range, low-confidence values and disagreeing values are withheld
    (`app/facts.py`, `app/confidence.py`).
-4. **Flags:** cross-document checks from the YAML (name match, survey / house match, duplicate claims, tenant / mundkar
-   entries) plus missing, expired and unreadable documents (`app/verification.py`).
+4. **Flags:** cross-document checks from the YAML (name match, survey / house match, duplicate claims, the duplicate
+   survey number, tenant / mundkar entries) plus missing, expired and unreadable documents (`app/verification.py`).
 5. **Rules and calculator:** eligibility rules (`app/rules_engine.py`, expressions run by `app/safe_eval.py`) and the
    itemised amount from the YAML formulas (`app/compensation.py`). Each rule result carries its rule id, clause and rules
    version.
@@ -55,6 +57,9 @@ repo at that commit. For anything that changes later, `CLAUDE.md` "Current state
    tenant / mundkar flag, and `confirmed_case` equal to the case in the URL.
 8. **Audit:** every tool call, rule result and officer action goes to the append-only `audit_log` (SQLite triggers refuse
    UPDATE and DELETE), with identifiers masked and the rules version (`app/audit.py`, `app/privacy.py`, `app/models.py`).
+   Every row is hash-chained (`prev_hash`, `row_hash`, `app/audit_chain.py`); `GET /admin/audit/verify` (officer and
+   admin) walks the chain and returns ok, the row count and the first broken row id; the Audit page's *Verify log
+   integrity* button shows the result.
 9. **Citizen tracking:** `POST /public/status` with the case reference plus a 6-digit HMAC code; status, next step,
    what is missing, the decision and the approved amounts with their basis, in four languages (`app/citizen.py`).
 
@@ -74,18 +79,19 @@ repo at that commit. For anything that changes later, `CLAUDE.md` "Current state
 |---|---|
 | `app/main.py` | FastAPI app and every route; roles checked per route; 422 handler that never echoes input |
 | `app/auth.py` | Demo sign-in: HMAC-signed 8-hour role tokens (clerk, officer, admin) |
-| `app/models.py` | SQLAlchemy tables, append-only audit triggers, India-time dates (`india_date`, `india_day`) |
+| `app/models.py` | SQLAlchemy tables, append-only audit triggers, the hash-chain hook and start-up migration, India-time dates (`india_date`, `india_day`) |
+| `app/audit_chain.py` | Audit hash chain: canonical row, `row_hash`, `verify_chain`, the one-time backfill of rows written before the chain |
 | `app/case_model.py`, `app/case_store.py` | Case input model; load and seed cases; status moves |
 | `app/rules_loader.py` | Loads and validates scheme YAML; `scheme_names()` (leaves out the Sahayak knowledge file) |
 | `app/field_types.py`, `app/units.py` | Typed coercion (text, number, percent, date, unit, one_of); area units to sq m |
 | `app/facts.py`, `app/confidence.py` | Facts for the rules: withholds low-confidence, invalid, implausible, disagreeing values |
 | `app/extraction.py`, `app/cross_check.py` | Extraction with OCR fallback; second-reader comparison |
-| `app/verification.py` | Cross-document checks and flags (built-ins: `duplicate_claim`, `recorded_entry`) |
+| `app/verification.py` | Cross-document checks and flags (built-ins: `duplicate_claim` with optional `ignore_statuses`, `recorded_entry`) |
 | `app/rules_engine.py`, `app/safe_eval.py` | Eligibility rules; a restricted expression evaluator |
 | `app/compensation.py`, `app/assessment.py` | Itemised amounts from YAML formulas; one case assessment |
 | `app/tools.py` | Database-backed tools the agent and API call; officer decision; deficiency notice |
 | `app/agent.py` | Agent loop, explanation checks (`unverified_numbers`, `decision_words`), deterministic fallback |
-| `app/resolutions.py` | Open flags that need an officer resolution before approval |
+| `app/resolutions.py` | Open flags that need an officer resolution before approval; the citizen notice keys (`citizen_notices`) |
 | `app/deficiency.py` | "Documents needed" notice from the problems a citizen can fix; fixed templates |
 | `app/citizen.py` | Public tracking view, HMAC codes, rate limiter |
 | `app/self_check.py` | Dry-run self-check (nothing stored) |
@@ -99,9 +105,10 @@ repo at that commit. For anything that changes later, `CLAUDE.md` "Current state
 | `data/synthetic/` | 21 land and 15 relief cases with hand-derived `expected.json`; builders; rendered document images |
 | `scripts/` | `seed_demo.py`, `eval_images.py` (live), `eval_day2.py` (offline replay), `render_images.py` |
 | `web/src/` | React + Vite: `shells/` (landing, citizen, officer), `pages/`, `lib/` (logic + node tests), `i18n/` |
+| `web/src/lib/auditChain.js` | Wording for the *Verify log integrity* result (the server does the check) |
 | `web/e2e/layout.test.mjs` | Browser checks (playwright-core + the installed Chrome) |
 | `tests/` | pytest, no network (a conftest guard blocks sockets); `test_repo_hygiene.py` blocks keys and `.env` |
-| `docs/` | `DEMO_SCRIPT.md`, `EVAL_RESULTS.md`, `KNOWN_LIMITATIONS.md`, this file |
+| `docs/` | `DEMO_SCRIPT.md`, `EVAL_RESULTS.md`, `KNOWN_LIMITATIONS.md`, this file; `screenshots/` (synthetic demo screenshots) |
 
 ### Scheme YAML format (see the comments at the top of each file)
 
@@ -110,7 +117,7 @@ repo at that commit. For anything that changes later, `CLAUDE.md` "Current state
 - `required_documents`: each `id` with typed `fields` (`text | number | percent | date | unit | one_of`), optional
   `derived` (e.g. `area_sqm`), `plausible` ranges, `validity` (expiry, or maximum age), `may_be_blank`.
 - `verification_checks`: field comparisons (`exact`, `fuzzy_0.9`) or built-ins (`duplicate_claim`, `recorded_entry`),
-  with severity, `basis`, `messages`, `approval_needs_resolution`, `total_label`, `citizen_notice`, `citizen_remedy`.
+  `ignore_statuses` (duplicate checks: case statuses that do not count; default rejected and withdrawn), with severity, `basis`, `messages`, `approval_needs_resolution`, `total_label`, `citizen_notice`, `citizen_remedy`.
 - `eligibility_rules`: `id`, `clause`, `when` (safe expression; can read `params.<name>`), `depends_on`, `fail_reason`.
 - `compensation`: `inputs` (from documents or officer-entered case inputs, ranges, defaults), `parameters`, `components`
   (formulas).
@@ -145,6 +152,11 @@ repo at that commit. For anything that changes later, `CLAUDE.md` "Current state
 - **Tenant / mundkar rule (land):** any non-empty tenant or mundkar / other-rights entry raises a high-severity flag;
   the total is labelled "Total for the holding, not the owner's share"; approval needs the officer's resolution;
   the citizen sees only "additional verification of rights is in progress".
+- **Duplicate survey number (land):** `duplicate_survey_claim`, YAML only, on the `duplicate_claim` built-in with
+  `ignore_statuses: [withdrawn]`: any other open or decided case naming the same survey number, whatever the areas
+  (co-owners too). High severity, needs review, never rejects; feeds `no_competing_claim`. The officer sees the other
+  case's reference; the citizen sees only "Additional verification is in progress."
+- **Hash-chained audit log:** see step 8 of the flow; what it cannot detect is in KNOWN_LIMITATIONS.
 - **Deficiency notice:** officer "Request documents" (cases in review): built from the problems a citizen can fix, fixed
   templates in four languages, preview then send; stored, audited, case to "More information needed"; shown and
   printable on the tracking page.
@@ -168,8 +180,10 @@ repo at that commit. For anything that changes later, `CLAUDE.md` "Current state
 - **Tools first, agent last;** small vertical slices; one scheme fully working before the next.
 - **Test-first** where possible; every tool tested against the fixed synthetic set without the LLM.
 - **Hand-derived expected values** in `data/synthetic/*/expected.json` (worked calculations in the builders and tests).
-  **Never change an expected outcome to make a test pass:** fix the code or ask. The one extension so far (adding
-  `tenant_or_mundkar_claim: pass` to LA-01..17) was reported to the user.
+  **Never change an expected outcome to make a test pass:** fix the code or ask. Extensions so far, each reported to
+  the user: `tenant_or_mundkar_claim: pass` added to LA-01..17; `duplicate_survey_claim` added to all 21 land cases
+  (needs_review for LA-12, LA-13, LA-14, LA-15) and to LA-12 / LA-13 in `messy_labels.json`. The only changed outcome:
+  co-owners LA-14 and LA-15 moved from eligible to needs_review, the user's decision on 18 Nov.
 - **Sabotage checks:** after each defence, break it on purpose (one exact substitution, always restored) and confirm a
   test fails; report the counts.
 - **One commit per item**, with tests, sabotage results and choices in the message; CLAUDE.md "Current state" updated
@@ -193,14 +207,18 @@ repo at that commit. For anything that changes later, `CLAUDE.md` "Current state
 - **Status `needs_info` reused** for the deficiency notice; the SLA clock pauses there.
 - **Sahayak answers only from a sourced knowledge base** with a guard and a verbatim fallback, English only, no voice.
 
-## 5. Current state (at `2981b68`, 18 Nov 2026)
+## 5. Current state (at `9b648a6`, 18 Nov 2026)
 
-- **Tests, all green:** Python **1094** passed (three batches: 509 + 245 + 340); frontend **76** logic + **36** browser;
-  build clean.
-
-
-
-- **Commits:** 76 on `main`, pushed to `origin/main`.
+- **Tests, all green (re-run 18 Nov):** Python **1128** passed (three batches: 411 + 352 + 365); frontend **79** logic +
+  **38** browser; build clean.
+- **Commits:** 86 on `main` at `9b648a6`, then this docs sync; pushed to `origin/main`.
+- **What changed since the first handoff** (after `d73da8c`):
+  `2981b68` citizen document pre-check · `8d0b587` its docs · `7daaaf5` multi-field injection tests for it ·
+  `12ca125` `used_fallback` is false when Gemini's reading passes the guard · `b99bcf7` synthetic screenshots in
+  `docs/screenshots/` · `5443f5c` 390 px status pill wraps, sticky queue Case column, single-line analytics ticks ·
+  `5803dd0` the sticky column scoped to the queue table (the audit Time column scrolls) · `c309048` hash-chained audit
+  log, `GET /admin/audit/verify`, *Verify log integrity* · `9b648a6` the `duplicate_survey_claim` flag
+  (LA-14 / LA-15 now end in review).
 - **Last checks:** a full verification click-through on a throwaway database (17 Nov) found no critical or high
   issues; its medium and low findings were fixed in the bug-fix round below. A live Sahayak run (8 questions) stayed
   within its entries, gave no amount for "how much will I get", and refused the injection prompt.
@@ -239,6 +257,8 @@ repo at that commit. For anything that changes later, `CLAUDE.md` "Current state
   (Protection from Eviction) Act, 1975.
 - **Gemini:** model pinned to `gemini-3.5-flash-lite`; the agent's wire format and default temperature were verified
   live **on that model only**; any other `GEMINI_MODEL` is VERIFY; Sahayak's temperature (0.1) was never run live.
+- **Duplicate survey number:** the source for how a second claim on a survey number already under, or past, an
+  award must be handled.
 - **Every rule's `<clause ref>`** in both YAML files.
 - **Plausibility ranges are placeholders**, not legal values.
 - **Sahayak entries:** four marked `verify: true` (land record, name spelling, two relief self-check topics); six give
@@ -290,7 +310,9 @@ cd web && npm run dev
 ```
 
 The seed prints the demo tracking codes: don't copy them into files or messages. The API is on port 8000; the
-dashboard on http://127.0.0.1:5173. The API uses `govflow.db` in the folder it is started from.
+dashboard on http://127.0.0.1:5173. The API uses `govflow.db` in the folder it is started from. Always seed with
+`--reset` before a demo: flags are stored when a case is verified, so an older database lacks `duplicate_survey_claim`.
+Starting the API on an older database adds the hash columns and chains its existing audit rows once.
 
 ### Test
 
@@ -321,7 +343,7 @@ Browser tests need Google Chrome; they start their own Vite server and mock the 
   with a 1x1 red PNG, through `GeminiClient(pace_seconds=0)._call_once(...)` from `app/providers/gemini.py`, after
   `load_env_file` on `.env`. Print only the model, pass or fail, the time and the reply ("Red"), never the key.
 
-## 8. Final approved exception (built in `2981b68`): citizen document pre-check
+## 8. Third approved exception (built in `2981b68`): citizen document pre-check
 
 
 - **Endpoint:** `POST /public/precheck`, no sign-in, stateless. Scheme id and document type validated against the
@@ -360,8 +382,9 @@ Expected from the repo:
 
 - `docs/EVAL_RESULTS.md` (measured numbers with caveats), `docs/DEMO_SCRIPT.md` (the 3-minute walkthrough),
   `docs/KNOWN_LIMITATIONS.md` (honest limits).
-- Screenshots from a click-through on a throwaway database (the 17 Nov set was saved in that session's scratch folder,
-  not in the repo; re-take them after any UI change).
+- Screenshots: 15 synthetic screenshots are in the repo under `docs/screenshots/` (`b99bcf7`; three re-taken in
+  `5443f5c`): ten views at 1280 px and five at 390 px. Re-take them after any UI change. They predate the *Verify log
+  integrity* button and the duplicate survey-number flag, which appear in none of them.
 
 ## 10. Guidance for the new session
 
