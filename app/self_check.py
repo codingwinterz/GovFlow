@@ -400,8 +400,9 @@ def precheck_document(
         if extraction.status == "ok":
             candidate = _build_precheck_result(
                 scheme, req_doc, extraction, reference_date,
-                used_fallback=extraction.used_fallback, redact_guarded_values=False,
+                used_fallback=False, redact_guarded_values=False,
             )
+
             raw_values = [str(f.value) for f in extraction.fields if f.value is not None]
             if not precheck_guard_problems(raw_values + _result_strings(candidate)):
                 return candidate
