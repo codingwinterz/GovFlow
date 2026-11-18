@@ -195,8 +195,9 @@ repo at that commit. For anything that changes later, `CLAUDE.md` "Current state
 
 ## 5. Current state (at `2981b68`, 18 Nov 2026)
 
-- **Tests, all green:** Python **1094** passed (three batches: 509 + 245 + 340); frontend **76** logic + **35** browser;
+- **Tests, all green:** Python **1094** passed (three batches: 509 + 245 + 340); frontend **76** logic + **36** browser;
   build clean.
+
 
 
 - **Commits:** 76 on `main`, pushed to `origin/main`.

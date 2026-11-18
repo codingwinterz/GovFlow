@@ -117,7 +117,8 @@ Fuller detail is in `docs/KNOWN_LIMITATIONS.md`.
 
 ### Tests (all green at commit time)
 - Python: 1094 passed (`pytest -q`, about 5 minutes; with little free memory, run in batches: 509 + 245 + 340).
-- Frontend: 76 logic (`npm test`) + 35 browser (`npm run test:layout`); `npm run test:all` runs both. Build clean.
+- Frontend: 76 logic (`npm test`) + 36 browser (`npm run test:layout`); `npm run test:all` runs both. Build clean.
+
 
 
 

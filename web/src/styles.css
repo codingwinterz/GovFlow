@@ -106,8 +106,12 @@ button.link { background: none; border: none; color: var(--accent); padding: 2px
 .decision { border-color: var(--accent); }
 /* Wide tables scroll inside their own box, so the page never scrolls sideways on a phone */
 .table-scroll { overflow-x: auto; max-width: 100%; }
+.table-scroll th:nth-child(2), .table-scroll td:nth-child(2) { position: sticky; left: 0; z-index: 1;
+  background: var(--surface); white-space: nowrap; }
+.table-scroll tr.flagged td:nth-child(2) { background: var(--flag-bg); }
 .confirm .confirm-item { display: flex; gap: 8px; align-items: center; margin: 6px 0; }
 .confirm .confirm-item input { width: 20px; height: 20px; margin: 0; flex: none; }
+
 /* Analytics bars: every chart on the page uses one shared scale, with tick labels under the bars */
 /* Fixed layout: column widths are exact percentages, so every chart's track has the same pixel width. */
 .bars { table-layout: fixed; }
@@ -122,12 +126,13 @@ button.link { background: none; border: none; color: var(--accent); padding: 2px
 .bars .axis { padding: 0 8px; }
 .axis-track { display: block; position: relative; height: 1.4em; }
 .axis-track > span { position: absolute; top: 2px; transform: translateX(-50%); font-size: 0.75rem; color: var(--muted);
-  font-variant-numeric: tabular-nums; }
+  font-variant-numeric: tabular-nums; white-space: nowrap; }
 .axis-track > span:first-child { transform: none; }
 .axis-track > span:last-child { transform: translateX(-100%); }
 .decision-row td { font-weight: 600; }
 .citizen-view .line { margin: 6px 0; }
-.citizen-view .line.status { width: fit-content; max-width: 100%; }   /* the pill sizes to its text */
+.citizen-view .line.status { width: fit-content; max-width: 100%; white-space: normal; }   /* sizes to its text, wraps on narrow screens */
+
 .citizen-view .source { font-size: 0.85rem; color: var(--muted); margin-top: -2px; }
 .citizen-view .total { font-weight: 700; }
 .letter { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 24px; margin: 16px 0; }

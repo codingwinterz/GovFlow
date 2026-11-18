@@ -70,7 +70,10 @@ for (const width of [1280, 390]) {
     await page.waitForSelector("table.bars");
     const charts = await page.evaluate(() => [...document.querySelectorAll("table.bars")].map((t) => {
       const track = t.querySelector(".bar-track").getBoundingClientRect();
-      const ticks = [...t.querySelectorAll(".axis-track > span")].map((s) => { const b = s.getBoundingClientRect(); return { text: s.textContent, l: b.left, r: b.right }; });
+      const ticks = [...t.querySelectorAll(".axis-track > span")].map((s) => {
+        const b = s.getBoundingClientRect();
+        return { text: s.textContent, l: b.left, r: b.right, h: b.height, lines: s.getClientRects().length };
+      });
       const firstBar = t.querySelector(".bar").getBoundingClientRect().width;
       const firstCount = Number(t.querySelector("td.num").textContent);
       return { trackL: track.left, trackR: track.right, trackW: track.width, ticks, firstBar, firstCount };
@@ -80,11 +83,13 @@ for (const width of [1280, 390]) {
     for (const c of charts) {
       assert.ok(Math.abs(c.trackW - charts[0].trackW) <= 1, `track widths differ: ${charts.map((x) => x.trackW)}`);
       assert.deepEqual(c.ticks.map((t) => t.text), ["0", "10", "20", "30"]);
+      assert.ok(c.ticks.every((t) => t.lines === 1 && Math.abs(t.h - c.ticks[0].h) <= 1), `tick label wrapped: ${JSON.stringify(c.ticks)}`);
       assert.ok(Math.abs(c.ticks[0].l - c.trackL) <= 1, "tick 0 is not under the start of the track");
       assert.ok(Math.abs(c.ticks.at(-1).r - c.trackR) <= 1, "top tick is not under the end of the track");
       for (let i = 1; i < c.ticks.length; i++) assert.ok(c.ticks[i].l >= c.ticks[i - 1].r + 2, "tick labels overlap");
       assert.ok(Math.abs(c.firstBar - (c.trackW * c.firstCount) / 30) <= 1, "bar length is not count / shared top");
     }
+
   });
 }
 
@@ -537,4 +542,45 @@ test("document pre-check errors offer Retry for options and for checking a docum
   await page.locator("section.precheck [role=status]").getByText("Readable: Partly").waitFor();
   await close();
 });
+
+test("pre-check status pill wraps inside the card at 390px and queue Case column stays sticky while scrolling", async () => {
+  const yesReply = { ...PRECHECK_REPLY, readable: "yes", issues: [] };
+  const { page, close } = await open("#/citizen/check", precheckApi({ run: () => ({ json: yesReply }) }), { width: 390 });
+  await page.locator("section.precheck input[type=file]").setInputFiles({
+    name: "ownership.txt", mimeType: "text/plain", buffer: Buffer.from("Name: Ramesh Naik\n"),
+  });
+  await page.getByRole("button", { name: "Check document" }).click();
+  await page.locator("section.precheck .line.status", { hasText: "Readable: Yes" }).waitFor();
+  const pillBounds = await page.evaluate(() => {
+    const card = document.querySelector("section.precheck").getBoundingClientRect();
+    const pill = document.querySelector("section.precheck .line.status").getBoundingClientRect();
+    return { cardR: card.right, pillR: pill.right, pillL: pill.left, cardL: card.left };
+  });
+  assert.ok(pillBounds.pillR <= pillBounds.cardR - 8, `pill touches or clips card edge: ${JSON.stringify(pillBounds)}`);
+  await close();
+
+  const { page: qPage, close: qClose } = await open(
+    "#/officer",
+    (url) => ({ json: url.includes("/cases?") ? [...Array(4).keys()].map(WIDE_ROW) : [] }),
+    { login: OFFICER_LOGIN, width: 390 },
+  );
+  await qPage.waitForSelector(".table-scroll table");
+  const qBounds = await qPage.evaluate(() => {
+    const box = document.querySelector(".table-scroll");
+    const cell = box.querySelector("tbody tr td:nth-child(2)");
+    box.scrollLeft = box.scrollWidth;
+    const bRect = box.getBoundingClientRect();
+    const cRect = cell.getBoundingClientRect();
+    const style = getComputedStyle(cell);
+    return { scrollLeft: box.scrollLeft, boxL: bRect.left, cellL: cRect.left, cellR: cRect.right,
+      pos: style.position, bg: style.backgroundColor };
+  });
+  assert.ok(qBounds.scrollLeft > 0, "table did not scroll");
+  assert.equal(qBounds.pos, "sticky");
+  assert.notEqual(qBounds.bg, "rgba(0, 0, 0, 0)");
+  assert.ok(Math.abs(qBounds.cellL - qBounds.boxL) <= 1 && qBounds.cellR > qBounds.boxL + 20,
+    `sticky case id not visible after scrolling: ${JSON.stringify(qBounds)}`);
+  await qClose();
+});
+
 
