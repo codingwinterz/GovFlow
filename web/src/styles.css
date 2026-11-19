@@ -63,7 +63,7 @@ h3 { font-size: 1rem; margin: 16px 0 8px; }
 .integrity.error { font-weight: 600; }
 .card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin: 16px 0; overflow-x: auto; }
 .narrow { max-width: 480px; }
-.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 0 16px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(340px, 100%), 1fr)); gap: 0 16px; }   /* minimum card width */
 .grid .wide { grid-column: 1 / -1; }
 .big { font-size: 2rem; margin: 8px 0; }
 table { width: 100%; border-collapse: collapse; background: var(--surface); }
@@ -118,9 +118,10 @@ button.link { background: none; border: none; color: var(--accent); padding: 2px
 /* Analytics bars: every chart on the page uses one shared scale, with tick labels under the bars */
 /* Fixed layout: column widths are exact percentages, so every chart's track has the same pixel width. */
 .bars { table-layout: fixed; }
-.bars td { border-bottom: none; padding: 4px 8px; vertical-align: middle; overflow-wrap: anywhere; }
-.bars .bar-label { width: 38%; }
-.bars .bar-cell { width: 50%; }
+.bars td { border-bottom: none; padding: 4px 8px; vertical-align: middle; }
+/* Labels wrap only between words: never inside one (no overflow-wrap: anywhere, no hyphenation). */
+.bars .bar-label { width: 44%; overflow-wrap: normal; word-break: normal; hyphens: manual; line-height: 1.25; }
+.bars .bar-cell { width: 44%; }
 .bars td.num { width: 12%; }
 .bar-track { display: block; position: relative; height: 12px; background: var(--track); border-radius: 3px; }
 .bar { display: block; height: 100%; background: var(--accent); border-radius: 3px; min-width: 2px; }

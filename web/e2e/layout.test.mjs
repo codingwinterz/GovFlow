@@ -754,3 +754,44 @@ test("case page: every rupee amount reads in Indian grouping, the stored explana
   assert.match(body, /₹20,16,000\.00/);
   assert.doesNotMatch(body, /Rs\s?\d|\d{1,3},\d{3},\d{3}/, "an amount still in Western grouping");
 });
+
+// Analytics with the real scheme titles, so labels are as long as they are in the demo.
+const SCHEMES = [
+  { scheme: "land_acquisition", labels: { title: "Land acquisition compensation" }, terms: {} },
+  { scheme: "disaster_relief", labels: { title: "Disaster relief: housing damage" }, terms: {} },
+  { scheme: "social_welfare", labels: { title: "Social welfare: pension" }, terms: {} },
+];
+const ANALYTICS_LONG = { ...ANALYTICS, by_status: { ...ANALYTICS.by_status, needs_info: 3, withdrawn: 1 },
+  per_scheme: { ...ANALYTICS.per_scheme, social_welfare: 6 } };
+
+async function openAnalytics(width, payload = ANALYTICS_LONG) {
+  return open("#/officer/analytics", (url) => ({ json: url.includes("/analytics") ? payload : url.includes("/schemes") ? SCHEMES : [] }),
+    { login: { ...OFFICER_LOGIN, role: "admin", user: "demo-admin" }, width });
+}
+
+for (const width of [1280, 390]) {
+  test(`analytics bar labels at ${width}px wrap only at spaces, never inside a word`, async () => {
+    const { page, close } = await openAnalytics(width);
+    await page.locator(".bars .bar-label").first().waitFor();
+    const broken = await page.evaluate(() => {
+      const out = [];
+      for (const cell of document.querySelectorAll(".bars .bar-label")) {
+        const words = cell.textContent.split(/(\s+)/);
+        cell.textContent = "";
+        for (const w of words) {
+          if (/^\s+$/.test(w) || w === "") { cell.append(w); continue; }
+          const span = document.createElement("span");
+          span.textContent = w;
+          cell.append(span);
+          if (span.getClientRects().length > 1) out.push(w);
+        }
+      }
+      return out;
+    });
+    const cardMin = await page.evaluate(() => Math.min(...[...document.querySelectorAll(".grid > section.card")]
+      .map((c) => c.getBoundingClientRect().width)));
+    await close();
+    assert.deepEqual(broken, [], `words split across lines at ${width}px`);
+    assert.ok(cardMin >= 300 || width === 390, `a chart card is narrower than 300px: ${cardMin}`);
+  });
+}
