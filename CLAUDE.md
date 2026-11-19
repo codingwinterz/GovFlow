@@ -50,7 +50,8 @@ Fuller detail is in `docs/KNOWN_LIMITATIONS.md`.
 
 ### Built
 - Three schemes from YAML only: land acquisition (21 synthetic cases), disaster relief (15), and social welfare
-  (6; `rules/social_welfare.yaml`, modeled on Goa's DSSS with zero scheme-specific Python code), totaling 42
+  (6; `rules/social_welfare.yaml`, rebuilt 2026-11-19 from the published 2002 DSSS notification, zero
+  scheme-specific Python code), totaling 42
   synthetic cases with hand-derived expected outcomes. LA-17 and DR-15 carry prompt-injection text at confidence
   1.0 and must end in review.
 - Tools: rules engine, compensation, extraction (Gemini vision, Tesseract fallback), verification, SLA, analytics,
@@ -136,11 +137,20 @@ Fuller detail is in `docs/KNOWN_LIMITATIONS.md`.
   total, flags by severity, SLA clock); placeholder clauses show as a dash; the queue opens on all cases; an approval
   must name the case it was confirmed for
   (`confirmed_case`, else 409); visible keyboard focus on every control, including radios, checkboxes, text areas.
-- Demo database re-seeded 2026-11-19 (`--reset`, 42 cases) for the UI polish screenshots.
+- Demo database re-seeded 2026-11-19 (`--reset`, 42 cases) for the UI polish and welfare screenshots.
+- UI polish (branch `ui-polish`, merged into main locally 2026-11-19): design tokens in `web/src/styles.css`
+  (one primary, semantic colours, type scale, spacing, 44 px phone targets, reduced motion), case summary strip as
+  the anchor, analytics headline tiles first, sticky queue header on wide screens.
+- Branch `weak-spots` (not merged): social welfare rebuilt from DSSS notification No. 50/354/02-03/HC/part-I/4247
+  dated 02/10/2002 as published (income limit Rs 24,000; senior Rs 2,000, disability Rs 2,000 or Rs 3,500 at 90 to
+  100%, widows and single women below 60 Rs 2,500 a month); invented 80+ and minor-child supplements removed.
+  `scripts/benchmark_processing.py` writes `docs/BENCHMARK.md` (per scheme and stage: median, mean, p90; Gemini
+  only after a one-call preflight, else labelled fallback provider). `scripts/export_translations.py` writes
+  `docs/translation_review.csv` (98 keys, en/hi/mr/kok, for native-speaker review).
 
 ### Tests (all green at commit time)
-- Python: 1,158 passed (`pytest -q`, run in 3 low-memory batches: `[a-f]` 566 + `[g-r]` 245 + `[s-z]` 347).
-- Frontend: 87 logic (`npm test`) + 56 browser (`npm run test:layout`); `npm run test:all` runs both. Build clean.
+- Python: 1,199 passed (`pytest -q`, run in 3 low-memory batches: `[a-f]` 581 + `[g-r]` 245 + `[s-z]` 373).
+- Frontend: 88 logic (`npm test`) + 79 browser (`npm run test:layout`); `npm run test:all` runs both. Build clean.
 
 
 
@@ -199,7 +209,9 @@ Fuller detail is in `docs/KNOWN_LIMITATIONS.md`.
   caught by other checks). Decide whether to keep it on for hard documents.
 - Cost of the at-or-below rule: Tesseract gives exactly 0.85 to four correct land dates on degraded images, now
   withheld (affects the Tesseract-only baseline, not Gemini + Tesseract).
-- Hindi, Marathi and Konkani text needs native-speaker review.
+- Hindi, Marathi and Konkani text needs native-speaker review: `docs/translation_review.csv` is the sheet to send.
+- Benchmark run of 19 Nov: the Gemini preflight timed out, so `docs/BENCHMARK.md` is a fallback-provider
+  (Tesseract-only) run; re-run `python -m scripts.benchmark_processing` when Gemini answers.
 - Goa rural multiplier: notified value unknown (default 1.0 above).
 - Current relief schedule for Goa: amounts follow the 2022-26 norms, labelled "to be confirmed".
 - 75% full-damage threshold: placeholder until an official definition is found.

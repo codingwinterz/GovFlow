@@ -210,8 +210,16 @@ Written 17 Nov 2026 at commit `d73da8c` (the last code commit before this file);
 
 ## 5. Current state (at `9b648a6`, 18 Nov 2026)
 
-- **Tests, all green (re-run 19 Nov, after the final freeze exception):** Python **1,158** passed (three batches:
-  `[a-f]` 566 + `[g-r]` 245 + `[s-z]` 347); frontend **87** logic + **56** browser (1280 px and 390 px); build clean.
+- **Tests, all green (19 Nov, branch `weak-spots`):** Python **1,199** passed (three batches: `[a-f]` 581 +
+  `[g-r]` 245 + `[s-z]` 373); frontend **88** logic + **79** browser (1280 px and 390 px); build clean.
+- **UI polish (19 Nov):** branch `ui-polish` (tokens, case summary strip, analytics tiles, sticky queue header,
+  44 px phone targets; before/after screenshots in `docs/screenshots/before|after/`) merged into main locally.
+- **Branch `weak-spots` (19 Nov, not merged):** `73e7e51` social welfare rebuilt from the published 2002 DSSS
+  notification No. 4247 (income limit Rs 24,000; Rs 2,000 senior and disability, Rs 3,500 at 90 to 100%, Rs 2,500
+  widows and single women below 60; 80+ and minor-child supplements removed; six cases re-derived by hand; single
+  women 18+ vs unmarried above 50 left as a VERIFY conflict) · `1d4995e` `scripts/benchmark_processing.py` and
+  `docs/BENCHMARK.md` (this run: fallback provider, the Gemini preflight timed out) · `0934e79`
+  `scripts/export_translations.py` and `docs/translation_review.csv` for native-speaker review.
 - **Final freeze exception (19 Nov):** item 1 `7d49203` social welfare source-conflict note (Social Welfare Department
   page: 15-year residence, Rs 24,000 p.a. income limit, 2002 notification; other sources Rs 1.5 lakh and Rs 3 lakh;
   Rs 2,000 or Rs 2,500 a month); no value changed, and a test pins every value. Item 2, the revenue mutation scheme,

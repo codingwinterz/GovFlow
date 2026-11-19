@@ -97,6 +97,9 @@ cd web && npm run dev                                   # terminal 2, open http:
 - **Click:** Queue → Scheme filter *Disaster relief: housing damage* → open **DR-10**.
 - **Say:** "Two family members claimed the same house; the duplicate check sends both to review and never
   rejects."
+- **Optional, third scheme:** open **SW-02** (widow aged 45, resident by birth). Say: "The pension scheme is also
+  YAML only, built from the department's published 2002 notification: Rs 2,500 a month for a widow below 60,
+  shown here as Rs 30,000 a year. Later amendments are not confirmed, so every value is marked with its source."
 
 ### 6. Citizen status page in two languages (2:10, ~20 s)
 - **Login:** none. **Click:** *Track an application* in the header.
