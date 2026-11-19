@@ -136,6 +136,7 @@ None of these may be used for a real decision until checked against official sou
 - **Voice assistant: planned**, not built. There is no voice input or spoken output anywhere in the product
   (Sahayak is text only).
 - **Multilingual helper: planned.** Sahayak answers in English only, whatever the page language, and says so.
+- **Revenue administration (mutation of Form I and XIV): designed, not built.** That scheme needs the engine changes listed in `docs/FUTURE_MUTATION_SCHEME.md` (per-scheme recommendation labels, `on_false: needs_review`, screens for a scheme with no amount, timelines as data); it cannot be added with YAML alone.
 - **Sahayak** (the self-check page's helper) answers only from `rules/sahayak_knowledge.yaml`: seven entries,
   keyword retrieval (no synonyms or spelling tolerance, so an unusual wording may find nothing and get the fixed
   "I can't help with that here" reply). Entries marked VERIFY carry a "Verify with …" tag naming who to check with (the Collectorate, the issuing
