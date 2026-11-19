@@ -1,0 +1,30 @@
+{
+  "case_id": "SW-01",
+  "description": "Eligible senior citizen aged 68 with 32 years Goa residence and income within limit",
+  "verification": {
+    "name_match": "pass",
+    "duplicate_claim": "pass"
+  },
+  "eligibility": {
+    "overall": "eligible",
+    "rules": {
+      "documents_complete": "pass",
+      "identity_verified": "pass",
+      "goa_residency_eligible": "pass",
+      "income_within_limit": "pass",
+      "category_threshold_met": "pass",
+      "documents_not_expired": "pass",
+      "no_competing_claim": "pass"
+    }
+  },
+  "compensation": {
+    "status": "computed",
+    "items": {
+      "base_pension": 24000,
+      "senior_age_supplement": 0,
+      "widow_child_supplement": 0
+    },
+    "total": 24000
+  },
+  "needs_human_review": false
+}

@@ -51,6 +51,12 @@ None of these may be used for a real decision until checked against official sou
   inundated); which Goa areas count as hilly; document ages (365 and 90 days); the 15-day SLA.
 - **Plausibility ranges** are placeholders, not legal values: land area 10 to 500,000 sq m per holding
   (10 to 5,000,000 per survey number) and market value ₹100 to ₹1,00,000 per sq m.
+- **Social welfare (`rules/social_welfare.yaml`, `2026.1-draft`):** modeled on Goa's Dayanand Social Security Scheme
+  (DSSS) purely via YAML (zero scheme-specific Python code). All rates, ceilings, thresholds, and clauses are marked
+  `# VERIFY`: official DSSS notification and `<DSSS clause: ...>` references; 30-day SLA; 365-day residence proof and
+  income certificate validity; eligible categories and minor-child supplement; 15-year Goa residence requirement;
+  ₹1,50,000 annual family income ceiling; age thresholds (60 senior citizen, 40 single woman, 80+ bonus); 40% minimum
+  disability; annualized base pension ₹24,000/year (₹2,000/month) and ₹6,000/year age 80+ / minor-child supplements.
 - **Notified area:** disaster relief relies on the damage assessment's own "notified area" certification;
   there is no list of notified villages per disaster event.
 - **Tenant / mundkar entries** (land): the rule cites the Goa, Daman and Diu Agricultural Tenancy Act, 1964 and
@@ -107,7 +113,7 @@ None of these may be used for a real decision until checked against official sou
   as such; it reaches the officer as data. LA-17 and DR-15 are the injected test cases.
 
 ## Data and testing
-- **All data is synthetic.** 21 land-acquisition and 15 disaster-relief cases (two with injected text),
+- **All data is synthetic.** 21 land-acquisition, 15 disaster-relief, and 6 social-welfare cases (42 total; two with injected text),
   hand-derived expected outcomes. Document images: 7 land and 7 relief documents, each rendered three ways
   from a computer font: clean, degraded (tilt, blur, faded ink, speckle) and hard (one field in a
   handwriting-style font, a red stamp over the values, a phone-photo look with perspective, a shadow and JPEG

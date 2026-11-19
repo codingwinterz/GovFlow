@@ -27,9 +27,9 @@ def seeded(tmp_path):
 def test_seed_covers_the_dashboard_states(seeded):
     summary, s = seeded
     statuses = {c.id: c.status for c in s.query(Case)}
-    assert len(statuses) == 36 and {c.scheme for c in s.query(Case)} == {"land_acquisition", "disaster_relief"}
+    assert len(statuses) == 42 and {c.scheme for c in s.query(Case)} == {"land_acquisition", "disaster_relief", "social_welfare"}
     assert {"in_officer_review", "received", "approved", "needs_info"} <= set(statuses.values())
-    assert summary["cases"] == 36 and summary["by_status"] == {
+    assert summary["cases"] == 42 and summary["by_status"] == {
         k: list(statuses.values()).count(k) for k in set(statuses.values())}
 
 
@@ -93,7 +93,7 @@ def test_seed_refuses_to_overwrite_without_reset(tmp_path):
     seed(db)
     with pytest.raises(FileExistsError):
         seed(db)
-    assert seed(db, reset=True)["cases"] == 36
+    assert seed(db, reset=True)["cases"] == 42
 
 
 def test_reset_only_deletes_database_files(tmp_path):
@@ -131,6 +131,6 @@ def test_seed_spreads_intake_dates_so_some_cases_are_overdue(seeded):
     _, s = seeded
     result = analytics(s, now=datetime.now(timezone.utc))
     assert result["overdue_count"] >= 2
-    assert set(result["overdue_by_scheme"]) == {"land_acquisition", "disaster_relief"}
+    assert set(result["overdue_by_scheme"]) == {"land_acquisition", "disaster_relief", "social_welfare"}
     ages = {c.id: (datetime.now(timezone.utc) - c.created_at.replace(tzinfo=timezone.utc)).days for c in s.query(Case)}
     assert max(ages.values()) <= 90 and len(set(ages.values())) > 5

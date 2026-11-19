@@ -26,8 +26,9 @@ Written 17 Nov 2026 at commit `d73da8c` (the last code commit before this file);
   deterministic code and the officer decide.
 - **Feature freeze since 17 Nov 2026.** Approved exceptions, all built: the tenant / mundkar rule, the deficiency notice,
   the SLA pause, Sahayak (text-only, English-only), the citizen document pre-check (`POST /public/precheck`,
-  section 8), and the fourth, dated 18 Nov 2026: the hash-chained audit log and the duplicate survey-number flag.
-  Frozen again after it.
+  section 8), the hash-chained audit log and duplicate survey-number flag (18 Nov), and the final pre-freeze
+  closure (18–19 Nov): extended officer/admin analytics (`by_scheme_and_status`, active `average_days_open`,
+  `liability`, `flags`) and the 3rd pure-YAML scheme (`rules/social_welfare.yaml`). Frozen again after.
 
 - All case data is **synthetic**. No real citizen data is ever committed (CLAUDE.md rule 7).
 

@@ -1,0 +1,45 @@
+{
+  "case_id": "SW-02",
+  "scheme": "social_welfare",
+  "status": "received",
+  "reference_date": "2026-11-15",
+  "documents": {
+    "application": {
+      "fields": {
+        "name": {"value": "Sunita Dessai", "confidence": 1.0, "source_page": null}
+      }
+    },
+    "identity_proof": {
+      "fields": {
+        "name": {"value": "Sunita Dessai", "confidence": 0.96, "source_page": 1},
+        "id_number": {"value": "9999 3000 0002", "confidence": 0.96, "source_page": 1},
+        "expiry_date": {"value": "2030-10-15", "confidence": 0.96, "source_page": 1}
+      }
+    },
+    "residence_proof": {
+      "fields": {
+        "name": {"value": "Sunita Dessai", "confidence": 0.96, "source_page": 1},
+        "village": {"value": "Ponda", "confidence": 0.96, "source_page": 1},
+        "years_in_goa": {"value": 20, "confidence": 0.96, "source_page": 1},
+        "issue_date": {"value": "2026-06-15", "confidence": 0.96, "source_page": 1}
+      }
+    },
+    "income_certificate": {
+      "fields": {
+        "name": {"value": "Sunita Dessai", "confidence": 0.96, "source_page": 1},
+        "annual_income": {"value": 72000, "confidence": 0.96, "source_page": 1},
+        "issue_date": {"value": "2026-07-20", "confidence": 0.96, "source_page": 1}
+      }
+    },
+    "category_proof": {
+      "fields": {
+        "name": {"value": "Sunita Dessai", "confidence": 0.96, "source_page": 1},
+        "applicant_category": {"value": "widow", "confidence": 0.96, "source_page": 1},
+        "age_years": {"value": 38, "confidence": 0.96, "source_page": 1},
+        "disability_percent": {"value": 0, "confidence": 0.96, "source_page": 1},
+        "minor_child_count": {"value": 1, "confidence": 0.96, "source_page": 1},
+        "remarks": {"value": "", "confidence": 0.96, "source_page": 1}
+      }
+    }
+  }
+}

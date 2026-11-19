@@ -49,8 +49,10 @@ Keep this section current: update it in the same commit as any change to what is
 Fuller detail is in `docs/KNOWN_LIMITATIONS.md`.
 
 ### Built
-- Two schemes from YAML only: land acquisition (21 synthetic cases) and disaster relief (15), with hand-derived
-  expected outcomes. LA-17 and DR-15 carry prompt-injection text at confidence 1.0 and must end in review.
+- Three schemes from YAML only: land acquisition (21 synthetic cases), disaster relief (15), and social welfare
+  (6; `rules/social_welfare.yaml`, modeled on Goa's DSSS with zero scheme-specific Python code), totaling 42
+  synthetic cases with hand-derived expected outcomes. LA-17 and DR-15 carry prompt-injection text at confidence
+  1.0 and must end in review.
 - Tools: rules engine, compensation, extraction (Gemini vision, Tesseract fallback), verification, SLA, analytics,
   self-check, rule simulator (read-only what-if over the synthetic set). Agent loop with a deterministic fallback.
 - SLA pause: the clock stops while a case is in `needs_info` (from the send-back or deficiency notice to the next
@@ -134,7 +136,7 @@ Fuller detail is in `docs/KNOWN_LIMITATIONS.md`.
 - Demo database re-seeded 2026-11-16 after the backdating fix: Submitted and Days open agree for all 23 open cases.
 
 ### Tests (all green at commit time)
-- Python: 1128 passed (`pytest -q`, about 5 minutes; with little free memory, run in batches: 411 + 352 + 365).
+- Python: 1,154 passed (`pytest -q`, run in 3 low-memory batches: `[a-f]` 565 + `[g-r]` 245 + `[s-z]` 344).
 - Frontend: 79 logic (`npm test`) + 38 browser (`npm run test:layout`); `npm run test:all` runs both. Build clean.
 
 
@@ -165,6 +167,12 @@ Fuller detail is in `docs/KNOWN_LIMITATIONS.md`.
   claim on a survey number already under, or past, an award must be handled (e.g. a reference for apportionment).
 - Plausibility ranges (placeholders, not legal values): land `area_sqm` 10 to 500,000 (holding) and 10 to 5,000,000
   (survey number); `market_value_per_sqm` Rs 100 to 1,00,000.
+- Social welfare (`rules/social_welfare.yaml`, `2026.1-draft`): Goa Dayanand Social Security Scheme (DSSS)
+  notification, slab rates, and clause references (`<DSSS clause: ...>`); 30-day SLA; 365-day residence proof and
+  income certificate validity; eligible categories (`senior_citizen`, `widow`, `person_with_disability`,
+  `single_woman`) and minor-child supplement; 15-year continuous Goa residence; Rs 1,50,000 annual family income
+  ceiling; age thresholds (60 senior citizen, 40 single woman, 80+ bonus); 40% minimum disability; annualized base
+  pension Rs 24,000/yr (Rs 2,000/month) and Rs 6,000/yr age 80+ / minor-child supplements.
 
 ### Open items
 - **Feature freeze from 2026-11-17.** No new features; only fixes, docs and demo preparation. One exception

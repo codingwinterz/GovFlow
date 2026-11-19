@@ -1,0 +1,30 @@
+{
+  "case_id": "SW-03",
+  "description": "Annual family income 210000 exceeds 150000 limit; not eligible",
+  "verification": {
+    "name_match": "pass",
+    "duplicate_claim": "pass"
+  },
+  "eligibility": {
+    "overall": "not_eligible",
+    "rules": {
+      "documents_complete": "pass",
+      "identity_verified": "pass",
+      "goa_residency_eligible": "pass",
+      "income_within_limit": "fail",
+      "category_threshold_met": "pass",
+      "documents_not_expired": "pass",
+      "no_competing_claim": "pass"
+    }
+  },
+  "compensation": {
+    "status": "computed",
+    "items": {
+      "base_pension": 24000,
+      "senior_age_supplement": 0,
+      "widow_child_supplement": 0
+    },
+    "total": 24000
+  },
+  "needs_human_review": true
+}

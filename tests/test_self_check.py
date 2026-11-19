@@ -113,7 +113,7 @@ def test_api_self_check_is_public_and_stores_nothing(app_engine):
 def test_api_lists_only_schemes_with_a_self_check(app_engine):
     app, _ = app_engine
     status, schemes = call(app, "GET", "/public/self-check")
-    assert status == 200 and [s["scheme"] for s in schemes] == ["disaster_relief"]
+    assert status == 200 and [s["scheme"] for s in schemes] == ["disaster_relief", "social_welfare"]
     q = {x["field"]: x for x in schemes[0]["questions"]}
     assert q[DAMAGE]["type"] == "percent" and q[AREA]["choices"] == ["yes", "no"]
     assert schemes[0]["labels"]["title"] and schemes[0]["guide_label"] == GUIDE_LABEL

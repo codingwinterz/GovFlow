@@ -1,0 +1,30 @@
+{
+  "case_id": "SW-05",
+  "description": "Duplicate claim sharing identity number with SW-04; routed to human review",
+  "verification": {
+    "name_match": "pass",
+    "duplicate_claim": "needs_review"
+  },
+  "eligibility": {
+    "overall": "needs_review",
+    "rules": {
+      "documents_complete": "pass",
+      "identity_verified": "pass",
+      "goa_residency_eligible": "pass",
+      "income_within_limit": "pass",
+      "category_threshold_met": "pass",
+      "documents_not_expired": "pass",
+      "no_competing_claim": "needs_review"
+    }
+  },
+  "compensation": {
+    "status": "computed",
+    "items": {
+      "base_pension": 24000,
+      "senior_age_supplement": 0,
+      "widow_child_supplement": 0
+    },
+    "total": 24000
+  },
+  "needs_human_review": true
+}
