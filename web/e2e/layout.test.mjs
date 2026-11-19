@@ -911,3 +911,23 @@ test("the queue opens on all cases, every filter cleared; the filters still narr
   await filtered;                                                   // the status filter still applies
   await close();
 });
+
+// --- UI polish round (ui-polish branch) ------------------------------------------------------------------------------
+
+for (const width of [1280, 390]) {
+  test(`analytics at ${width}px: headline tiles come first, then the stage table, then the charts; amounts whole`, async () => {
+    const { page, close } = await openAnalytics(width);
+    await page.locator(".tiles .tile").first().waitFor();
+    const m = await page.evaluate(() => {
+      const top = (sel) => document.querySelector(sel).getBoundingClientRect().top;
+      const money = [...document.querySelectorAll(".tile .money")].map((e) => ({ text: e.innerText, fits: e.scrollWidth <= e.clientWidth + 1 }));
+      return { tiles: top(".tiles"), stage: top(".stage-table"), bars: top(".bars"), money,
+        vw: document.documentElement.clientWidth, scroll: document.documentElement.scrollWidth };
+    });
+    await close();
+    assert.ok(m.tiles < m.stage && m.stage < m.bars, `order: ${JSON.stringify(m)}`);
+    assert.deepEqual(m.money.map((x) => x.text), ["₹42,50,000.00", "₹1,25,00,000.00"]);
+    assert.ok(m.money.every((x) => x.fits), `an amount is clipped: ${JSON.stringify(m.money)}`);
+    assert.equal(m.scroll, m.vw);
+  });
+}

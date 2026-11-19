@@ -298,3 +298,13 @@ div.explanation li { margin: var(--s1) 0; }
 /* Approval checklist */
 .confirm { background: var(--surface-2); }
 .confirm .confirm-item { padding: var(--s1) 0; }
+
+/* ===== Analytics: headline tiles first ===== */
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr)); gap: var(--s4); margin: var(--s4) 0; }
+.tiles .tile { margin: 0; display: flex; flex-direction: column; }
+.tiles .tile h2 { font-size: var(--fs-sm); color: var(--muted); font-weight: 600; margin: 0; }
+.tiles .tile .big { font-size: var(--fs-3xl); }
+.tiles .tile { padding: var(--s4) var(--s5); }
+.tiles .tile .big.money { font-size: var(--fs-xl); white-space: nowrap; }
+.tiles .tile ul { padding-left: var(--s4); margin: var(--s1) 0; font-size: var(--fs-sm); }
+.group-title { margin: var(--s5) 0 0; font-size: var(--fs-lg); }

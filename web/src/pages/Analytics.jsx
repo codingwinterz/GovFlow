@@ -80,16 +80,18 @@ export default function Analytics() {
       )}
       {d && (
         <div className="grid">
-          <Counts title="Cases by status" counts={d.by_status} scale={scale} label={status}
-            source={`${d.total_cases} cases in the database`} />
-          <Counts title="Cases per scheme" counts={d.per_scheme} scale={scale} label={scheme}
-            source="the scheme each case belongs to" />
-          <section className="card">
-            <h2>Average processing time</h2>
-            <p className="big">{formatDuration(d.average_processing_seconds)}</p>
-            <p className="muted small">Over {d.decided_cases} decided case(s). Source: {readable(d.average_processing_source)}.</p>
+          <div className="tiles wide">
+          <section className="card tile">
+            <h2>Cases</h2>
+            <p className="big">{d.total_cases}</p>
+            <p className="muted small">In the database, every status.</p>
           </section>
-          <section className="card overdue-tile">
+          <section className="card tile">
+            <h2>Awaiting officer decision</h2>
+            <p className="big">{d.by_status?.in_officer_review ?? 0}</p>
+            <p className="muted small">Ready for an officer to decide.</p>
+          </section>
+          <section className="card tile overdue-tile">
             <h2>Overdue against SLA</h2>
             <p className="big">{d.overdue_count}</p>
             <p className="muted small">Open cases past their scheme's target.</p>
@@ -100,7 +102,7 @@ export default function Analytics() {
             </details>
           </section>
           {d.average_days_open !== undefined && (
-            <section className="card">
+            <section className="card tile">
               <h2>Average days open (excluding waiting)</h2>
               <p className="big">{d.average_days_open === null ? "—" : `${d.average_days_open} d`}</p>
               {d.average_days_open_by_scheme && (
@@ -113,14 +115,26 @@ export default function Analytics() {
               <p className="muted small">Source: {readable(d.average_days_open_source)}.</p>
             </section>
           )}
-          {d.overdue_count > 0 && (
+          <section className="card tile">
+            <h2>Average processing time</h2>
+            <p className="big">{formatDuration(d.average_processing_seconds)}</p>
+            <p className="muted small">Over {d.decided_cases} decided case(s). Source: {readable(d.average_processing_source)}.</p>
+          </section>
+          {d.liability && (
             <>
-              <Counts title="Overdue by status (where cases are stuck)" counts={d.overdue_by_status} scale={scale}
-                label={status} source="overdue cases, grouped by status" />
-              <Counts title="Overdue by scheme" counts={d.overdue_by_scheme} scale={scale}
-                label={scheme} source="overdue cases, grouped by scheme" />
+              <section className="card tile">
+                <h2>Committed liability</h2>
+                <p className="big money">{formatRupees(d.liability.committed_total)}</p>
+                <p className="muted small">Approved cases.</p>
+              </section>
+              <section className="card tile">
+                <h2>Pending liability</h2>
+                <p className="big money">{formatRupees(d.liability.pending_total)}</p>
+                <p className="muted small">Cases still in the pipeline.</p>
+              </section>
             </>
           )}
+          </div>
           {d.by_scheme_and_status && (
             <section className="card wide">
               <h2>Cases by scheme and stage</h2>
@@ -144,6 +158,19 @@ export default function Analytics() {
               </div>
               <p className="muted small">Source: all loaded schemes and case lifecycle stages.</p>
             </section>
+          )}
+          <h2 className="group-title wide">Charts</h2>
+          <Counts title="Cases by status" counts={d.by_status} scale={scale} label={status}
+            source={`${d.total_cases} cases in the database`} />
+          <Counts title="Cases per scheme" counts={d.per_scheme} scale={scale} label={scheme}
+            source="the scheme each case belongs to" />
+          {d.overdue_count > 0 && (
+            <>
+              <Counts title="Overdue by status (where cases are stuck)" counts={d.overdue_by_status} scale={scale}
+                label={status} source="overdue cases, grouped by status" />
+              <Counts title="Overdue by scheme" counts={d.overdue_by_scheme} scale={scale}
+                label={scheme} source="overdue cases, grouped by scheme" />
+            </>
           )}
           {d.liability && (
             <section className="card wide">
