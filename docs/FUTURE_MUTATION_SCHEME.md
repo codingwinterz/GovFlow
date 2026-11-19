@@ -17,6 +17,7 @@ Sources:
 - **Rules 1969:** the Goa Land Revenue (Record of Rights and Register of Cultivators) Rules, 1969, rule 11(2), as
   amended in 2010.
 - **Commercial guide:** a commercial (non-government) guide.
+- **Lead only:** a pointer found but not yet read in full or tied to a provision; not a source until confirmed.
 
 | Step | Period / rule | Type | Source | Status |
 |---|---|---|---|---|
@@ -27,8 +28,8 @@ Sources:
 | Disposal, no objections | 30 days | Ministerial statement | Revenue Minister, as reported (goemkarponn.com) | VERIFY against a notification or circular |
 | Disposal, with objections | 90 days from the end of the notice period | Ministerial statement | Revenue Minister, as reported (goemkarponn.com) | VERIFY against a notification or circular |
 | Objections decided by the Mamlatdar | Within three months, after hearing all parties; notice in Form XII to those who objected | Official document | Rules 1969, rule 11(2), as amended in 2010 | Sourced |
-| Notice to all co-owners | Required before mutation | Not yet sourced | none confirmed | VERIFY: which provision |
-| Civil title disputes | Not decided by the revenue authority; referred to the civil court | Not yet sourced | none confirmed | VERIFY: which provision |
+| Notice to all co-owners on an unpartitioned holding | Required before mutation | Lead only | A proviso on Indian Kanoon, document 35551211 | VERIFY: the rule it belongs to is not yet identified |
+| Civil title disputes | Not decided by the revenue authority; referred to the civil court | Lead only (case law) | Judgment in *Prime Builders v. Roque Freddie Meninon Exano Pereira* (Goa) | VERIFY: exact court and date |
 | Application window (90 days after the transfer) | 90 days | Commercial guide only | commercial guide | **VERIFY** |
 | Fees | as stated there | Commercial guide only | commercial guide | **VERIFY** |
 
