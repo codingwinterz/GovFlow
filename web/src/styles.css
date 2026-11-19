@@ -322,3 +322,24 @@ div.explanation li { margin: var(--s1) 0; }
   .queue-table thead th { position: sticky; top: 0; z-index: 2; }
   .queue-table thead th:nth-child(2) { z-index: 3; }
 }
+
+/* ===== Citizen pages: larger type, the next step and the privacy note stand out ===== */
+.citizen .content { font-size: var(--fs-lg); }
+.citizen h1 { font-size: var(--fs-2xl); }
+.citizen h2 { font-size: var(--fs-xl); }
+.citizen table { font-size: var(--fs-md); }
+.citizen .banner { font-size: var(--fs-md); }
+.citizen label input, .citizen label select, .citizen label textarea { max-width: 520px; }
+.citizen form button[type="submit"] { padding: var(--s3) var(--s5); }
+/* The four-language switcher stays in the bar on every screen width */
+.citizen .topbar .lang { white-space: nowrap; }
+@media (max-width: 600px) { .citizen .topbar-tools { margin-left: 0; width: 100%; justify-content: space-between; } }
+.citizen-view .line.status { font-weight: 600; }
+.citizen-view .line.next { background: var(--info-bg); border: 1px solid var(--info-border); color: var(--info-text);
+  border-radius: var(--r-md); padding: var(--s3) var(--s4); font-weight: 600; margin: var(--s3) 0; }
+.citizen-view .line.notice { background: var(--warn-bg); border: 1px solid var(--warn-border); color: var(--warn-text);
+  border-radius: var(--r-md); padding: var(--s3) var(--s4); }
+.citizen-view h2 { margin-top: var(--s5); }
+.precheck-privacy { font-size: var(--fs-md); }
+.precheck-privacy::before { content: "\24D8  "; font-weight: 700; }
+.tagline { font-size: var(--fs-lg); }

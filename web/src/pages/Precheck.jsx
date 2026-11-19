@@ -89,7 +89,7 @@ export default function Precheck({ activeScheme, reloadKey = 0, pageError = fals
     <section className="card precheck" aria-labelledby="precheck-heading" lang="en">
       <h2 id="precheck-heading">Check a document before you apply</h2>
       <p className="muted small">{options.languageNote}</p>
-      <p className="muted small precheck-privacy"><strong>{options.nothingSavedNote}</strong></p>
+      <p className="banner info precheck-privacy"><strong>{options.nothingSavedNote}</strong></p>
       <p className="banner warn"><strong>{options.disclaimer}</strong></p>
 
       {options.state === "loading" && !pageError && (
