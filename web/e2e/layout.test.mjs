@@ -949,3 +949,58 @@ test("queue at 1280px: the header row stays in view while the page scrolls; the 
   assert.ok(m.inner <= m.outer + 1, `queue scrolls sideways at 1280px: ${JSON.stringify(m)}`);
   assert.equal(m.scroll, m.vw);
 });
+
+// Token effects across pages: no sideways scroll at either width, 44 px targets on phones, visible keyboard focus.
+const TOKEN_PAGES = [
+  ["#/", null], ["#/citizen", null], ["#/citizen/check", null], ["#/citizen/track", null],
+  ["#/officer", OFFICER_LOGIN], ["#/officer/cases/LA-01", OFFICER_LOGIN], ["#/officer/intake", OFFICER_LOGIN],
+  ["#/officer/analytics", OFFICER_LOGIN], ["#/officer/simulator", OFFICER_LOGIN],
+];
+const tokenAnswer = (url) => {
+  const u = new URL(url);
+  if (u.pathname.endsWith("/cases/LA-01")) return { json: CASE };
+  if (u.pathname.endsWith("/analytics")) return { json: ANALYTICS_LONG };
+  if (u.pathname.endsWith("/schemes")) return { json: SCHEMES };
+  if (u.pathname.endsWith("/cases")) return { json: [WIDE_ROW(1), WIDE_ROW(2)] };
+  return { json: [] };
+};
+
+for (const width of [1280, 390]) {
+  for (const [hash, login] of TOKEN_PAGES) {
+    test(`tokens at ${width}px on ${hash}: no sideways scroll${width === 390 ? ", every control at least 44 px tall" : ""}`, async () => {
+      const { page, close } = await open(hash, tokenAnswer, { login, width });
+      await page.locator("main").first().waitFor();
+      await page.waitForTimeout(300);
+      const m = await page.evaluate(() => {
+        const targets = [...document.querySelectorAll("button, select, .topbar nav a, .actions a, label input:not([type=checkbox]):not([type=radio]):not([type=file])")]
+          .filter((el) => el.getBoundingClientRect().width > 0 && !el.closest(".table-scroll"));
+        return { vw: document.documentElement.clientWidth, scroll: document.documentElement.scrollWidth,
+          small: targets.filter((el) => el.getBoundingClientRect().height < 44)
+            .map((el) => `${el.tagName}:${(el.textContent || el.name || "").trim().slice(0, 20)} ${Math.round(el.getBoundingClientRect().height)}`) };
+      });
+      await close();
+      assert.equal(m.scroll, m.vw, `sideways scroll on ${hash}`);
+      if (width === 390) assert.deepEqual(m.small, [], `targets under 44 px on ${hash}`);
+    });
+  }
+}
+
+test("keyboard focus is visible on buttons, links and selects (outline drawn, not removed)", async () => {
+  const { page, close } = await open("#/officer", tokenAnswer, { login: OFFICER_LOGIN, width: 1280 });
+  await page.locator(".queue-table tbody tr").first().waitFor();
+  const seen = new Set();
+  for (let i = 0; i < 12; i += 1) {
+    await page.keyboard.press("Tab");
+    const f = await page.evaluate(() => {
+      const el = document.activeElement;
+      const s = getComputedStyle(el);
+      return { tag: el.tagName, outline: s.outlineStyle, width: parseFloat(s.outlineWidth) };
+    });
+    if (["A", "BUTTON", "SELECT"].includes(f.tag)) {
+      assert.ok(f.outline !== "none" && f.width >= 2, `no visible focus on a ${f.tag}: ${JSON.stringify(f)}`);
+      seen.add(f.tag);
+    }
+  }
+  await close();
+  assert.ok(seen.has("A") && seen.has("SELECT"), `tabbing never reached links and selects: ${[...seen]}`);
+});
