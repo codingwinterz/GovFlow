@@ -308,3 +308,17 @@ div.explanation li { margin: var(--s1) 0; }
 .tiles .tile .big.money { font-size: var(--fs-xl); white-space: nowrap; }
 .tiles .tile ul { padding-left: var(--s4); margin: var(--s1) 0; font-size: var(--fs-sm); }
 .group-title { margin: var(--s5) 0 0; font-size: var(--fs-lg); }
+
+/* ===== Queue and intake ===== */
+.filter-bar { background: var(--surface); border: var(--line); border-radius: var(--r-md); padding: var(--s3) var(--s4);
+  margin: var(--s4) 0; box-shadow: var(--shadow); }
+.filter-bar label { margin: 0; }
+.queue-table td { vertical-align: middle; }
+.queue-table .reason::before { content: "\2691  "; }      /* a flag mark beside the reason text */
+.waiting-count { margin: var(--s3) 0; }
+/* Sticky header: on wide screens the queue fits, so its box stops clipping and the header sticks to the page. */
+@media (min-width: 1024px) {
+  .table-scroll.queue-scroll { overflow: visible; }
+  .queue-table thead th { position: sticky; top: 0; z-index: 2; }
+  .queue-table thead th:nth-child(2) { z-index: 3; }
+}

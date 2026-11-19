@@ -44,7 +44,7 @@ export default function Queue() {
             <button type="button" className="link" onClick={() => setStatus("needs_info")}>Show these cases</button>}
         </p>
       )}
-      <div className="filters">
+      <div className="filters filter-bar">
         <label>Status
           <select value={status} onChange={(e) => setStatus(e.target.value)}>
             {STATUSES.map((s) => <option key={s} value={s}>{s ? appLabel("status", s) : "All statuses"}</option>)}
@@ -60,7 +60,7 @@ export default function Queue() {
       <Loading state={cases} />
       {cases.data && (
         cases.data.length === 0 ? <p className="muted">No cases match these filters.</p> : (
-          <div className="table-scroll"><table className="queue-table">
+          <div className="table-scroll queue-scroll"><table className="queue-table">
             <thead>
               <tr><th>#</th><th>Case</th><th>Scheme</th><th>Status</th><th>Reason for review</th><th className="num">Days open</th><th>Submitted</th></tr>
             </thead>

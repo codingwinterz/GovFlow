@@ -931,3 +931,21 @@ for (const width of [1280, 390]) {
     assert.equal(m.scroll, m.vw);
   });
 }
+
+test("queue at 1280px: the header row stays in view while the page scrolls; the table fits without a sideways scroll", async () => {
+  const rows = Array.from({ length: 40 }, (_, i) => WIDE_ROW(i + 1));
+  const { page, close } = await open("#/officer", (url) => ({ json: new URL(url).pathname.endsWith("/cases") ? rows : [] }),
+    { login: OFFICER_LOGIN, width: 1280 });
+  await page.locator(".queue-table tbody tr").nth(39).waitFor();
+  await page.evaluate(() => window.scrollTo(0, 1500));
+  const m = await page.evaluate(() => {
+    const th = document.querySelector(".queue-table thead th").getBoundingClientRect();
+    const wrap = document.querySelector(".queue-table").closest(".table-scroll");
+    return { thTop: th.top, inner: wrap.scrollWidth, outer: wrap.clientWidth,
+      vw: document.documentElement.clientWidth, scroll: document.documentElement.scrollWidth };
+  });
+  await close();
+  assert.ok(m.thTop >= -1 && m.thTop < 5, `header scrolled away: ${JSON.stringify(m)}`);
+  assert.ok(m.inner <= m.outer + 1, `queue scrolls sideways at 1280px: ${JSON.stringify(m)}`);
+  assert.equal(m.scroll, m.vw);
+});
