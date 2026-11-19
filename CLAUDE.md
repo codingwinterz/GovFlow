@@ -139,7 +139,7 @@ Fuller detail is in `docs/KNOWN_LIMITATIONS.md`.
 - Demo database re-seeded 2026-11-19 (`--reset`, 42 cases) for the UI polish screenshots.
 
 ### Tests (all green at commit time)
-- Python: 1,155 passed (`pytest -q`, run in 3 low-memory batches: `[a-f]` 566 + `[g-r]` 245 + `[s-z]` 344).
+- Python: 1,158 passed (`pytest -q`, run in 3 low-memory batches: `[a-f]` 566 + `[g-r]` 245 + `[s-z]` 347).
 - Frontend: 87 logic (`npm test`) + 56 browser (`npm run test:layout`); `npm run test:all` runs both. Build clean.
 
 
@@ -188,6 +188,10 @@ Fuller detail is in `docs/KNOWN_LIMITATIONS.md`.
 - A second freeze exception, 2026-11-17: Sahayak (text only, English only).
 - A third freeze exception, 2026-11-17: citizen document pre-check (`POST /public/precheck`, in memory, zero storage).
 - Fourth freeze exception, 2026-11-18: hash-chained audit log and the duplicate survey-number flag. Frozen again after.
+- Final freeze exception, 2026-11-19: item 1 done (social welfare source-conflict note, no value changed). Item 2,
+  the revenue mutation scheme, was **deferred**: it cannot be added with YAML alone (no per-scheme recommendation
+  labels, no `on_false: needs_review`, award and citizen amount screens assume an amount, one `sla_days` only, and
+  the pipeline always calls compute_compensation). Design and sourced timelines: `docs/FUTURE_MUTATION_SCHEME.md`.
 
 - Deficiency notices name fields in English (YAML labels) even in the hi/mr/kok drafts.
 - Live evaluation (`docs/EVAL_RESULTS.md`, two runs on 17 Nov 2026, synthetic only) on `gemini-3.5-flash-lite`

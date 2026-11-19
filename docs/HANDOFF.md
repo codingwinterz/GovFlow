@@ -210,8 +210,14 @@ Written 17 Nov 2026 at commit `d73da8c` (the last code commit before this file);
 
 ## 5. Current state (at `9b648a6`, 18 Nov 2026)
 
-- **Tests, all green (re-run 19 Nov, after the UI polish round):** Python **1,155** passed (three batches: `[a-f]` 566 +
-  `[g-r]` 245 + `[s-z]` 344); frontend **87** logic + **56** browser (1280 px and 390 px); build clean.
+- **Tests, all green (re-run 19 Nov, after the final freeze exception):** Python **1,158** passed (three batches:
+  `[a-f]` 566 + `[g-r]` 245 + `[s-z]` 347); frontend **87** logic + **56** browser (1280 px and 390 px); build clean.
+- **Final freeze exception (19 Nov):** item 1 `7d49203` social welfare source-conflict note (Social Welfare Department
+  page: 15-year residence, Rs 24,000 p.a. income limit, 2002 notification; other sources Rs 1.5 lakh and Rs 3 lakh;
+  Rs 2,000 or Rs 2,500 a month); no value changed, and a test pins every value. Item 2, the revenue mutation scheme,
+  was **deferred** after a feasibility check found it needs engine code, not just YAML: `ed8e071`
+  `docs/FUTURE_MUTATION_SCHEME.md` holds the findings, the proposed change (a) to (d) and the sourced timelines.
+  Nothing of it is built.
 - **UI polish round (19 Nov), UI only, no logic, rule, API or data change:**
   `387ed44` placeholder clauses (`<clause ref>`, `<DSSS clause: ...>`, every clause in the YAML is still VERIFY) show
   as a dash in the rule table and award letter and are stripped from the explanation on display; the stored explanation
