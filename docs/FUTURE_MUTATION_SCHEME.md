@@ -8,24 +8,32 @@ the system recommends **"ready for notice"** or **"needs review"** and calculate
 
 ## 1. Sourced process and timelines
 
-Nothing here is legal advice, and none of it is in the code. **Type** says what kind of source the timeline rests on.
-Unless the item names its own provision, which source states which period is our reading of the sources listed for
-this work, so each row says **VERIFY** until the exact clause is confirmed.
+Nothing here is legal advice, and none of it is in the code. **Type** says what kind of source each item rests on.
 
-| Step | Period / rule | Type | Source (as given) | Status |
+Sources:
+- **Ministerial statement:** the Revenue Minister's statement as reported in the press (goemkarponn.com, "113 online
+  mutation applications filed in Goa in two years"). Not a notification or circular.
+- **Citizen charter:** the Collectorate citizen charter, a 2016 document that may be out of date.
+- **Rules 1969:** the Goa Land Revenue (Record of Rights and Register of Cultivators) Rules, 1969, rule 11(2), as
+  amended in 2010.
+- **Commercial guide:** a commercial (non-government) guide.
+
+| Step | Period / rule | Type | Source | Status |
 |---|---|---|---|---|
-| Mutation entry by the Talathi | Under section 96 | Official document (statute) | Goa Land Revenue Code, section 96 | VERIFY: exact sub-section |
-| Scrutiny of the application | 7 working days | Official document | Collectorate citizen charter | VERIFY: which charter edition |
-| Notice to interested parties | Form X, 15 days | Official document (rules) | Record of Rights Rules 1969, rule 11 | VERIFY: rule 11 sub-rule and form number |
-| Notice to all co-owners | Required before mutation | Official document (rules) | Record of Rights Rules 1969, rule 11 / Code s. 96 | VERIFY: which provision |
-| Disposal, no objections | 30 days | Official document | Collectorate citizen charter | VERIFY: counted from what date |
-| Disposal, with objections | 90 days from the end of the notice period | Ministerial statement | Revenue Minister's statement | VERIFY: date and record of the statement; not yet found in an official document |
-| Objections decided by the Mamlatdar | Within three months | VERIFY: official document or ministerial statement | Code s. 96 / Rules 1969 rule 11 / Revenue Minister's statement | VERIFY: which source |
-| Civil title disputes | Not decided by the revenue authority; referred to the civil court | Official document | Code s. 96 / Rules 1969 | VERIFY: exact provision |
-| Application window (90 days after the transfer) | Not from an official document | Unconfirmed | none found | **VERIFY** |
-| Fees | Not from an official document | Unconfirmed | none found | **VERIFY** |
+| Application to the Talathi | Under section 96 (Goa Land Revenue Code) | Official document | Collectorate citizen charter (2016) | VERIFY: the charter is current |
+| Form X notice | 15 days | Official document | Collectorate citizen charter (2016) | VERIFY: the charter is current |
+| Scrutiny of the application | 7 working days | Ministerial statement | Revenue Minister, as reported (goemkarponn.com) | VERIFY against a notification or circular |
+| Public notice | 15 days | Ministerial statement | Revenue Minister, as reported (goemkarponn.com) | VERIFY against a notification or circular |
+| Disposal, no objections | 30 days | Ministerial statement | Revenue Minister, as reported (goemkarponn.com) | VERIFY against a notification or circular |
+| Disposal, with objections | 90 days from the end of the notice period | Ministerial statement | Revenue Minister, as reported (goemkarponn.com) | VERIFY against a notification or circular |
+| Objections decided by the Mamlatdar | Within three months, after hearing all parties; notice in Form XII to those who objected | Official document | Rules 1969, rule 11(2), as amended in 2010 | Sourced |
+| Notice to all co-owners | Required before mutation | Not yet sourced | none confirmed | VERIFY: which provision |
+| Civil title disputes | Not decided by the revenue authority; referred to the civil court | Not yet sourced | none confirmed | VERIFY: which provision |
+| Application window (90 days after the transfer) | 90 days | Commercial guide only | commercial guide | **VERIFY** |
+| Fees | as stated there | Commercial guide only | commercial guide | **VERIFY** |
 
-Only one of these periods could drive the queue clock (`sla_days`); see (d) below.
+The 15-day notice appears twice: as Form X in the 2016 citizen charter and as the public notice period in the
+minister's statement. Both say 15 days. Only one period could drive the queue clock (`sla_days`); see (d) below.
 
 ## 2. What works with YAML alone
 
