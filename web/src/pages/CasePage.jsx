@@ -6,7 +6,9 @@ import {
   resolutionsBody,
 } from "../lib/format.js";
 import { href } from "../lib/router.js";
-import { appLabel, clauseText, flagLabel, readable, readableFormula, termLabel, withoutClausePlaceholders } from "../lib/display.js";
+import {
+  appLabel, clauseText, explanationBlocks, flagLabel, readable, readableFormula, termLabel, withoutClausePlaceholders,
+} from "../lib/display.js";
 import { DICTS } from "../i18n/index.js";
 import { flagCounts, slaClock, summaryTotal } from "../lib/summary.js";
 
@@ -53,7 +55,7 @@ function Documents({ documents, terms }) {
             {d.extraction_status && <span className={`badge ${d.extraction_status === "ok" ? "" : "warn"}`}>{appLabel("extraction", d.extraction_status)}</span>}
           </h3>
           {d.fields.length > 0 && (
-            <table>
+            <div className="table-scroll"><table>
               <thead><tr><th>Field</th><th>Value</th><th>Confidence</th><th>Source</th></tr></thead>
               <tbody>
                 {d.fields.map((f) => (
@@ -65,7 +67,7 @@ function Documents({ documents, terms }) {
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </table></div>
           )}
         </div>
       ))}
@@ -87,17 +89,17 @@ function Rules({ detail }) {
         ? <p>Rules engine recommendation: <strong>{appLabel("recommendation", detail.recommendation)}</strong> <span className="muted">(rules version {detail.rules_version}). Only an officer decides.</span></p>
         : <p className="muted">Not assessed yet.</p>}
       {detail.rule_results.length > 0 && (
-        <table>
+        <div className="table-scroll"><table className="rules-table">
           <thead><tr><th>Rule</th><th>Result</th><th>Clause</th><th>Reason</th><th>Version</th></tr></thead>
           <tbody>
             {detail.rule_results.map((r) => (
               <tr key={r.rule_id} className={r.status === "pass" ? "" : "flagged"}>
-                <td>{termLabel(detail.terms, r.rule_id)}</td><td>{appLabel("result", r.status)}</td><td><Clause clause={r.clause} /></td>
+                <td>{termLabel(detail.terms, r.rule_id)}</td><td><span className={`result r-${r.status}`}>{appLabel("result", r.status)}</span></td><td><Clause clause={r.clause} /></td>
                 <td className="small">{readable(rupeesInText(r.reason), detail.terms)}</td><td>{r.rules_version}</td>
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></div>
       )}
     </section>
   );
@@ -108,19 +110,20 @@ function Amounts({ compensation, version, labels, terms }) {
     <section className="card">
       <h2>{labels.amounts} <span className="badge rec">recommendation only</span></h2>
       {compensation.items.length === 0 ? <p className="muted">Not computed yet.</p> : (
-        <table>
-          <thead><tr><th>Component</th><th className="num">Amount</th><th>Formula (source)</th></tr></thead>
+        <div className="table-scroll"><table className="steps-table">
+          <thead><tr><th className="num">Step</th><th>Component</th><th>Formula (source)</th><th className="num">Amount</th></tr></thead>
           <tbody>
-            {compensation.items.map((i) => (
-              <tr key={i.component}><td>{termLabel(terms, i.component)}</td><td className="num">{formatRupees(i.amount)}</td>
-                <td className="small">{readableFormula(i.formula_note, terms)}</td></tr>
+            {compensation.items.map((i, n) => (
+              <tr key={i.component}><td className="num step">{n + 1}</td><td>{termLabel(terms, i.component)}</td>
+                <td className="small">{readableFormula(i.formula_note, terms)}</td><td className="num">{formatRupees(i.amount)}</td></tr>
             ))}
             <tr className="total">
-              <td>{labels.total}</td><td className="num">{formatRupees(compensation.total)}</td>
+              <td /><td>{labels.total}</td>
               <td className="small">as returned by the API (rules version {version}); not computed in the browser</td>
+              <td className="num">{formatRupees(compensation.total)}</td>
             </tr>
           </tbody>
-        </table>
+        </table></div>
       )}
     </section>
   );
@@ -137,7 +140,13 @@ function Explanation({ explanation, terms }) {
           <ul>{explanation.warnings.map((w) => <li key={w}>{readable(w, terms)}</li>)}</ul>
         </div>
       )}
-      <pre className="explanation">{readable(rupeesInText(maskIdentifiers(withoutClausePlaceholders(explanation.text))), terms)}</pre>
+      <div className="explanation">
+        {explanationBlocks(readable(rupeesInText(maskIdentifiers(withoutClausePlaceholders(explanation.text))), terms)).map((b, i) => (
+          b.kind === "list"
+            ? <ul key={i}>{b.items.map((item, j) => <li key={j}>{item}</li>)}</ul>
+            : <p key={i}>{b.text}</p>
+        ))}
+      </div>
       <p className="muted small">Written {formatDate(explanation.at)}{explanation.used_fallback ? " without the LLM (deterministic summary)" : " by the agent"}. Figures above come from the tools, not from this text.</p>
     </section>
   );
@@ -270,11 +279,11 @@ function SummaryStrip({ detail }) {
   const total = summaryTotal(detail);
   const counts = flagCounts(detail.flags);
   return (
-    <dl className="summary-strip" aria-label="Case summary">
+    <dl className={`summary-strip strip-${detail.status}`} aria-label="Case summary">
       <div><dt>Status</dt><dd><span className={`status s-${detail.status}`}>{appLabel("status", detail.status)}</span></dd></div>
       <div><dt>{detail.labels.total}</dt><dd className="num">{total === null ? <span className="muted">Not computed yet</span> : formatRupees(total)}</dd></div>
       <div><dt>Flags</dt><dd>{counts.length === 0 ? <span className="muted">None</span>
-        : counts.map((c, i) => <span key={c.severity}>{i > 0 && " · "}<span className={`flag-count sev-${c.severity}`}>{c.count} {appLabel("severity", c.severity).toLowerCase()}</span></span>)}</dd></div>
+        : counts.map((c, i) => <span key={c.severity}>{i > 0 && " · "}<span className={`flag-count sev sev-${c.severity}`}>{c.count} {appLabel("severity", c.severity).toLowerCase()}</span></span>)}</dd></div>
       <div><dt>SLA clock</dt><dd>{clock
         ? <span className={`clock clock-${clock.kind}`} title={clock.title}>{clock.text}</span>
         : <span className="muted">{queue.loading ? "…" : "—"}</span>}</dd></div>
@@ -322,8 +331,9 @@ export default function CasePage({ id, login }) {
             <section className="card">
               <h2>Verification flags</h2>
               <ul className="flags">{d.flags.map((f, i) => (
-                <li key={i} className={`sev-${f.severity}`}><strong>{flagLabel(d.terms, f.kind)}</strong>{" "}
-                  ({appLabel("severity", f.severity).toLowerCase()}): {readable(rupeesInText(maskIdentifiers(f.detail)), d.terms)}</li>
+                <li key={i} className={`flag-item flag-${f.severity}`}>
+                  <span className={`sev sev-${f.severity}`}>{appLabel("severity", f.severity)}</span>{" "}
+                  <strong>{flagLabel(d.terms, f.kind)}</strong>: {readable(rupeesInText(maskIdentifiers(f.detail)), d.terms)}</li>
               ))}</ul>
             </section>
           )}

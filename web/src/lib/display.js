@@ -87,3 +87,18 @@ export function withoutClausePlaceholders(text) {
   if (text === null || text === undefined) return "";
   return String(text).replace(CLAUSE_IN_PROSE, "");
 }
+
+// The stored explanation as blocks for reading: lines starting "- " become list items, every other non-blank line a
+// paragraph. Layout only: no word is added, removed or changed.
+export function explanationBlocks(text) {
+  const blocks = [];
+  for (const line of String(text ?? "").split("\n")) {
+    if (line.trim() === "") continue;
+    if (line.startsWith("- ")) {
+      const last = blocks[blocks.length - 1];
+      if (last?.kind === "list") last.items.push(line.slice(2));
+      else blocks.push({ kind: "list", items: [line.slice(2)] });
+    } else blocks.push({ kind: "p", text: line });
+  }
+  return blocks;
+}

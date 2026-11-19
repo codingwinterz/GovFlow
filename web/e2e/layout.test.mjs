@@ -709,7 +709,7 @@ test("case page: a placeholder clause never shows, in the rule table or in the s
     explanation: { text: "- valid_ownership: pass [<clause ref>] ok", warnings: [], used_fallback: true, at: "2026-11-15T06:00:00Z" } };
   const { page, close } = await open("#/officer/cases/LA-01", (url) => ({ json: url.endsWith("/cases/LA-01") ? detail : [] }),
     { login: OFFICER_LOGIN, width: 1280 });
-  await page.locator("pre.explanation").waitFor();
+  await page.locator(".explanation").waitFor();
   const body = await page.locator("main").innerText();
   await close();
   assert.doesNotMatch(body, /clause ref|DSSS clause/i);
@@ -746,7 +746,7 @@ test("case page: every rupee amount reads in Indian grouping, the stored explana
       at: "2026-11-15T06:00:00Z" } };
   const { page, close } = await open("#/officer/cases/LA-01", (url) => ({ json: url.endsWith("/cases/LA-01") ? detail : [] }),
     { login: OFFICER_LOGIN, width: 1280 });
-  await page.locator("pre.explanation").waitFor();
+  await page.locator(".explanation").waitFor();
   const body = await page.locator("main").innerText();
   await close();
   assert.match(body, /₹38,16,000\.00/);

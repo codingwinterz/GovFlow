@@ -263,3 +263,38 @@ button.link:hover:not(:disabled) { background: none; color: var(--accent-hover);
 /* Landing: one plain line on what GovFlow does, under the title */
 .tagline { font-size: 1.05rem; line-height: 1.5; margin: -8px 0 16px; max-width: 62ch; }
 .demo-note { margin: 0 0 16px; }
+
+/* ===== Case view ===== */
+/* The summary strip is the page's anchor: tinted by status, the amount large. */
+.summary-strip { padding: var(--s4) var(--s5); border-left: 6px solid var(--border-strong); box-shadow: var(--shadow);
+  gap: var(--s4) var(--s5); }
+.summary-strip.strip-in_officer_review { border-left-color: var(--accent); background: var(--surface); }
+.summary-strip.strip-approved { border-left-color: var(--ok); }
+.summary-strip.strip-rejected, .summary-strip.strip-needs_info { border-left-color: var(--error); }
+.summary-strip dd { font-size: var(--fs-md); }
+.summary-strip dd.num { font-size: var(--fs-2xl); font-weight: 700; line-height: 1.15; font-variant-numeric: tabular-nums; }
+.summary-strip .clock { font-size: var(--fs-lg); }
+.case-head h1 { display: flex; align-items: center; gap: var(--s3); flex-wrap: wrap; }
+/* Flags: one row each, the severity tag first */
+ul.flags { list-style: none; padding: 0; margin: 0; }
+.flags .flag-item { color: var(--text); padding: var(--s3) 0; border-bottom: var(--line); line-height: var(--lh); }
+.flags .flag-item:last-child { border-bottom: none; }
+.flags .flag-item .sev { margin-right: var(--s2); vertical-align: 1px; }
+/* Explanation: paragraphs and lists at a readable measure */
+div.explanation { white-space: normal; max-width: 80ch; }
+div.explanation p { margin: 0 0 var(--s2); }
+div.explanation ul { margin: 0 0 var(--s3); padding-left: var(--s5); }
+div.explanation li { margin: var(--s1) 0; }
+/* Rule results and the calculation steps */
+.result { font-weight: 600; white-space: nowrap; }
+.result.r-pass { color: var(--ok); }
+.result.r-pass::before { content: "\2713  "; }
+.result.r-fail { color: var(--error); }
+.result.r-fail::before { content: "\2717  "; }
+.result.r-needs_review { color: var(--warn-text); }
+.result.r-needs_review::before { content: "?  "; }
+.steps-table td.step { color: var(--muted); width: 3em; }
+.steps-table td.num:last-child { font-weight: 600; }
+/* Approval checklist */
+.confirm { background: var(--surface-2); }
+.confirm .confirm-item { padding: var(--s1) 0; }

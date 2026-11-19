@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { APP_LABELS, appLabel, clauseText, humanize, queueReason, readable, readableFormula, schemeTitle, termLabel,
-  withoutClausePlaceholders } from "./display.js";
+  withoutClausePlaceholders, explanationBlocks } from "./display.js";
 
 const SRC = new URL("..", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const APP_DIR = join(SRC, "..", "..", "app");
@@ -130,4 +130,19 @@ test("withoutClausePlaceholders strips placeholder clauses from explanation pros
   assert.equal(withoutClausePlaceholders("Area < 500 and value > 100 [s. 26(1)]"), "Area < 500 and value > 100 [s. 26(1)]");
   assert.equal(withoutClausePlaceholders("line one\n- a: pass [<clause ref>] x\nline three"), "line one\n- a: pass x\nline three");
   assert.equal(withoutClausePlaceholders(null), "");
+});
+
+// The stored explanation is shown as paragraphs and lists, never re-worded: every character of every line survives.
+test("explanationBlocks groups '- ' lines into lists and other lines into paragraphs, text unchanged", () => {
+  const text = "Summary line.\nStatus: x.\n- a: pass\n- b: needs review\nCompensation total: Rs 5\n- land: Rs 3\n\nBlockers:\n- c";
+  assert.deepEqual(explanationBlocks(text), [
+    { kind: "p", text: "Summary line." }, { kind: "p", text: "Status: x." },
+    { kind: "list", items: ["a: pass", "b: needs review"] },
+    { kind: "p", text: "Compensation total: Rs 5" }, { kind: "list", items: ["land: Rs 3"] },
+    { kind: "p", text: "Blockers:" }, { kind: "list", items: ["c"] },
+  ]);
+  assert.deepEqual(explanationBlocks(""), []);
+  assert.deepEqual(explanationBlocks(null), []);
+  assert.deepEqual(explanationBlocks("one line, no list"), [{ kind: "p", text: "one line, no list" }]);
+  assert.deepEqual(explanationBlocks("-not a list item"), [{ kind: "p", text: "-not a list item" }]);
 });
