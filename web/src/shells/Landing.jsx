@@ -8,6 +8,8 @@ export default function Landing({ notFound = false }) {
         <p className="brand big-brand">GovFlow</p>
         <p className="tagline">GovFlow reads the documents in a government case, checks them against the scheme's rules and
           prepares a recommendation. An officer always makes the decision.</p>
+        <p className="demo-note"><span className="badge demo">Demo with synthetic data</span>{" "}
+          <span className="muted small">Every case, name and document here is made up. No real citizen records.</span></p>
         {notFound && <p className="banner warn">That page does not exist. Choose where to go:</p>}
         <div className="entry-grid">
           <a className="entry card" href={href("citizen-home")}>

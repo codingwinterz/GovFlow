@@ -877,3 +877,11 @@ for (const width of [1280, 390]) {
     assert.equal(m.scroll, m.vw);
   });
 }
+
+test("landing: a small 'Demo with synthetic data' note", async () => {
+  const { page, close } = await open("#/", () => ({ json: [] }), { width: 390 });
+  await page.locator(".big-brand").waitFor();
+  const note = await page.locator(".demo-note").innerText();
+  await close();
+  assert.match(note, /^Demo with synthetic data/);
+});

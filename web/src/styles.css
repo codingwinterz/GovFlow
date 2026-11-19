@@ -189,3 +189,4 @@ button.link { background: none; border: none; color: var(--accent); padding: 2px
 .how-counted p { margin: 4px 0 0; }
 /* Landing: one plain line on what GovFlow does, under the title */
 .tagline { font-size: 1.05rem; line-height: 1.5; margin: -8px 0 16px; max-width: 62ch; }
+.demo-note { margin: 0 0 16px; }
