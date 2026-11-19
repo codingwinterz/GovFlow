@@ -820,3 +820,24 @@ for (const width of [1280, 390]) {
     }
   });
 }
+
+for (const width of [1280, 390]) {
+  test(`analytics flags at ${width}px: three small tables (severity, scheme, flag type) under one heading`, async () => {
+    const { page, close } = await openAnalytics(width);
+    await page.locator(".flag-tables").waitFor();
+    const m = await page.evaluate(() => {
+      const card = [...document.querySelectorAll("section.card")].find((s) => s.querySelector("h2")?.textContent.trim() === "Verification flags");
+      const tables = [...card.querySelectorAll(".flag-tables table")].map((t) => ({
+        caption: t.querySelector("caption")?.innerText.trim(), rows: [...t.querySelectorAll("tbody tr")].map((r) => r.innerText.replace(/\s+/g, " ").trim()) }));
+      return { h2s: card.querySelectorAll("h2").length, tables, vw: document.documentElement.clientWidth, scroll: document.documentElement.scrollWidth };
+    });
+    await close();
+    assert.equal(m.h2s, 1);
+    assert.deepEqual(m.tables.map((t) => t.caption), ["By severity", "By scheme", "By flag type"]);
+    assert.deepEqual(m.tables[0].rows, ["High 5", "Medium 2"]);
+    assert.deepEqual(m.tables[1].rows, ["Land acquisition compensation 5", "Disaster relief: housing damage 2"]);
+    assert.equal(m.tables[2].rows.length, 3);
+    assert.ok(m.tables.every((t) => t.rows.every((r) => !/Severity|Scheme|Flag type/.test(r.split(" ")[0]))), "group column still present");
+    assert.equal(m.scroll, m.vw, "page scrolls sideways");
+  });
+}

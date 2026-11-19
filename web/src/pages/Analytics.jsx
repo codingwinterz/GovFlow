@@ -41,6 +41,21 @@ function Counts({ title, counts, scale, source, label }) {
   );
 }
 
+// One small table per grouping of the verification flags; counts exactly as the API sent them.
+function FlagTable({ caption, head, counts, label }) {
+  const rows = Object.entries(counts || {});
+  return (
+    <table className="flag-table">
+      <caption>{caption}</caption>
+      <thead><tr><th>{head}</th><th className="num">Count</th></tr></thead>
+      <tbody>
+        {rows.length === 0 ? <tr><td className="muted" colSpan={2}>None</td></tr>
+          : rows.map(([k, n]) => <tr key={k}><td>{label(k)}</td><td className="num">{n}</td></tr>)}
+      </tbody>
+    </table>
+  );
+}
+
 export default function Analytics() {
   const [days, setDays] = useState(7);
   const a = useApi(`/analytics?stuck_days=${days}`);
@@ -167,35 +182,10 @@ export default function Analytics() {
                 <strong>Resolved: {d.flags.resolved_count}</strong> ·{" "}
                 All recorded: {d.flags.total_count}
               </p>
-              <div className="table-scroll">
-                <table>
-                  <thead>
-                    <tr><th>Group</th><th>Category</th><th className="num">Count</th></tr>
-                  </thead>
-                  <tbody>
-                    {Object.entries(d.flags.by_severity || {}).map(([sev, count]) => (
-                      <tr key={`sev-${sev}`}>
-                        <td>Severity</td>
-                        <td>{severity(sev)}</td>
-                        <td className="num">{count}</td>
-                      </tr>
-                    ))}
-                    {Object.entries(d.flags.by_scheme || {}).map(([s, count]) => (
-                      <tr key={`sch-${s}`}>
-                        <td>Scheme</td>
-                        <td>{scheme(s)}</td>
-                        <td className="num">{count}</td>
-                      </tr>
-                    ))}
-                    {Object.entries(d.flags.by_kind || {}).map(([k, count]) => (
-                      <tr key={`kind-${k}`}>
-                        <td>Flag type</td>
-                        <td>{flagLabel(mergedTerms, k)}</td>
-                        <td className="num">{count}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              <div className="flag-tables">
+                <FlagTable caption="By severity" head="Severity" counts={d.flags.by_severity} label={severity} />
+                <FlagTable caption="By scheme" head="Scheme" counts={d.flags.by_scheme} label={scheme} />
+                <FlagTable caption="By flag type" head="Flag type" counts={d.flags.by_kind} label={(k) => flagLabel(mergedTerms, k)} />
               </div>
               <p className="muted small">Source: {readable(d.flags.source)}.</p>
             </section>

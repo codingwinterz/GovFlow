@@ -181,3 +181,6 @@ button.link { background: none; border: none; color: var(--accent); padding: 2px
 .stage-table th, .stage-table td { padding: 6px 6px; }
 .stage-table th.num { white-space: normal; overflow-wrap: normal; vertical-align: bottom; letter-spacing: 0; line-height: 1.2; }
 .stage-table td:first-child { min-width: 10em; }
+/* Analytics verification flags: three small tables side by side, stacked on a phone */
+.flag-tables { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); gap: 8px 24px; align-items: start; }
+.flag-table caption { text-align: left; font-weight: 600; padding: 0 0 6px; }
