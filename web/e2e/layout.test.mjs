@@ -122,6 +122,56 @@ for (const width of [1280, 390]) {
   });
 }
 
+for (const width of [1280, 390]) {
+  test(`analytics extended tables at ${width}px: scheme-stage, liability and flags wrapped in .table-scroll with values and no page overflow`, async () => {
+    const context = await browser.newContext({ viewport: { width, height: 900 } });
+    await context.addInitScript(() => localStorage.setItem("govflow-demo-login", JSON.stringify({ role: "admin", user: "demo-admin", token: "mocked",
+      expires_at: "2099-01-01T00:00:00Z" })));
+    await context.route("**/api/**", (r) => r.fulfill({ json: r.request().url().includes("/analytics") ? ANALYTICS : [] }));
+    const page = await context.newPage();
+    await page.goto(new URL("#/officer/analytics", base).href);
+    await page.waitForSelector(".table-scroll table");
+    const info = await page.evaluate(() => {
+      const card = (heading) => [...document.querySelectorAll("section.card")]
+        .find((s) => s.querySelector("h2")?.textContent?.trim() === heading);
+      const inspectTable = (heading) => {
+        const c = card(heading);
+        const wrap = c?.querySelector(".table-scroll");
+        const tbl = wrap?.querySelector("table");
+        return {
+          hasCard: Boolean(c),
+          hasScrollWrap: Boolean(wrap && tbl),
+          overflowX: wrap ? getComputedStyle(wrap).overflowX : null,
+          inner: wrap ? wrap.scrollWidth : 0,
+          outer: wrap ? wrap.clientWidth : 0,
+          text: c ? c.innerText : "",
+        };
+      };
+      return {
+        vw: document.documentElement.clientWidth,
+        pageScroll: document.documentElement.scrollWidth,
+        stage: inspectTable("Cases by scheme and stage"),
+        liability: inspectTable("Committed and pending liability"),
+        flagsText: card("Verification flags")?.innerText || "",
+      };
+    });
+    await context.close();
+    assert.equal(info.pageScroll, info.vw, `analytics page scrolls sideways at ${width}px`);
+    assert.ok(info.stage.hasScrollWrap && info.stage.overflowX === "auto", "scheme-stage table not in .table-scroll");
+    assert.ok(info.liability.hasScrollWrap && info.liability.overflowX === "auto", "liability table not in .table-scroll");
+    if (width === 390) {
+      assert.ok(info.stage.inner > info.stage.outer, `scheme-stage table should scroll inside .table-scroll at 390px: ${JSON.stringify(info.stage)}`);
+    }
+    assert.match(info.stage.text, /\b12\b/);
+    assert.match(info.stage.text, /\b9\b/);
+    assert.match(info.liability.text, /₹42,50,000\.00/);
+    assert.match(info.liability.text, /₹1,25,00,000\.00/);
+    assert.match(info.liability.text, /₹1,67,50,000\.00/);
+    assert.match(info.flagsText, /Open:\s*5/);
+    assert.match(info.flagsText, /Resolved:\s*2/);
+  });
+}
+
 // --- states: loading, error, empty, invalid input (audit findings 5, 10, 11, 13, 15, 16) ---------------------------
 
 const OFFICER_LOGIN = { role: "officer", user: "demo-officer", token: "mocked", expires_at: "2099-01-01T00:00:00Z" };

@@ -1,7 +1,7 @@
 """Extended officer/admin analytics dashboard (read-only queries over existing tables).
 
 Tests:
-- Role access: officer, admin, and clerk allowed; citizen 403.
+- Role access: officer and admin allowed (200); clerk and citizen refused (403); no sign-in refused (401).
 - Cases by scheme and lifecycle stage (`by_scheme_and_status`), covering all loaded YAML schemes dynamically.
 - Overdue count per scheme and overall, respecting SLA pause during `needs_info`.
 - Average days open excluding `needs_info` waiting intervals, overall and per scheme.
@@ -52,12 +52,13 @@ def env(tmp_path):
     return engine, app
 
 
-def test_analytics_allows_officer_admin_and_clerk_and_refuses_citizen(env):
+def test_analytics_allows_officer_and_admin_only(env):
     _, app = env
-    for hdrs in (OFFICER, ADMIN, CLERK):
-        status, _ = call(app, "GET", "/analytics", headers=hdrs)
-        assert status == 200
+    assert call(app, "GET", "/analytics", headers=OFFICER)[0] == 200
+    assert call(app, "GET", "/analytics", headers=ADMIN)[0] == 200
+    assert call(app, "GET", "/analytics", headers=CLERK)[0] == 403
     assert call(app, "GET", "/analytics", headers=CITIZEN)[0] == 403
+    assert call(app, "GET", "/analytics")[0] == 401
 
 
 def test_empty_database_returns_zeroed_breakdowns_for_all_loaded_schemes(env):
@@ -199,3 +200,17 @@ def test_flag_counts_track_open_vs_resolved_and_breakdowns_by_kind_severity_and_
     assert after["flags"]["total_count"] == 2
     assert after["flags"]["open_count"] == 1
     assert after["flags"]["resolved_count"] == 1
+
+
+def test_analytics_payload_contains_no_pii_or_document_contents(env):
+    engine, app = env
+    with Session(engine) as s:
+        seed_case(s, _load("land_acquisition", 1))
+        seed_case(s, _load("social_welfare", 1))
+        verify_documents(s, "LA-01")
+        verify_documents(s, "SW-01")
+    status, payload = call(app, "GET", "/analytics", headers=ADMIN)
+    assert status == 200
+    blob = json.dumps(payload)
+    for forbidden in ("Laxmi Naik", "Ramesh", "9999 3000 0001", "9999", "tracking_code", "content_base64", "file_path"):
+        assert forbidden not in blob, f"unexpected personal or document data in analytics payload: {forbidden}"

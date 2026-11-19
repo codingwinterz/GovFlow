@@ -16,7 +16,7 @@ const OFFICER_NAV = [
 // Officer-shell pages each staff role may open. Case pages (case, audit, award) are reached from the queue.
 const ACCESS = {
   officer: ["queue", "case", "audit", "award", "intake", "analytics", "simulator"],
-  clerk: ["queue", "case", "intake", "analytics"],
+  clerk: ["queue", "case", "intake"],
   admin: ["analytics", "simulator"],
 };
 

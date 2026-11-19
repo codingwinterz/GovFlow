@@ -18,7 +18,7 @@ test("citizen navigation holds only citizen pages", () => {
 test("officer navigation per role", () => {
   const pages = (role) => officerNav(role).map((n) => n.page);
   assert.deepEqual(pages("officer"), ["queue", "intake", "analytics", "simulator"]);
-  assert.deepEqual(pages("clerk"), ["queue", "intake", "analytics"]);
+  assert.deepEqual(pages("clerk"), ["queue", "intake"]);
   assert.deepEqual(pages("admin"), ["analytics", "simulator"]);
   assert.deepEqual(pages("citizen"), []);
   assert.deepEqual(pages(undefined), []);
@@ -31,8 +31,8 @@ test("officer pages are allowed by role, never to citizens", () => {
     assert.equal(allowed("officer", page), true, page);
     assert.equal(allowed("citizen", page), false, page);
   }
-  assert.deepEqual(["queue", "case", "intake", "analytics"].map((p) => allowed("clerk", p)), [true, true, true, true]);
-  assert.deepEqual(["audit", "award", "simulator"].map((p) => allowed("clerk", p)), [false, false, false]);
+  assert.deepEqual(["queue", "case", "intake"].map((p) => allowed("clerk", p)), [true, true, true]);
+  assert.deepEqual(["audit", "award", "analytics", "simulator"].map((p) => allowed("clerk", p)), [false, false, false, false]);
   assert.deepEqual(["analytics", "simulator", "queue", "case"].map((p) => allowed("admin", p)), [true, true, false, false]);
 });
 

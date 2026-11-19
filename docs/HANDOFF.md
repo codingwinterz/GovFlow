@@ -210,8 +210,8 @@ Written 17 Nov 2026 at commit `d73da8c` (the last code commit before this file);
 
 ## 5. Current state (at `9b648a6`, 18 Nov 2026)
 
-- **Tests, all green (re-run 18 Nov):** Python **1128** passed (three batches: 411 + 352 + 365); frontend **79** logic +
-  **38** browser; build clean.
+- **Tests, all green (re-run 19 Nov):** Python **1,155** passed (three batches: `[a-f]` 566 + `[g-r]` 245 + `[s-z]` 344);
+  frontend **79** logic + **40** browser; build clean.
 - **Commits:** 86 on `main` at `9b648a6`, then this docs sync; pushed to `origin/main`.
 - **What changed since the first handoff** (after `d73da8c`):
   `2981b68` citizen document pre-check · `8d0b587` its docs · `7daaaf5` multi-field injection tests for it ·
@@ -383,9 +383,9 @@ Expected from the repo:
 
 - `docs/EVAL_RESULTS.md` (measured numbers with caveats), `docs/DEMO_SCRIPT.md` (the 3-minute walkthrough),
   `docs/KNOWN_LIMITATIONS.md` (honest limits).
-- Screenshots: 15 synthetic screenshots are in the repo under `docs/screenshots/` (`b99bcf7`; three re-taken in
-  `5443f5c`): ten views at 1280 px and five at 390 px. Re-take them after any UI change. They predate the *Verify log
-  integrity* button and the duplicate survey-number flag, which appear in none of them.
+- Screenshots: 18 synthetic screenshots are in the repo under `docs/screenshots/` (13 views at 1280 px and 5 at 390 px),
+  including the refreshed `10-analytics.png` and new `11-case-social-welfare-SW-01.png`, `12-audit-chain-verified.png`,
+  and `13-case-duplicate-claim-LA-12.png` captured on a fresh 42-case `--reset` seed. Re-take them after any UI change.
 
 ## 10. Guidance for the new session
 
