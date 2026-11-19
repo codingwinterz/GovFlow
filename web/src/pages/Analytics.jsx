@@ -105,7 +105,7 @@ export default function Analytics() {
             <section className="card wide">
               <h2>Cases by scheme and stage</h2>
               <div className="table-scroll">
-                <table>
+                <table className="stage-table">
                   <thead>
                     <tr>
                       <th>Scheme</th>

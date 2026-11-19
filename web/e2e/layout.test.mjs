@@ -795,3 +795,28 @@ for (const width of [1280, 390]) {
     assert.ok(cardMin >= 300 || width === 390, `a chart card is narrower than 300px: ${cardMin}`);
   });
 }
+
+for (const width of [1280, 390]) {
+  test(`analytics scheme-stage table at ${width}px: ${width === 1280 ? "every column, Withdrawn included, fits without scrolling" : "scrolls inside its wrapper"}`, async () => {
+    const { page, close } = await openAnalytics(width);
+    await page.locator(".stage-table").waitFor();
+    const m = await page.evaluate(() => {
+      const wrap = document.querySelector(".stage-table").closest(".table-scroll");
+      const last = [...document.querySelectorAll(".stage-table thead th")].pop();
+      const w = wrap.getBoundingClientRect(), l = last.getBoundingClientRect();
+      return { inner: wrap.scrollWidth, outer: wrap.clientWidth, lastText: last.innerText.trim(), lastRight: l.right, wrapRight: w.right,
+        cols: document.querySelectorAll(".stage-table thead th").length,
+        vw: document.documentElement.clientWidth, scroll: document.documentElement.scrollWidth };
+    });
+    await close();
+    assert.equal(m.cols, 10);
+    assert.match(m.lastText, /withdrawn/i);
+    assert.equal(m.scroll, m.vw, "page scrolls sideways");
+    if (width === 1280) {
+      assert.ok(m.inner <= m.outer, `table scrolls at 1280px: ${JSON.stringify(m)}`);
+      assert.ok(m.lastRight <= m.wrapRight + 1, `Withdrawn column cut off: ${JSON.stringify(m)}`);
+    } else {
+      assert.ok(m.inner > m.outer, `expected a scroll box at 390px: ${JSON.stringify(m)}`);
+    }
+  });
+}
