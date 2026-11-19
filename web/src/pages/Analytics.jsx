@@ -89,10 +89,15 @@ export default function Analytics() {
             <p className="big">{formatDuration(d.average_processing_seconds)}</p>
             <p className="muted small">Over {d.decided_cases} decided case(s). Source: {readable(d.average_processing_source)}.</p>
           </section>
-          <section className="card">
+          <section className="card overdue-tile">
             <h2>Overdue against SLA</h2>
             <p className="big">{d.overdue_count}</p>
-            <p className="muted small">Flag only; nothing changes automatically. Source: {readable(d.overdue_source)}.</p>
+            <p className="muted small">Open cases past their scheme's target.</p>
+            <details className="how-counted">
+              <summary>How this is counted</summary>
+              <p className="muted small">Waiting for the citizen does not count. A flag only: nothing changes
+                automatically. Source: {readable(d.overdue_source)}.</p>
+            </details>
           </section>
           {d.average_days_open !== undefined && (
             <section className="card">

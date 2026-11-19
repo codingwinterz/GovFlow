@@ -184,3 +184,6 @@ button.link { background: none; border: none; color: var(--accent); padding: 2px
 /* Analytics verification flags: three small tables side by side, stacked on a phone */
 .flag-tables { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); gap: 8px 24px; align-items: start; }
 .flag-table caption { text-align: left; font-weight: 600; padding: 0 0 6px; }
+.how-counted summary { cursor: pointer; color: var(--accent); font-size: 0.85rem; min-height: 24px; display: list-item; padding: 3px 0; }
+.how-counted summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.how-counted p { margin: 4px 0 0; }

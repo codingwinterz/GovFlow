@@ -841,3 +841,23 @@ for (const width of [1280, 390]) {
     assert.equal(m.scroll, m.vw, "page scrolls sideways");
   });
 }
+
+test("analytics overdue tile: short text, the full explanation in a 'How this is counted' note", async () => {
+  const { page, close } = await openAnalytics(390);
+  await page.locator(".overdue-tile details").waitFor();
+  const m = await page.evaluate(() => {
+    const tile = document.querySelector(".overdue-tile");
+    const details = tile.querySelector("details");
+    const summary = details.querySelector("summary");
+    const visible = [...tile.querySelectorAll(":scope > p")].map((p) => p.innerText.trim()).join(" ");
+    const box = summary.getBoundingClientRect();
+    return { visible, summary: summary.innerText.trim(), open: details.open, note: details.textContent, h: box.height };
+  });
+  await close();
+  assert.equal(m.summary, "How this is counted");
+  assert.equal(m.open, false);
+  assert.ok(m.visible.length <= 60, `tile text too long (${m.visible.length}): ${m.visible}`);
+  assert.match(m.note, /nothing changes automatically/i);
+  assert.match(m.note, /Source:/);
+  assert.ok(m.h >= 24, `summary touch target ${m.h}px`);
+});
