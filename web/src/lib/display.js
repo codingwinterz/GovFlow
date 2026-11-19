@@ -69,3 +69,21 @@ export function queueReason(flags, terms) {
 export function schemeTitle(schemes, id) {
   return (schemes || []).find((s) => s.scheme === id)?.labels?.title ?? humanize(id);
 }
+
+// Clause references. Until a clause is confirmed the YAML holds a placeholder in angle brackets ("<clause ref>",
+// "<DSSS clause: ...>"; each marked VERIFY). The placeholder is never shown: the cell reads as not yet cited.
+const CLAUSE_PLACEHOLDER = /^<[^<>]*>$/;
+
+export function clauseText(clause) {
+  const s = String(clause ?? "").trim();
+  return s === "" || CLAUSE_PLACEHOLDER.test(s) ? null : s;
+}
+
+// The stored explanation (audit log, never edited) quotes each rule's clause as written. On screen, drop a placeholder
+// clause with its brackets or parentheses; the surrounding sentence and real references are left as they are.
+const CLAUSE_IN_PROSE = /[ \t]*(?:\[<[^<>\n]*clause[^<>\n]*>\]|\(<[^<>\n]*clause[^<>\n]*>\)|<[^<>\n]*clause[^<>\n]*>)/gi;
+
+export function withoutClausePlaceholders(text) {
+  if (text === null || text === undefined) return "";
+  return String(text).replace(CLAUSE_IN_PROSE, "");
+}

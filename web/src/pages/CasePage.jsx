@@ -6,7 +6,7 @@ import {
   resolutionsBody,
 } from "../lib/format.js";
 import { href } from "../lib/router.js";
-import { appLabel, flagLabel, readable, readableFormula, termLabel } from "../lib/display.js";
+import { appLabel, clauseText, flagLabel, readable, readableFormula, termLabel, withoutClausePlaceholders } from "../lib/display.js";
 import { DICTS } from "../i18n/index.js";
 
 function RetryBanner({ caseId, docs, onDone, terms }) {
@@ -72,6 +72,12 @@ function Documents({ documents, terms }) {
   );
 }
 
+// A clause still marked VERIFY in the YAML shows as a dash, never as its "<clause ref>" placeholder.
+function Clause({ clause }) {
+  const text = clauseText(clause);
+  return text ?? <span className="muted" title="No clause reference recorded yet (to be confirmed)">—</span>;
+}
+
 function Rules({ detail }) {
   return (
     <section className="card">
@@ -85,7 +91,7 @@ function Rules({ detail }) {
           <tbody>
             {detail.rule_results.map((r) => (
               <tr key={r.rule_id} className={r.status === "pass" ? "" : "flagged"}>
-                <td>{termLabel(detail.terms, r.rule_id)}</td><td>{appLabel("result", r.status)}</td><td>{r.clause}</td>
+                <td>{termLabel(detail.terms, r.rule_id)}</td><td>{appLabel("result", r.status)}</td><td><Clause clause={r.clause} /></td>
                 <td className="small">{readable(r.reason, detail.terms)}</td><td>{r.rules_version}</td>
               </tr>
             ))}
@@ -130,7 +136,7 @@ function Explanation({ explanation, terms }) {
           <ul>{explanation.warnings.map((w) => <li key={w}>{readable(w, terms)}</li>)}</ul>
         </div>
       )}
-      <pre className="explanation">{readable(maskIdentifiers(explanation.text), terms)}</pre>
+      <pre className="explanation">{readable(maskIdentifiers(withoutClausePlaceholders(explanation.text)), terms)}</pre>
       <p className="muted small">Written {formatDate(explanation.at)}{explanation.used_fallback ? " without the LLM (deterministic summary)" : " by the agent"}. Figures above come from the tools, not from this text.</p>
     </section>
   );

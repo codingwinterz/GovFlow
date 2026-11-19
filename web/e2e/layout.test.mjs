@@ -699,3 +699,19 @@ for (const [name, verdict, expected] of [
     await close();
   });
 }
+
+// --- UI polish, 2026-11-19 ----------------------------------------------------------------------------------------
+
+test("case page: a placeholder clause never shows, in the rule table or in the stored explanation", async () => {
+  const detail = { ...CASE, rule_results: [
+    { rule_id: "valid_ownership", status: "pass", reason: "ok", clause: "<clause ref>", rules_version: "0.1.0" },
+    { rule_id: "residence", status: "pass", reason: "ok", clause: "<DSSS clause: 15-year Goa residence>", rules_version: "0.1.0" }],
+    explanation: { text: "- valid_ownership: pass [<clause ref>] ok", warnings: [], used_fallback: true, at: "2026-11-15T06:00:00Z" } };
+  const { page, close } = await open("#/officer/cases/LA-01", (url) => ({ json: url.endsWith("/cases/LA-01") ? detail : [] }),
+    { login: OFFICER_LOGIN, width: 1280 });
+  await page.locator("pre.explanation").waitFor();
+  const body = await page.locator("main").innerText();
+  await close();
+  assert.doesNotMatch(body, /clause ref|DSSS clause/i);
+  assert.match(body, /Valid ownership: pass ok|valid ownership: pass ok/i);
+});

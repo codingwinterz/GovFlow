@@ -4,7 +4,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { APP_LABELS, appLabel, humanize, queueReason, readable, readableFormula, schemeTitle, termLabel } from "./display.js";
+import { APP_LABELS, appLabel, clauseText, humanize, queueReason, readable, readableFormula, schemeTitle, termLabel,
+  withoutClausePlaceholders } from "./display.js";
 
 const SRC = new URL("..", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const APP_DIR = join(SRC, "..", "..", "app");
@@ -109,4 +110,24 @@ test("the queue page shows the flag reason and the overdue badge, not a generic 
   assert.match(queue, /queueReason\(/);
   assert.match(queue, /c\.overdue && <span className="badge warn">overdue<\/span>/);
   assert.doesNotMatch(queue, />needs review</);
+});
+
+// Every clause in the YAML is still a placeholder ("<clause ref>", "<DSSS clause: ...>"): it must never reach the screen.
+test("clauseText hides a placeholder clause and keeps a real one", () => {
+  assert.equal(clauseText("<clause ref>"), null);
+  assert.equal(clauseText("<DSSS clause: 15-year Goa residence>"), null);
+  assert.equal(clauseText("  "), null);
+  assert.equal(clauseText(null), null);
+  assert.equal(clauseText("RFCTLARR Act 2013, s. 26(1)"), "RFCTLARR Act 2013, s. 26(1)");
+});
+
+test("withoutClausePlaceholders strips placeholder clauses from explanation prose, nothing else", () => {
+  assert.equal(withoutClausePlaceholders("- valid_ownership: pass [<clause ref>] Record found"),
+    "- valid_ownership: pass Record found");
+  assert.equal(withoutClausePlaceholders("- residence: pass [<DSSS clause: 15-year Goa residence>] ok"), "- residence: pass ok");
+  assert.equal(withoutClausePlaceholders("Rule ownership (<clause ref>) failed."), "Rule ownership failed.");
+  assert.equal(withoutClausePlaceholders("cites <clause ref>."), "cites.");
+  assert.equal(withoutClausePlaceholders("Area < 500 and value > 100 [s. 26(1)]"), "Area < 500 and value > 100 [s. 26(1)]");
+  assert.equal(withoutClausePlaceholders("line one\n- a: pass [<clause ref>] x\nline three"), "line one\n- a: pass x\nline three");
+  assert.equal(withoutClausePlaceholders(null), "");
 });

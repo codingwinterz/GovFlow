@@ -1,7 +1,7 @@
 import { Loading, useApi } from "../useApi.jsx";
 import { formatDate, formatRupees, maskIdentifiers } from "../lib/format.js";
 import { href } from "../lib/router.js";
-import { appLabel, readableFormula, termLabel } from "../lib/display.js";
+import { appLabel, clauseText, readableFormula, termLabel } from "../lib/display.js";
 
 // Print-friendly award letter. Every value comes from GET /cases/{id}/award; the browser's
 // "Save as PDF" produces the file. Nothing is computed here.
@@ -44,7 +44,7 @@ export default function Award({ id }) {
           <table>
             <thead><tr><th>Rule</th><th>Result</th><th>Clause</th></tr></thead>
             <tbody>{a.rule_results.map((r) => (
-              <tr key={r.rule_id}><td>{termLabel(a.terms, r.rule_id)}</td><td>{appLabel("result", r.status)}</td><td>{r.clause}</td></tr>
+              <tr key={r.rule_id}><td>{termLabel(a.terms, r.rule_id)}</td><td>{appLabel("result", r.status)}</td><td>{clauseText(r.clause) ?? "—"}</td></tr>
             ))}</tbody>
           </table>
           <p className="muted small">Generated {formatDate(a.generated_at)} from GovFlow case records. The decision is the
