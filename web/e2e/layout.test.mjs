@@ -715,3 +715,26 @@ test("case page: a placeholder clause never shows, in the rule table or in the s
   assert.doesNotMatch(body, /clause ref|DSSS clause/i);
   assert.match(body, /Valid ownership: pass ok|valid ownership: pass ok/i);
 });
+
+for (const width of [1280, 390]) {
+  test(`case summary strip at ${width}px: status, stored total, flags by severity and the clock, no sideways scroll`, async () => {
+    const detail = { ...CASE, flags: [{ kind: "name_match", severity: "high", detail: "x" },
+      { kind: "duplicate_survey_claim", severity: "high", detail: "y" }, { kind: "low_confidence", severity: "medium", detail: "z" }] };
+    const queueRow = { case_id: "LA-01", scheme: "land_acquisition", status: "in_officer_review", days_open: 70, sla_days: 60, overdue: true };
+    const { page, calls, close } = await open("#/officer/cases/LA-01", (url) => ({
+      json: url.endsWith("/cases/LA-01") ? detail : url.includes("/cases?scheme=land_acquisition") ? [queueRow] : [] }),
+      { login: OFFICER_LOGIN, width });
+    await page.locator(".summary-strip .clock").waitFor();
+    const info = await page.evaluate(() => ({ text: document.querySelector(".summary-strip").innerText,
+      vw: document.documentElement.clientWidth, scroll: document.documentElement.scrollWidth,
+      aboveFlags: document.querySelector(".summary-strip").compareDocumentPosition(document.querySelector("ul.flags")) === 4 }));
+    await close();
+    assert.match(info.text, /Awaiting officer decision/);
+    assert.match(info.text, /₹75,00,000\.00/);
+    assert.match(info.text, /2 high · 1 medium/);
+    assert.match(info.text, /Overdue by 10 days/);
+    assert.ok(info.aboveFlags, "summary strip should come before the flags card");
+    assert.equal(info.scroll, info.vw, `case page scrolls sideways at ${width}px`);
+    assert.ok(calls.some((c) => c.startsWith("GET /api/cases")), "clock read from the queue endpoint");
+  });
+}

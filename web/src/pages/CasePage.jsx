@@ -8,6 +8,7 @@ import {
 import { href } from "../lib/router.js";
 import { appLabel, clauseText, flagLabel, readable, readableFormula, termLabel, withoutClausePlaceholders } from "../lib/display.js";
 import { DICTS } from "../i18n/index.js";
+import { flagCounts, slaClock, summaryTotal } from "../lib/summary.js";
 
 function RetryBanner({ caseId, docs, onDone, terms }) {
   const docName = (doc) => termLabel(terms, doc.doc_type);
@@ -260,6 +261,27 @@ function RequestDocuments({ caseId, onDone }) {
   );
 }
 
+// At a glance: status, the stored total, flags by severity and the SLA clock. The clock is the case's own row from
+// the queue endpoint (days open with waiting excluded, the scheme's target, the overdue flag), as the queue shows it.
+function SummaryStrip({ detail }) {
+  const queue = useApi(`/cases?scheme=${encodeURIComponent(detail.scheme)}`);
+  const row = Array.isArray(queue.data) ? queue.data.find((c) => c.case_id === detail.case_id) : null;
+  const clock = slaClock(row);
+  const total = summaryTotal(detail);
+  const counts = flagCounts(detail.flags);
+  return (
+    <dl className="summary-strip" aria-label="Case summary">
+      <div><dt>Status</dt><dd><span className={`status s-${detail.status}`}>{appLabel("status", detail.status)}</span></dd></div>
+      <div><dt>{detail.labels.total}</dt><dd className="num">{total === null ? <span className="muted">Not computed yet</span> : formatRupees(total)}</dd></div>
+      <div><dt>Flags</dt><dd>{counts.length === 0 ? <span className="muted">None</span>
+        : counts.map((c, i) => <span key={c.severity}>{i > 0 && " · "}<span className={`flag-count sev-${c.severity}`}>{c.count} {appLabel("severity", c.severity).toLowerCase()}</span></span>)}</dd></div>
+      <div><dt>SLA clock</dt><dd>{clock
+        ? <span className={`clock clock-${clock.kind}`} title={clock.title}>{clock.text}</span>
+        : <span className="muted">{queue.loading ? "…" : "—"}</span>}</dd></div>
+    </dl>
+  );
+}
+
 export default function CasePage({ id, login }) {
   const detail = useApi(`/cases/${encodeURIComponent(id)}`);
   const [running, setRunning] = useState(false);
@@ -294,6 +316,7 @@ export default function CasePage({ id, login }) {
             </div>
             {runError && <p className="error">{runError}</p>}
           </div>
+          <SummaryStrip key={d.case_id} detail={d} />
           <RetryBanner caseId={d.case_id} docs={unavailableDocuments(d)} onDone={detail.reload} terms={d.terms} />
           {d.flags.length > 0 && (
             <section className="card">
