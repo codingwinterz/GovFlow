@@ -356,3 +356,9 @@ div.explanation li { margin: var(--s1) 0; }
   .letter { box-shadow: none; padding: 0; }
   .letter th, .letter table.plain th { background: none !important; color: #000; }
 }
+/* Phones: case tables keep readable columns and scroll inside their box instead of wrapping word by word */
+@media (max-width: 600px) {
+  .table-scroll > .rules-table { min-width: 640px; }
+  .table-scroll > .steps-table { min-width: 600px; }
+  .card .table-scroll > table:not(.rules-table):not(.steps-table):not(.queue-table) { min-width: 520px; }
+}

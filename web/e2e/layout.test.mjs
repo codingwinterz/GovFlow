@@ -1004,3 +1004,18 @@ test("keyboard focus is visible on buttons, links and selects (outline drawn, no
   await close();
   assert.ok(seen.has("A") && seen.has("SELECT"), `tabbing never reached links and selects: ${[...seen]}`);
 });
+
+test("case page at 390px: the eligibility and calculation tables scroll inside their box, columns stay readable", async () => {
+  const detail = { ...CASE, rule_results: [{ rule_id: "valid_ownership", status: "needs_review", clause: "<clause ref>",
+    reason: "Needs human review: a long reason that would otherwise wrap one word per line in a squeezed column", rules_version: "0.1.0" }] };
+  const { page, close } = await open("#/officer/cases/LA-01", (url) => ({ json: url.endsWith("/cases/LA-01") ? detail : [] }),
+    { login: OFFICER_LOGIN, width: 390 });
+  await page.locator(".rules-table").waitFor();
+  const m = await page.evaluate(() => [".rules-table", ".steps-table"].map((sel) => {
+    const t = document.querySelector(sel); const w = t.closest(".table-scroll");
+    return { sel, inner: w.scrollWidth, outer: w.clientWidth, overflow: getComputedStyle(w).overflowX };
+  }).concat([{ vw: document.documentElement.clientWidth, scroll: document.documentElement.scrollWidth }]));
+  await close();
+  for (const t of m.slice(0, 2)) assert.ok(t.overflow === "auto" && t.inner > t.outer, `${t.sel} squeezed instead of scrolling: ${JSON.stringify(t)}`);
+  assert.equal(m[2].scroll, m[2].vw);
+});
