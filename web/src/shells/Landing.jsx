@@ -6,6 +6,8 @@ export default function Landing({ notFound = false }) {
     <div className="shell landing" data-theme="light">
       <main className="content narrow-content">
         <p className="brand big-brand">GovFlow</p>
+        <p className="tagline">GovFlow reads the documents in a government case, checks them against the scheme's rules and
+          prepares a recommendation. An officer always makes the decision.</p>
         {notFound && <p className="banner warn">That page does not exist. Choose where to go:</p>}
         <div className="entry-grid">
           <a className="entry card" href={href("citizen-home")}>

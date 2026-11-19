@@ -187,3 +187,5 @@ button.link { background: none; border: none; color: var(--accent); padding: 2px
 .how-counted summary { cursor: pointer; color: var(--accent); font-size: 0.85rem; min-height: 24px; display: list-item; padding: 3px 0; }
 .how-counted summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .how-counted p { margin: 4px 0 0; }
+/* Landing: one plain line on what GovFlow does, under the title */
+.tagline { font-size: 1.05rem; line-height: 1.5; margin: -8px 0 16px; max-width: 62ch; }

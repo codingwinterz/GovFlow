@@ -861,3 +861,19 @@ test("analytics overdue tile: short text, the full explanation in a 'How this is
   assert.match(m.note, /Source:/);
   assert.ok(m.h >= 24, `summary touch target ${m.h}px`);
 });
+
+for (const width of [1280, 390]) {
+  test(`landing at ${width}px: a plain one-line description under the title, no sideways scroll`, async () => {
+    const { page, close } = await open("#/", () => ({ json: [] }), { width });
+    await page.locator(".big-brand").waitFor();
+    const m = await page.evaluate(() => ({ next: document.querySelector(".big-brand").nextElementSibling?.className,
+      tagline: document.querySelector(".tagline")?.innerText.trim() ?? "",
+      vw: document.documentElement.clientWidth, scroll: document.documentElement.scrollWidth }));
+    await close();
+    assert.equal(m.next, "tagline");
+    assert.match(m.tagline, /checks .* rules/i);
+    assert.match(m.tagline, /officer/i);
+    assert.doesNotMatch(m.tagline, /_|LLM|agent/i, "plain words only");
+    assert.equal(m.scroll, m.vw);
+  });
+}
