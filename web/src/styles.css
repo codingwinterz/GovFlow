@@ -343,3 +343,16 @@ div.explanation li { margin: var(--s1) 0; }
 .precheck-privacy { font-size: var(--fs-md); }
 .precheck-privacy::before { content: "\24D8  "; font-weight: 700; }
 .tagline { font-size: var(--fs-lg); }
+
+/* ===== Audit, simulator, award letter ===== */
+.no-print.actions, .award-bar { display: flex; gap: var(--s4); align-items: center; flex-wrap: wrap; margin: var(--s4) 0; }
+.letter { box-shadow: var(--shadow); padding: var(--s6); }
+.letter h1 { margin-top: var(--s4); }
+.letter h2 { margin: var(--s5) 0 var(--s2); }
+.letter table { margin-bottom: var(--s4); }
+.letter table.plain th { background: var(--surface-2); color: var(--text); font-size: var(--fs-sm); }
+.integrity-check { display: flex; gap: var(--s3); align-items: center; flex-wrap: wrap; }
+@media print {
+  .letter { box-shadow: none; padding: 0; }
+  .letter th, .letter table.plain th { background: none !important; color: #000; }
+}
