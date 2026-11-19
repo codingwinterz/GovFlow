@@ -132,13 +132,15 @@ Fuller detail is in `docs/KNOWN_LIMITATIONS.md`.
 - Web: landing page, citizen shell (home, self-check, track; en/hi/mr/kok; light theme by default) and officer shell
   (queue, case, intake, analytics with one shared scale, simulator, audit, award letter); plain loading / error /
   empty states with Retry; 24 px touch targets; no sideways scroll at 390 px. Case, audit and award pages mount
-  fresh per case id (never the previous case while loading); an approval must name the case it was confirmed for
+  fresh per case id (never the previous case while loading); the case page opens with a summary strip (status, stored
+  total, flags by severity, SLA clock); placeholder clauses show as a dash; the queue opens on all cases; an approval
+  must name the case it was confirmed for
   (`confirmed_case`, else 409); visible keyboard focus on every control, including radios, checkboxes, text areas.
-- Demo database re-seeded 2026-11-16 after the backdating fix: Submitted and Days open agree for all 23 open cases.
+- Demo database re-seeded 2026-11-19 (`--reset`, 42 cases) for the UI polish screenshots.
 
 ### Tests (all green at commit time)
 - Python: 1,155 passed (`pytest -q`, run in 3 low-memory batches: `[a-f]` 566 + `[g-r]` 245 + `[s-z]` 344).
-- Frontend: 79 logic (`npm test`) + 40 browser (`npm run test:layout`); `npm run test:all` runs both. Build clean.
+- Frontend: 87 logic (`npm test`) + 56 browser (`npm run test:layout`); `npm run test:all` runs both. Build clean.
 
 
 

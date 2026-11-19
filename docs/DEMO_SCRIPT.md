@@ -49,8 +49,9 @@ cd web && npm run dev                                   # terminal 2, open http:
 
 ### 2. Flags and human review (0:25, ~30 s)
 - **Login:** role `officer`, user `O-1` (*switch user* in the header).
-- **Click:** Queue (filter status *in_officer_review*) → note flagged cases are listed first →
-  open **LA-11** (low-quality scan).
+- **Click:** Queue (it opens on all cases; no filter needed) → note flagged cases are listed first →
+  open **LA-11** (low-quality scan). The strip at the top of a case gives its status, total, flags by severity
+  and the SLA clock (days left, overdue, or paused) at a glance.
 - **Say:** "Fields at or below the confidence threshold are highlighted and routed to a human; the name mismatch
   is flagged with both values. Every value shows its document, field, page and method."
 - **Duplicate claim:** open **LA-12**. Two high-severity flags: *Overlapping claims on this survey number* (LA-13's
@@ -68,7 +69,8 @@ cd web && npm run dev                                   # terminal 2, open http:
 ### 3. Eligibility and compensation (0:55, ~25 s)
 - **Login:** officer `O-1`.
 - **Click:** Queue → **LA-09** (area given in square feet).
-- **Say:** "Each rule shows pass or fail with its clause and rules version. Compensation is itemised:
+- **Say:** "Each rule shows pass or fail with its rules version. The clause column shows a dash for now: the
+  clause references are still being confirmed, and we show nothing rather than a placeholder. Compensation is itemised:
   land value, assets, solatium, interest, each with the formula and the inputs used, here converted from
   square feet. Total ₹49,83,861.12, computed by the rules engine. Everything the agent produced is labelled
   *recommendation only*."
@@ -92,7 +94,7 @@ cd web && npm run dev                                   # terminal 2, open http:
 - **Say:** "Disaster relief was added as this one YAML file plus synthetic test cases: documents, checks,
   rules, relief amounts, labels, SLA. No scheme-specific Python. The amounts follow the MHA SDRF norms
   2022-26 by house type and plain or hilly area; the schedule in force in Goa is still to be confirmed."
-- **Click:** Queue → Scheme filter *disaster_relief* → open **DR-10**.
+- **Click:** Queue → Scheme filter *Disaster relief: housing damage* → open **DR-10**.
 - **Say:** "Two family members claimed the same house; the duplicate check sends both to review and never
   rejects."
 

@@ -210,8 +210,21 @@ Written 17 Nov 2026 at commit `d73da8c` (the last code commit before this file);
 
 ## 5. Current state (at `9b648a6`, 18 Nov 2026)
 
-- **Tests, all green (re-run 19 Nov):** Python **1,155** passed (three batches: `[a-f]` 566 + `[g-r]` 245 + `[s-z]` 344);
-  frontend **79** logic + **40** browser; build clean.
+- **Tests, all green (re-run 19 Nov, after the UI polish round):** Python **1,155** passed (three batches: `[a-f]` 566 +
+  `[g-r]` 245 + `[s-z]` 344); frontend **87** logic + **56** browser (1280 px and 390 px); build clean.
+- **UI polish round (19 Nov), UI only, no logic, rule, API or data change:**
+  `387ed44` placeholder clauses (`<clause ref>`, `<DSSS clause: ...>`, every clause in the YAML is still VERIFY) show
+  as a dash in the rule table and award letter and are stripped from the explanation on display; the stored explanation
+  (audit log) is unchanged · `244319f` case summary strip: status, stored total, flags by severity, SLA clock (read from
+  the case's row in the existing `GET /cases`) · `1fdaa9e` every rupee amount on the case page in Indian grouping,
+  including the stored explanation's `Rs 3,816,000.00` (regrouped on display, never recomputed) · `7a31263` analytics
+  bar labels wrap only between words, 340 px minimum card · `49b4908` scheme-by-stage table fits at 1280 px, Withdrawn
+  included · `a782402` flags as three small tables · `313140e` short overdue tile, *How this is counted* note ·
+  `c08783a` landing one-line description · `7e7a9b7` *Demo with synthetic data* note · `79619c8` staff card lists each
+  role's pages as `nav.js` grants them · `eed2764` queue opens on all cases · `c6190b5` screenshots 01, 05, 06, 10
+  retaken on a fresh `--reset` seed.
+- **Not fixed on screen, by design:** the formula notes (`with land_value=1800000`) keep their raw inputs: they are the
+  cited formula, and a bare number there may be an area or a rate, not rupees.
 - **Commits:** 86 on `main` at `9b648a6`, then this docs sync; pushed to `origin/main`.
 - **What changed since the first handoff** (after `d73da8c`):
   `2981b68` citizen document pre-check · `8d0b587` its docs · `7daaaf5` multi-field injection tests for it ·
@@ -385,7 +398,8 @@ Expected from the repo:
   `docs/KNOWN_LIMITATIONS.md` (honest limits).
 - Screenshots: 18 synthetic screenshots are in the repo under `docs/screenshots/` (13 views at 1280 px and 5 at 390 px),
   including the refreshed `10-analytics.png` and new `11-case-social-welfare-SW-01.png`, `12-audit-chain-verified.png`,
-  and `13-case-duplicate-claim-LA-12.png` captured on a fresh 42-case `--reset` seed. Re-take them after any UI change.
+  and `13-case-duplicate-claim-LA-12.png` captured on a fresh 42-case `--reset` seed. `01`, `05`, `06` and `10` were
+  retaken on 19 Nov after the UI polish round (fresh `--reset` seed). Re-take them after any UI change.
 
 ## 10. Guidance for the new session
 
