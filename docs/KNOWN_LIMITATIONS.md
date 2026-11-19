@@ -57,6 +57,10 @@ None of these may be used for a real decision until checked against official sou
   income certificate validity; eligible categories and minor-child supplement; 15-year Goa residence requirement;
   ₹1,50,000 annual family income ceiling; age thresholds (60 senior citizen, 40 single woman, 80+ bonus); 40% minimum
   disability; annualized base pension ₹24,000/year (₹2,000/month) and ₹6,000/year age 80+ / minor-child supplements.
+  SOURCE CONFLICT (noted 2026-11-19): the Social Welfare Department page shows a 15-year residence rule and a
+  Rs 24,000 per annum income limit from a 2002 notification; other public sources show Rs 1.5 lakh and Rs 3 lakh;
+  monthly amounts are reported as Rs 2,000 and Rs 2,500. All values stay placeholders until the Directorate
+  confirms them; no value was changed.
 - **Notified area:** disaster relief relies on the damage assessment's own "notified area" certification;
   there is no list of notified villages per disaster event.
 - **Tenant / mundkar entries** (land): the rule cites the Goa, Daman and Diu Agricultural Tenancy Act, 1964 and

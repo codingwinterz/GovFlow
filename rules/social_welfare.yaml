@@ -10,6 +10,11 @@ labels:
 
 # Monthly financial assistance (annualized here) under the Goa Dayanand Social Security Scheme.
 # Added purely via YAML with zero scheme-specific Python code. Items marked VERIFY need official confirmation.
+#
+# VERIFY SOURCE CONFLICT (noted 2026-11-19): the Social Welfare Department page shows a 15-year residence rule and a
+# Rs 24,000 per annum income limit from a 2002 notification; other public sources show Rs 1.5 lakh and Rs 3 lakh;
+# monthly amounts are reported as Rs 2,000 and Rs 2,500. All values below stay placeholders until the Directorate
+# confirms them. Do not change a value on the strength of any one of these sources.
 required_documents:
   - id: application
     fields: {name: text}

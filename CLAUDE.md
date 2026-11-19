@@ -176,6 +176,10 @@ Fuller detail is in `docs/KNOWN_LIMITATIONS.md`.
   `single_woman`) and minor-child supplement; 15-year continuous Goa residence; Rs 1,50,000 annual family income
   ceiling; age thresholds (60 senior citizen, 40 single woman, 80+ bonus); 40% minimum disability; annualized base
   pension Rs 24,000/yr (Rs 2,000/month) and Rs 6,000/yr age 80+ / minor-child supplements.
+  SOURCE CONFLICT (noted 2026-11-19): the Social Welfare Department page shows a 15-year residence rule and a
+  Rs 24,000 per annum income limit from a 2002 notification; other public sources show Rs 1.5 lakh and Rs 3 lakh;
+  monthly amounts are reported as Rs 2,000 and Rs 2,500. All values stay placeholders until the Directorate
+  confirms them; no value was changed.
 
 ### Open items
 - **Feature freeze from 2026-11-17.** No new features; only fixes, docs and demo preparation. One exception
