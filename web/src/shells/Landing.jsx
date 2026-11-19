@@ -18,9 +18,10 @@ export default function Landing({ notFound = false }) {
               and Konkani.</p>
             <span className="entry-go">Continue as a citizen →</span>
           </a>
-          <a className="entry card" href={href("queue")}>
+          <a className="entry card entry-staff" href={href("queue")}>
             <h2>Officer and clerk dashboard</h2>
-            <p>Case queue, intake, analytics and the rule simulator. Staff sign-in required (demo mode).</p>
+            <p>Officers: case queue, intake, analytics and the rule simulator. Clerks: case queue and intake. Admins:
+              analytics and the rule simulator. Staff sign-in required (demo mode).</p>
             <span className="entry-go">Continue as staff →</span>
           </a>
         </div>

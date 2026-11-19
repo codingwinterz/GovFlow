@@ -885,3 +885,13 @@ test("landing: a small 'Demo with synthetic data' note", async () => {
   await close();
   assert.match(note, /^Demo with synthetic data/);
 });
+
+test("landing: the staff card lists what each role really gets (web/src/lib/nav.js)", async () => {
+  const { page, close } = await open("#/", () => ({ json: [] }), { width: 1280 });
+  await page.locator(".entry-staff").waitFor();
+  const card = await page.locator(".entry-staff").innerText();
+  await close();
+  assert.match(card, /Officers: case queue, intake, analytics and the rule simulator\./);
+  assert.match(card, /Clerks: case queue and intake\./);
+  assert.match(card, /Admins: analytics and the rule simulator\./);
+});
