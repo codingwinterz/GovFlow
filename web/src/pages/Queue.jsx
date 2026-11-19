@@ -19,7 +19,7 @@ const STATUSES = ["", "received", "extracted", "verified", "assessed", "in_offic
   "approved", "rejected", "withdrawn"];
 
 export default function Queue() {
-  const [status, setStatus] = useState("in_officer_review");
+  const [status, setStatus] = useState("");                   // opens on every case; the filters narrow it
   const [scheme, setScheme] = useState("");
   const schemes = useApi("/schemes");
   const params = new URLSearchParams();

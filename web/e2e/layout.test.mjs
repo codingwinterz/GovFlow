@@ -474,7 +474,7 @@ test("the queue counts cases waiting for the citizen, links to them, and marks t
     return { json: u.searchParams.get("status") === "needs_info" ? [row("LA-05", "needs_info")] : [row("LA-02", "in_officer_review")] };
   }, { login: OFFICER_LOGIN, width: 1280 });
   await page.locator(".waiting-count").getByText("More information needed: 1").waitFor();
-  assert.equal(await page.getByText("clock paused").count(), 0);          // the default filter shows LA-02 only
+  assert.equal(await page.getByText("clock paused").count(), 0);          // the list (all statuses) shows LA-02 only
   await page.getByRole("button", { name: "Show these cases" }).click();
   await page.locator("table tbody tr", { hasText: "LA-05" }).waitFor();
   const cell = await page.locator("table tbody tr", { hasText: "LA-05" }).locator("td.num").innerText();
@@ -894,4 +894,20 @@ test("landing: the staff card lists what each role really gets (web/src/lib/nav.
   assert.match(card, /Officers: case queue, intake, analytics and the rule simulator\./);
   assert.match(card, /Clerks: case queue and intake\./);
   assert.match(card, /Admins: analytics and the rule simulator\./);
+});
+
+test("the queue opens on all cases, every filter cleared; the filters still narrow it", async () => {
+  const urls = [];
+  const { page, close } = await open("#/officer", (url) => { urls.push(url); return { json: [] }; }, { login: OFFICER_LOGIN, width: 1280 });
+  await page.getByText("No cases match these filters.").waitFor();
+  const list = () => urls.map((u) => new URL(u)).filter((u) => u.pathname.endsWith("/cases") && u.searchParams.get("status") !== "needs_info");
+  const first = list()[0];
+  const selects = await page.locator(".filters select").evaluateAll((els) => els.map((e) => e.selectedOptions[0].textContent));
+  assert.equal(first.searchParams.get("status"), null);
+  assert.equal(first.searchParams.get("scheme"), null);
+  assert.deepEqual(selects, ["All statuses", "All schemes"]);
+  const filtered = page.waitForRequest((r) => new URL(r.url()).searchParams.get("status") === "approved");
+  await page.getByLabel("Status").selectOption("approved");
+  await filtered;                                                   // the status filter still applies
+  await close();
 });
