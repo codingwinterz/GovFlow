@@ -72,8 +72,6 @@
   "component.disaster_relief.clothing": "Relief for loss of clothing: {amount}",
   "component.disaster_relief.utensils": "Relief for loss of utensils and household goods: {amount}",
   "component.social_welfare.base_pension": "Base annual social security pension: {amount}",
-  "component.social_welfare.senior_age_supplement": "Additional annual support for older senior citizens: {amount}",
-  "component.social_welfare.widow_child_supplement": "Annual supplement for a widow supporting minor children: {amount}",
   "nav.home": "Home",
   "nav.self_check": "Check before you apply",
   "nav.track": "Track an application",

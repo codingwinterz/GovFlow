@@ -1,6 +1,6 @@
 {
   "case_id": "SW-01",
-  "description": "Eligible senior citizen aged 68 with 32 years Goa residence and income within limit",
+  "description": "Eligible senior citizen aged 68, 32 years' domicile, income Rs 18,000: Rs 2,000 x 12",
   "verification": {
     "name_match": "pass",
     "duplicate_claim": "pass"
@@ -20,9 +20,7 @@
   "compensation": {
     "status": "computed",
     "items": {
-      "base_pension": 24000,
-      "senior_age_supplement": 0,
-      "widow_child_supplement": 0
+      "base_pension": 24000
     },
     "total": 24000
   },

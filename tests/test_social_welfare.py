@@ -37,14 +37,16 @@ def test_social_welfare_yaml_metadata_and_terms():
 
 def test_social_welfare_self_check_dry_run():
     scheme = load_scheme_by_name("social_welfare")
-    ok = self_check(scheme, {
+    ok = self_check(scheme, {   # within the Rs 24,000 limit of the 2002 notification
+        "residence_proof.born_in_goa": "no",
         "residence_proof.years_in_goa": "20",
-        "income_certificate.annual_income": "90000",
+        "income_certificate.annual_income": "20000",
         "category_proof.applicant_category": "senior_citizen",
     })
     assert ok.outcome == "likely_eligible"
 
     high_income = self_check(scheme, {
+        "residence_proof.born_in_goa": "no",
         "residence_proof.years_in_goa": "20",
         "income_certificate.annual_income": "200000",
         "category_proof.applicant_category": "senior_citizen",

@@ -170,16 +170,12 @@ Fuller detail is in `docs/KNOWN_LIMITATIONS.md`.
   claim on a survey number already under, or past, an award must be handled (e.g. a reference for apportionment).
 - Plausibility ranges (placeholders, not legal values): land `area_sqm` 10 to 500,000 (holding) and 10 to 5,000,000
   (survey number); `market_value_per_sqm` Rs 100 to 1,00,000.
-- Social welfare (`rules/social_welfare.yaml`, `2026.1-draft`): Goa Dayanand Social Security Scheme (DSSS)
-  notification, slab rates, and clause references (`<DSSS clause: ...>`); 30-day SLA; 365-day residence proof and
-  income certificate validity; eligible categories (`senior_citizen`, `widow`, `person_with_disability`,
-  `single_woman`) and minor-child supplement; 15-year continuous Goa residence; Rs 1,50,000 annual family income
-  ceiling; age thresholds (60 senior citizen, 40 single woman, 80+ bonus); 40% minimum disability; annualized base
-  pension Rs 24,000/yr (Rs 2,000/month) and Rs 6,000/yr age 80+ / minor-child supplements.
-  SOURCE CONFLICT (noted 2026-11-19): the Social Welfare Department page shows a 15-year residence rule and a
-  Rs 24,000 per annum income limit from a 2002 notification; other public sources show Rs 1.5 lakh and Rs 3 lakh;
-  monthly amounts are reported as Rs 2,000 and Rs 2,500. All values stay placeholders until the Directorate
-  confirms them; no value was changed.
+- Social welfare (`rules/social_welfare.yaml`, `2002.10-published`, rebuilt 2026-11-19 from notification No.
+  50/354/02-03/HC/part-I/4247 dated 02/10/2002 as published on the department site; later amendments not confirmed; a
+  state commission's recommendation to raise the income limit is not law): every clause number (`<DSSS clause: ...>`);
+  30-day SLA; 365-day residence proof and income certificate validity; "adult" read as 18+ for disability; 40% minimum
+  disability (not on the page); widows and single women aged 60 or over (amount stated only below 60); CONFLICT:
+  single women 18+ (category list) versus unmarried women above 50 (objectives text), 18 used.
 
 ### Open items
 - **Feature freeze from 2026-11-17.** No new features; only fixes, docs and demo preparation. One exception

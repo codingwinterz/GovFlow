@@ -1,6 +1,6 @@
 {
   "case_id": "SW-02",
-  "description": "Eligible widow supporting a minor child with 20 years Goa residence and income within limit",
+  "description": "Eligible widow aged 45, resident by birth, income Rs 21,600: Rs 2,500 x 12",
   "verification": {
     "name_match": "pass",
     "duplicate_claim": "pass"
@@ -20,9 +20,7 @@
   "compensation": {
     "status": "computed",
     "items": {
-      "base_pension": 24000,
-      "senior_age_supplement": 0,
-      "widow_child_supplement": 6000
+      "base_pension": 30000
     },
     "total": 30000
   },

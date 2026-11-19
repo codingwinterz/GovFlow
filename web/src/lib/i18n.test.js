@@ -49,7 +49,7 @@ test("every document and amount component in the rules has a template", () => {
   for (const scheme of ["land_acquisition", "disaster_relief", "social_welfare"]) {
     const docs = yamlIds(scheme, "required_documents");
     const components = yamlIds(scheme, "components");
-    assert.ok(docs.length >= 4 && components.length >= 3, scheme);
+    assert.ok(docs.length >= 4 && components.length >= 1, scheme);   // welfare has one amount (2002 notification)
     for (const d of docs) assert.ok(`documents.${d}` in DICTS.en, `documents.${d}`);
     for (const c of components) assert.ok(`component.${scheme}.${c}` in DICTS.en, `component.${scheme}.${c}`);
   }

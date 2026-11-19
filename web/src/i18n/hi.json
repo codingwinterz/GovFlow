@@ -72,8 +72,6 @@
   "component.disaster_relief.clothing": "कपड़ों के नुकसान के लिए सहायता: {amount}",
   "component.disaster_relief.utensils": "बर्तनों और घरेलू सामान के नुकसान के लिए सहायता: {amount}",
   "component.social_welfare.base_pension": "आधार वार्षिक सामाजिक सुरक्षा पेंशन: {amount}",
-  "component.social_welfare.senior_age_supplement": "अधिक आयु के वरिष्ठ नागरिकों के लिए अतिरिक्त वार्षिक सहायता: {amount}",
-  "component.social_welfare.widow_child_supplement": "नाबालिग बच्चों का पालन-पोषण करने वाली विधवा के लिए वार्षिक सहायता: {amount}",
   "nav.home": "मुख्य पृष्ठ",
   "nav.self_check": "आवेदन से पहले जाँचें",
   "nav.track": "आवेदन की स्थिति देखें",

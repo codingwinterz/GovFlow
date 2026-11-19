@@ -1,6 +1,6 @@
 {
   "case_id": "SW-04",
-  "description": "Fewer than 15 years Goa residence (9 years) and shares ID number with SW-05",
+  "description": "Adult with 92% locomotor disability, 9 years' domicile (under 15) and shares ID with SW-05",
   "verification": {
     "name_match": "pass",
     "duplicate_claim": "needs_review"
@@ -20,11 +20,9 @@
   "compensation": {
     "status": "computed",
     "items": {
-      "base_pension": 24000,
-      "senior_age_supplement": 0,
-      "widow_child_supplement": 0
+      "base_pension": 42000
     },
-    "total": 24000
+    "total": 42000
   },
   "needs_human_review": true
 }

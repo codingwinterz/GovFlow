@@ -51,16 +51,19 @@ None of these may be used for a real decision until checked against official sou
   inundated); which Goa areas count as hilly; document ages (365 and 90 days); the 15-day SLA.
 - **Plausibility ranges** are placeholders, not legal values: land area 10 to 500,000 sq m per holding
   (10 to 5,000,000 per survey number) and market value ₹100 to ₹1,00,000 per sq m.
-- **Social welfare (`rules/social_welfare.yaml`, `2026.1-draft`):** modeled on Goa's Dayanand Social Security Scheme
-  (DSSS) purely via YAML (zero scheme-specific Python code). All rates, ceilings, thresholds, and clauses are marked
-  `# VERIFY`: official DSSS notification and `<DSSS clause: ...>` references; 30-day SLA; 365-day residence proof and
-  income certificate validity; eligible categories and minor-child supplement; 15-year Goa residence requirement;
-  ₹1,50,000 annual family income ceiling; age thresholds (60 senior citizen, 40 single woman, 80+ bonus); 40% minimum
-  disability; annualized base pension ₹24,000/year (₹2,000/month) and ₹6,000/year age 80+ / minor-child supplements.
-  SOURCE CONFLICT (noted 2026-11-19): the Social Welfare Department page shows a 15-year residence rule and a
-  Rs 24,000 per annum income limit from a 2002 notification; other public sources show Rs 1.5 lakh and Rs 3 lakh;
-  monthly amounts are reported as Rs 2,000 and Rs 2,500. All values stay placeholders until the Directorate
-  confirms them; no value was changed.
+- **Social welfare (`rules/social_welfare.yaml`, `2002.10-published`):** rebuilt on 2026-11-19 from the Dayanand
+  Social Security Scheme notification No. 50/354/02-03/HC/part-I/4247 dated 02/10/2002, as published on the
+  Directorate of Social Welfare page (https://socialwelfare.goa.gov.in/?p=2518). Still YAML only. Sourced from it:
+  resident of Goa by birth or 15 years of domicile; income limit ₹24,000 a year; senior citizen 60 at application,
+  ₹2,000 a month; adult with a listed disability ₹2,000 a month, ₹3,500 at 90 to 100%; widows and single women below
+  60 ₹2,500 a month (amounts shown per year, × 12). 2002 notification as published on the department site; later
+  amendments not confirmed. A state commission has recommended raising the income limit, which is a recommendation,
+  not law. The 80+ and minor-child supplements (from other sources) were removed. Still VERIFY: every clause number;
+  30-day SLA; 365-day residence proof and income certificate validity; "adult" read as 18+; the 40% minimum
+  disability (not on the page; RPwD Act benchmark); a widow or single woman aged 60 or over (the page states the
+  amount only below 60, so the rule does not pass her in that category: she would apply as a senior citizen);
+  **conflict**: single women 18 and above (category list) versus unmarried women above 50 (objectives text); 18 is
+  used.
 - **Notified area:** disaster relief relies on the damage assessment's own "notified area" certification;
   there is no list of notified villages per disaster event.
 - **Tenant / mundkar entries** (land): the rule cites the Goa, Daman and Diu Agricultural Tenancy Act, 1964 and

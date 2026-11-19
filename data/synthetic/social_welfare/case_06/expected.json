@@ -1,6 +1,6 @@
 {
   "case_id": "SW-06",
-  "description": "Low confidence (0.75) on annual_income; senior citizen aged 82 routed to human review",
+  "description": "Income read at confidence 0.75 (at or below 0.85): routed to human review; senior aged 82, no age supplement",
   "verification": {
     "name_match": "pass",
     "duplicate_claim": "pass"
@@ -20,11 +20,9 @@
   "compensation": {
     "status": "computed",
     "items": {
-      "base_pension": 24000,
-      "senior_age_supplement": 6000,
-      "widow_child_supplement": 0
+      "base_pension": 24000
     },
-    "total": 30000
+    "total": 24000
   },
   "needs_human_review": true
 }

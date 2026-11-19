@@ -1,6 +1,6 @@
 {
   "case_id": "SW-05",
-  "description": "Duplicate claim sharing identity number with SW-04; routed to human review",
+  "description": "Duplicate claim sharing the identity number with SW-04; otherwise eligible at Rs 3,500 x 12",
   "verification": {
     "name_match": "pass",
     "duplicate_claim": "needs_review"
@@ -20,11 +20,9 @@
   "compensation": {
     "status": "computed",
     "items": {
-      "base_pension": 24000,
-      "senior_age_supplement": 0,
-      "widow_child_supplement": 0
+      "base_pension": 42000
     },
-    "total": 24000
+    "total": 42000
   },
   "needs_human_review": true
 }

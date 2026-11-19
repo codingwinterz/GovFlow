@@ -1,6 +1,6 @@
 {
   "case_id": "SW-03",
-  "description": "Annual family income 210000 exceeds 150000 limit; not eligible",
+  "description": "Senior citizen with income Rs 36,000, over the Rs 24,000 limit; not eligible",
   "verification": {
     "name_match": "pass",
     "duplicate_claim": "pass"
@@ -20,9 +20,7 @@
   "compensation": {
     "status": "computed",
     "items": {
-      "base_pension": 24000,
-      "senior_age_supplement": 0,
-      "widow_child_supplement": 0
+      "base_pension": 24000
     },
     "total": 24000
   },
