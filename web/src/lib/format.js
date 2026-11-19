@@ -8,6 +8,19 @@ export function formatRupees(amount) {
   return amount === null || amount === undefined ? "—" : RUPEES.format(amount);
 }
 
+// Rupee amounts inside backend prose ("Rs 3,816,000.00", "Rs. 12500", "₹ 7612345.6"), regrouped through formatRupees.
+// The digits are read back exactly; an amount finer than paise is left as written rather than rounded.
+const RUPEES_IN_TEXT = /(?:₹|\bRs\.?|\bINR)\s?(\d[\d,]*(?:\.\d+)?)(?![\d.])/g;
+
+export function rupeesInText(text) {
+  if (text === null || text === undefined) return "";
+  return String(text).replace(RUPEES_IN_TEXT, (whole, digits) => {
+    if (/\.\d{3,}$/.test(digits)) return whole;
+    const value = Number(digits.replace(/,/g, ""));
+    return Number.isFinite(value) ? formatRupees(value) : whole;
+  });
+}
+
 export function maskIdentifiers(value) {
   return String(value).replace(ID_PATTERN, (_, last4) => `XXXX XXXX ${last4}`);
 }

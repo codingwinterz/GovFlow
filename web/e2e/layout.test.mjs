@@ -738,3 +738,19 @@ for (const width of [1280, 390]) {
     assert.ok(calls.some((c) => c.startsWith("GET /api/cases")), "clock read from the queue endpoint");
   });
 }
+
+test("case page: every rupee amount reads in Indian grouping, the stored explanation included", async () => {
+  const detail = { ...CASE, compensation: { items: [{ component: "land_value", amount: 1800000, formula_note: "x" },
+    { component: "solatium", amount: 2016000, formula_note: "y" }], total: 3816000 },
+    explanation: { text: "Compensation total: Rs 3,816,000.00\n- land_value: Rs 1,800,000.00", warnings: [], used_fallback: true,
+      at: "2026-11-15T06:00:00Z" } };
+  const { page, close } = await open("#/officer/cases/LA-01", (url) => ({ json: url.endsWith("/cases/LA-01") ? detail : [] }),
+    { login: OFFICER_LOGIN, width: 1280 });
+  await page.locator("pre.explanation").waitFor();
+  const body = await page.locator("main").innerText();
+  await close();
+  assert.match(body, /₹38,16,000\.00/);
+  assert.match(body, /₹18,00,000\.00/);
+  assert.match(body, /₹20,16,000\.00/);
+  assert.doesNotMatch(body, /Rs\s?\d|\d{1,3},\d{3},\d{3}/, "an amount still in Western grouping");
+});

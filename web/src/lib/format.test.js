@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   formatRupees, maskIdentifiers, formatConfidence, formatDuration, fieldSource, validateDecision, confirmedFields,
-  unavailableDocuments, formatDate, formatDay, todayInIndia,
+  unavailableDocuments, formatDate, formatDay, todayInIndia, rupeesInText,
 } from "./format.js";
 
 test("rupees use Indian grouping and are only formatted, never computed", () => {
@@ -102,4 +102,17 @@ test("approval with an open rights entry needs a resolution reference and date",
   assert.equal(validateDecision("send_back", "bring papers", [], {}, needed, {}), null);   // only approval needs it
   assert.deepEqual(resolutionsBody(needed, { tenant_or_mundkar_claim: { reference: " TNC/1 ", date: "2026-11-10" } }),
     { tenant_or_mundkar_claim: { reference: "TNC/1", date: "2026-11-10" } });
+});
+
+// The stored explanation writes amounts the Python way (Rs 3,816,000.00). On screen they read like every other amount:
+// Indian grouping through formatRupees, same value, never recomputed.
+test("rupeesInText regroups rupee amounts in prose, Indian style, and leaves other numbers alone", () => {
+  assert.equal(rupeesInText("Compensation total: Rs 3,816,000.00"), "Compensation total: ₹38,16,000.00");
+  assert.equal(rupeesInText("- solatium: Rs 1,800,000.00 (x with land_value=1800000)"),
+    "- solatium: ₹18,00,000.00 (x with land_value=1800000)");
+  assert.equal(rupeesInText("about Rs. 12500 and ₹ 7612345.6"), "about ₹12,500.00 and ₹76,12,345.60");
+  assert.equal(rupeesInText("Rs 0.00"), "₹0.00");
+  assert.equal(rupeesInText("area 600 sq m, 12% a year"), "area 600 sq m, 12% a year");
+  assert.equal(rupeesInText("Rs 10.125"), "Rs 10.125");            // more precision than paise: shown as stored
+  assert.equal(rupeesInText(null), "");
 });

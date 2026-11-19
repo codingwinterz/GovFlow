@@ -2,7 +2,7 @@ import { useState } from "react";
 import { api } from "../api.js";
 import { Loading, useApi } from "../useApi.jsx";
 import {
-  fieldSource, formatConfidence, formatDate, formatRupees, maskIdentifiers, unavailableDocuments, validateDecision, confirmedFields,
+  fieldSource, formatConfidence, formatDate, formatRupees, maskIdentifiers, rupeesInText, unavailableDocuments, validateDecision, confirmedFields,
   resolutionsBody,
 } from "../lib/format.js";
 import { href } from "../lib/router.js";
@@ -93,7 +93,7 @@ function Rules({ detail }) {
             {detail.rule_results.map((r) => (
               <tr key={r.rule_id} className={r.status === "pass" ? "" : "flagged"}>
                 <td>{termLabel(detail.terms, r.rule_id)}</td><td>{appLabel("result", r.status)}</td><td><Clause clause={r.clause} /></td>
-                <td className="small">{readable(r.reason, detail.terms)}</td><td>{r.rules_version}</td>
+                <td className="small">{readable(rupeesInText(r.reason), detail.terms)}</td><td>{r.rules_version}</td>
               </tr>
             ))}
           </tbody>
@@ -137,7 +137,7 @@ function Explanation({ explanation, terms }) {
           <ul>{explanation.warnings.map((w) => <li key={w}>{readable(w, terms)}</li>)}</ul>
         </div>
       )}
-      <pre className="explanation">{readable(maskIdentifiers(withoutClausePlaceholders(explanation.text)), terms)}</pre>
+      <pre className="explanation">{readable(rupeesInText(maskIdentifiers(withoutClausePlaceholders(explanation.text))), terms)}</pre>
       <p className="muted small">Written {formatDate(explanation.at)}{explanation.used_fallback ? " without the LLM (deterministic summary)" : " by the agent"}. Figures above come from the tools, not from this text.</p>
     </section>
   );
@@ -323,7 +323,7 @@ export default function CasePage({ id, login }) {
               <h2>Verification flags</h2>
               <ul className="flags">{d.flags.map((f, i) => (
                 <li key={i} className={`sev-${f.severity}`}><strong>{flagLabel(d.terms, f.kind)}</strong>{" "}
-                  ({appLabel("severity", f.severity).toLowerCase()}): {readable(maskIdentifiers(f.detail), d.terms)}</li>
+                  ({appLabel("severity", f.severity).toLowerCase()}): {readable(rupeesInText(maskIdentifiers(f.detail)), d.terms)}</li>
               ))}</ul>
             </section>
           )}
