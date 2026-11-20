@@ -1,7 +1,10 @@
 # Future scheme: revenue mutation (designed, not built)
 
-Status: **deferred, 2026-11-19.** Feasibility checked, no code or YAML written. This note records what was found so
-the scheme can be built after the jury without repeating the analysis.
+Status: **built on branch `mutation`, 2026-11-20 (not merged).** Deferred on 2026-11-19; this note records the
+analysis. What was built: engine changes (a) to (d) of section 4, item 5 of section 3 (the pipeline skips the
+compensation step for a scheme with no compensation section; `app/agent.py` changed for that item only), then
+`rules/revenue_mutation.yaml` with the timelines of section 1 and 5 synthetic cases. Still open: a Form X notice or
+mutation order screen, notice and objection statuses, working-day counting, and every VERIFY below.
 
 The scheme: mutation of Form I and XIV after a sale deed, succession, partition or court order. The officer decides;
 the system recommends **"ready for notice"** or **"needs review"** and calculates **no amount**.

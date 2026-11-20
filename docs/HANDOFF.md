@@ -123,6 +123,11 @@ Written 17 Nov 2026 at commit `d73da8c` (the last code commit before this file);
 - `compensation`: `inputs` (from documents or officer-entered case inputs, ranges, defaults), `parameters`, `components`
   (formulas).
 - `self_check` (optional): questions and the rules they answer. `terms`: a human label for every identifier on screen.
+- Branch `mutation` adds: `on_false: needs_review` on a rule (a false `when` routes to review; default `fail`);
+  `recommendation_labels` (scheme words for eligible / not_eligible / needs_review; never decision words);
+  `timelines` (period as written, optional days, working_days, source_type, source, verify + verify_note, at most one
+  `drives_sla` equal to `sla_days`). With no `compensation`, `labels` needs only `title`, the pipeline has no
+  compensation step, and the case page, award letter, citizen amounts and analytics liability leave the scheme out.
 - Uncertain legal values are marked `# VERIFY: <what>` in the YAML.
 
 ### The two schemes
@@ -134,6 +139,12 @@ Written 17 Nov 2026 at commit `d73da8c` (the last code commit before this file);
 - **Disaster relief (second, YAML only):** housing-damage relief from the MHA SDRF/NDRF norms 2022-26 (labelled "to be
   confirmed" for Goa): full / partial damage by house type, hut, clothing and utensils, plain or hilly area. Documents:
   application, identity proof, residence proof, damage assessment. SLA 15 days (VERIFY). Has a self-check.
+- **Revenue mutation (branch `mutation`, not merged, YAML only):** recommends "Ready for notice" / "Needs review" /
+  "Not ready for notice" and calculates no amount. Checks: applicant name, transferor against the Form I owner, survey
+  number across application / deed / Form I, co-owner notice (`on_false: needs_review`), tenant or mundkar entry,
+  recorded dispute ("refer; this system does not decide title"), another open mutation on the survey number.
+  Documents: application, deed or order, Form I & XIV, identity proof. SLA 30 days (VERIFY, the one timeline that
+  drives the clock). Source-cited timelines on the case page. Has a self-check (co-owner question). 5 cases RM-01..05.
 
 ## 3. Features built
 
