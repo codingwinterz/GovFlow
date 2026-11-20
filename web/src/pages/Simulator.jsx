@@ -50,6 +50,10 @@ export default function Simulator() {
             {(schemes.data || []).map((s) => <option key={s.scheme} value={s.scheme}>{s.labels.title}</option>)}
           </select>
         </label>
+        {knobList && knobList.knobs.length === 0 && (
+          <p className="muted">This scheme has no parameters or input defaults to change: it calculates no amount.</p>
+        )}
+        {knobList?.knobs.length !== 0 && <>
         <label>Value to change
           <select value={name} onChange={(e) => {
             setName(e.target.value);
@@ -60,6 +64,7 @@ export default function Simulator() {
         </label>
         <label>New value <input value={value} onChange={(e) => setValue(e.target.value)} inputMode="decimal" /></label>
         <button type="submit">Run simulation</button>
+        </>}
       </form>
       {error && <p className="error">{error}</p>}
       {result && (

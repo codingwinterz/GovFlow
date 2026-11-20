@@ -90,10 +90,15 @@
     "deficiency_notice_sent": "Documents requested from citizen",
     "document_precheck": "Citizen document pre-check (nothing stored)",
     "sahayak_query": "Sahayak helper question (text not stored)",
-
     "rule_simulation": "Rule simulation",
     "submit_to_officer": "Sent to officer",
     "update_inputs": "Inputs updated",
     "verify_documents": "Documents verified"
+  },
+  "source_type": {
+    "official_document": "Official document",
+    "ministerial_statement": "Ministerial statement",
+    "commercial_guide": "Commercial guide only",
+    "lead_only": "Lead only"
   }
 }

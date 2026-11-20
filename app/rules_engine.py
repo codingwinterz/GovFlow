@@ -57,12 +57,21 @@ def _evaluate_when(when: str, facts: CaseFacts) -> tuple[Status, str]:
 evaluate_when = _evaluate_when   # public: used by the self-check dry run
 
 
+def rule_when(rule: EligibilityRule, facts: CaseFacts) -> tuple[Status, str, bool]:
+    """The rule's own condition, with its on_false option applied. The flag says a false condition was routed to
+    review (on_false: needs_review); the note then starts with the rule's requirement (its fail_reason)."""
+    status, note = _evaluate_when(rule.when, facts)
+    if status == "fail" and rule.on_false == "needs_review":
+        return "needs_review", f"{rule.fail_reason} ({note})", True
+    return status, note, False
+
+
 def _evaluate_rule(rule: EligibilityRule, facts: CaseFacts, checks: dict[str, CheckResult], version: str) -> RuleResult:
     parts: list[tuple[Status, str]] = [
         (checks[c].status, f"{c}: {checks[c].status} ({checks[c].detail})") for c in rule.depends_on
     ]
     if rule.when is not None:
-        parts.append(_evaluate_when(rule.when, facts))
+        parts.append(rule_when(rule, facts)[:2])
 
     status = combine([s for s, _ in parts])
     relevant = [note for s, note in parts if s == status]

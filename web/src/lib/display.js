@@ -14,6 +14,12 @@ export function appLabel(group, id) {
   return APP[group]?.[id] ?? humanize(id);
 }
 
+// The rules engine's recommendation in the scheme's own words when its YAML sets recommendation_labels
+// (e.g. "Ready for notice"); otherwise the app-wide label. The outcome itself never changes.
+export function recommendationLabel(outcome, schemeLabels) {
+  return schemeLabels?.[outcome] ?? appLabel("recommendation", outcome);
+}
+
 function explicitTerm(terms, id) {
   if (!terms) return undefined;
   if (id in terms) return terms[id];

@@ -202,11 +202,16 @@ class EligibilityRule(BaseModel):
     fail_reason: str
     when: Optional[str] = None
     depends_on: list[str] = []
+    # What a false `when` gives: `fail` (default), or `needs_review` for a requirement the officer must act on
+    # (e.g. a notice to all co-owners), so it never reads as "Not eligible". Failed depends_on checks still fail.
+    on_false: Literal["fail", "needs_review"] = "fail"
 
     @model_validator(mode="after")
     def _has_condition(self) -> "EligibilityRule":
         if self.when is None and not self.depends_on:
             raise ValueError(f"{self.id}: needs `when`, `depends_on`, or both")
+        if self.on_false != "fail" and self.when is None:
+            raise ValueError(f"{self.id}: on_false needs a `when` condition")
         return self
 
 
@@ -263,6 +268,43 @@ class Compensation(BaseModel):
 
 
 LABELS = ("title", "amounts", "total")   # display wording; each scheme writes its own
+OUTCOMES = ("eligible", "not_eligible", "needs_review")   # the rules engine's recommendations (rules_engine.Overall)
+# A recommendation label must never read as a decision: only an officer approves or rejects (CLAUDE.md rule 2).
+DECISION_WORDING = re.compile(r"\b(approv\w*|reject\w*|sanction\w*|grant(ed)?|refus\w*)\b", re.IGNORECASE)
+
+
+class Timeline(BaseModel):
+    """A step's period as a source states it (e.g. public notice, 15 days). Data shown on the case page only:
+    nothing counts these days except the one marked drives_sla, which must equal sla_days."""
+    id: str
+    label: str
+    period: str                        # as written by the source, e.g. "7 working days", "Within three months"
+    days: Optional[int] = None         # None when the source gives no day count
+    working_days: bool = False
+    source_type: Literal["official_document", "ministerial_statement", "commercial_guide", "lead_only"]
+    source: str
+    verify: bool
+    verify_note: Optional[str] = None  # what to verify, when verify is true
+    drives_sla: bool = False
+
+    @model_validator(mode="after")
+    def _shape(self) -> "Timeline":
+        if not self.label.strip() or "_" in self.label:
+            raise ValueError(f"timeline {self.id}: label must be human wording (non-empty, no underscores)")
+        if not self.period.strip():
+            raise ValueError(f"timeline {self.id}: period must say the period as the source gives it")
+        if not self.source.strip():
+            raise ValueError(f"timeline {self.id}: source must name where the period comes from")
+        if self.days is not None and self.days <= 0:
+            raise ValueError(f"timeline {self.id}: days must be a positive whole number")
+        if self.working_days and self.days is None:
+            raise ValueError(f"timeline {self.id}: working_days needs days")
+        if self.verify and not (self.verify_note or "").strip():
+            raise ValueError(f"timeline {self.id}: verify needs a verify_note saying what to verify")
+        if self.drives_sla and (self.days is None or self.working_days):
+            raise ValueError(f"timeline {self.id}: the clock timeline needs calendar days (the clock counts no "
+                             "working days)")
+        return self
 
 
 class SelfCheckQuestion(BaseModel):
@@ -289,6 +331,36 @@ class Scheme(BaseModel):
     compensation: Optional[Compensation] = None
     self_check: Optional[SelfCheck] = None
     terms: dict[str, str] = {}       # human label per identifier shown on screen (see known_terms)
+    # Optional words for the engine's outcomes on this scheme's screens, e.g. {eligible: "Ready for notice"}.
+    # The outcomes themselves never change; an outcome left out keeps the app-wide label.
+    recommendation_labels: dict[str, str] = {}
+    timelines: list[Timeline] = []   # source-cited periods shown on the case page; only sla_days drives the clock
+
+    @model_validator(mode="after")
+    def _timelines(self) -> "Scheme":
+        ids = [t.id for t in self.timelines]
+        duplicate = sorted({i for i in ids if ids.count(i) > 1})
+        if duplicate:
+            raise ValueError(f"timelines have duplicate ids {duplicate}")
+        clock = [t for t in self.timelines if t.drives_sla]
+        if len(clock) > 1:
+            raise ValueError(f"only one timeline may drive the clock, got {[t.id for t in clock]}")
+        if clock and clock[0].days != self.sla_days:
+            raise ValueError(f"timeline {clock[0].id} drives the clock with {clock[0].days} days but sla_days is "
+                             f"{self.sla_days}")
+        return self
+
+    @model_validator(mode="after")
+    def _recommendation_labels(self) -> "Scheme":
+        unknown = sorted(set(self.recommendation_labels) - set(OUTCOMES))
+        if unknown:
+            raise ValueError(f"recommendation_labels has unknown outcomes {unknown}; use {list(OUTCOMES)}")
+        for outcome, label in self.recommendation_labels.items():
+            if not str(label).strip() or "_" in str(label):
+                raise ValueError(f"recommendation_labels.{outcome} must be human wording (non-empty, no underscores)")
+            if DECISION_WORDING.search(str(label)):
+                raise ValueError(f"recommendation_labels.{outcome} {label!r} states a decision; only an officer decides")
+        return self
 
     @model_validator(mode="after")
     def _positive_sla(self) -> "Scheme":
@@ -298,10 +370,14 @@ class Scheme(BaseModel):
 
     @model_validator(mode="after")
     def _labels(self) -> "Scheme":
-        missing = [k for k in LABELS if not str(self.labels.get(k, "")).strip()]
-        unknown = sorted(set(self.labels) - set(LABELS))
+        # A scheme that calculates no amount has a title only: it has no amounts card and no total to label.
+        expected = LABELS if self.compensation is not None else ("title",)
+        if self.compensation is None and set(self.labels) & {"amounts", "total"}:
+            raise ValueError("labels amounts and total are for a scheme with compensation; this one has no compensation")
+        missing = [k for k in expected if not str(self.labels.get(k, "")).strip()]
+        unknown = sorted(set(self.labels) - set(expected))
         if missing or unknown:
-            raise ValueError(f"labels missing {missing}, unknown {unknown}; expected {list(LABELS)}")
+            raise ValueError(f"labels missing {missing}, unknown {unknown}; expected {list(expected)}")
         return self
 
     @property

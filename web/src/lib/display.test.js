@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { APP_LABELS, appLabel, clauseText, humanize, queueReason, readable, readableFormula, schemeTitle, termLabel,
-  withoutClausePlaceholders, explanationBlocks } from "./display.js";
+  withoutClausePlaceholders, explanationBlocks, recommendationLabel } from "./display.js";
 
 const SRC = new URL("..", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const APP_DIR = join(SRC, "..", "..", "app");
@@ -145,4 +145,11 @@ test("explanationBlocks groups '- ' lines into lists and other lines into paragr
   assert.deepEqual(explanationBlocks(null), []);
   assert.deepEqual(explanationBlocks("one line, no list"), [{ kind: "p", text: "one line, no list" }]);
   assert.deepEqual(explanationBlocks("-not a list item"), [{ kind: "p", text: "-not a list item" }]);
+});
+
+test("a scheme's recommendation label replaces the app-wide one; otherwise the app label is used", () => {
+  assert.equal(recommendationLabel("eligible", { eligible: "Ready for notice" }), "Ready for notice");
+  assert.equal(recommendationLabel("needs_review", { eligible: "Ready for notice" }), "Needs review");
+  assert.equal(recommendationLabel("not_eligible", {}), "Not eligible");
+  assert.equal(recommendationLabel("eligible", undefined), "Eligible");
 });

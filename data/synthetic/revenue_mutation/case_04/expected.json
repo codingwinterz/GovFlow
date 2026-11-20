@@ -1,0 +1,28 @@
+{
+  "case_id": "RM-04",
+  "description": "Name mismatch with Form I: the deed's transferor is not the owner recorded on Form I & XIV",
+  "verification": {
+    "name_match": "pass",
+    "transferor_match": "fail",
+    "survey_match": "pass",
+    "duplicate_mutation": "pass",
+    "tenant_or_mundkar_claim": "pass",
+    "recorded_dispute": "pass"
+  },
+  "eligibility": {
+    "overall": "not_eligible",
+    "rules": {
+      "documents_complete": "pass",
+      "applicant_identified": "pass",
+      "transferor_is_recorded_owner": "fail",
+      "land_identified": "pass",
+      "co_owner_notice": "pass",
+      "rights_recorded_clear": "pass",
+      "no_recorded_dispute": "pass",
+      "no_pending_mutation": "pass",
+      "documents_not_expired": "pass"
+    }
+  },
+  "compensation": null,
+  "needs_human_review": true
+}

@@ -2,7 +2,7 @@
 // Hand-derived expected values; the API's queue row (days_open, sla_days, overdue) is the only input for the clock.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { flagCounts, slaClock, summaryTotal } from "./summary.js";
+import { flagCounts, showsAmounts, slaClock, summaryTotal } from "./summary.js";
 
 const row = (over) => ({ status: "in_officer_review", days_open: 20, sla_days: 60, overdue: false, ...over });
 
@@ -40,4 +40,10 @@ test("summaryTotal: the stored total exactly as the API sent it, or null when no
   assert.equal(summaryTotal({ compensation: { items: [{ amount: 1 }], total: 7612345.67 } }), 7612345.67);
   assert.equal(summaryTotal({ compensation: { items: [], total: null } }), null);
   assert.equal(summaryTotal({}), null);
+});
+
+test("a scheme with no compensation shows no amounts, total or award letter", () => {
+  assert.equal(showsAmounts({ has_compensation: false }), false);
+  assert.equal(showsAmounts({ has_compensation: true }), true);
+  assert.equal(showsAmounts({}), true);              // older API answers: amounts shown as before
 });

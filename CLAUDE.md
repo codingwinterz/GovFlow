@@ -137,20 +137,31 @@ Fuller detail is in `docs/KNOWN_LIMITATIONS.md`.
   total, flags by severity, SLA clock); placeholder clauses show as a dash; the queue opens on all cases; an approval
   must name the case it was confirmed for
   (`confirmed_case`, else 409); visible keyboard focus on every control, including radios, checkboxes, text areas.
-- Demo database re-seeded 2026-11-19 (`--reset`, 42 cases) for the UI polish and welfare screenshots.
 - UI polish (branch `ui-polish`, merged into main locally 2026-11-19): design tokens in `web/src/styles.css`
   (one primary, semantic colours, type scale, spacing, 44 px phone targets, reduced motion), case summary strip as
   the anchor, analytics headline tiles first, sticky queue header on wide screens.
-- Branch `weak-spots` (not merged): social welfare rebuilt from DSSS notification No. 50/354/02-03/HC/part-I/4247
+- Branch `weak-spots` (merged into main 2026-11-20): social welfare rebuilt from DSSS notification No. 50/354/02-03/HC/part-I/4247
   dated 02/10/2002 as published (income limit Rs 24,000; senior Rs 2,000, disability Rs 2,000 or Rs 3,500 at 90 to
   100%, widows and single women below 60 Rs 2,500 a month); invented 80+ and minor-child supplements removed.
   `scripts/benchmark_processing.py` writes `docs/BENCHMARK.md` (per scheme and stage: median, mean, p90; Gemini
   only after a one-call preflight, else labelled fallback provider). `scripts/export_translations.py` writes
-  `docs/translation_review.csv` (98 keys, en/hi/mr/kok, for native-speaker review).
+  `docs/translation_review.csv` (99 keys, en/hi/mr/kok, for native-speaker review).
+- Demo database re-seeded 2026-11-20 (`--reset`, 47 cases) for the mutation screenshots.
+- Branch `mutation` (merged into main 2026-11-20): revenue mutation, a fourth scheme from YAML only
+  (`rules/revenue_mutation.yaml`, 5 synthetic cases RM-01..05, seeded with RM-01 approved), after four engine
+  changes, each its own commit: (a) optional `recommendation_labels` (eligible shown as "Ready for notice"; never
+  decision words); (b) rule option `on_false: needs_review` (co-owner notice reads "Needs review", never "Not
+  eligible"); (c) a scheme with no `compensation`: the pipeline skips the step with no error (agent not offered the
+  tool), labels need only `title`, no amounts card / summary total / award letter (409), no citizen "Why this
+  amount", no analytics liability row; (d) source-cited `timelines` on the case page, only `sla_days` drives the
+  clock. Checks: transferor vs Form I owner, survey number across documents, co-owner notice, tenant or mundkar
+  flag, recorded dispute ("refer; this system does not decide title"), another open mutation. Regression snapshots
+  of LA-01, DR-01, SW-01 (explanation, tool steps, rules, compensation, citizen page; `tests/snapshots/`,
+  `web/src/lib/citizen_snapshots.json`) were taken on main first and pass unchanged.
 
 ### Tests (all green at commit time)
-- Python: 1,199 passed (`pytest -q`, run in 3 low-memory batches: `[a-f]` 581 + `[g-r]` 245 + `[s-z]` 373).
-- Frontend: 88 logic (`npm test`) + 79 browser (`npm run test:layout`); `npm run test:all` runs both. Build clean.
+- Python: TBD
+- Frontend: TBD
 
 
 
@@ -187,7 +198,17 @@ Fuller detail is in `docs/KNOWN_LIMITATIONS.md`.
   disability (not on the page); widows and single women aged 60 or over (amount stated only below 60); CONFLICT:
   single women 18+ (category list) versus unmarried women above 50 (objectives text), 18 used.
 
+- Revenue mutation (`rules/revenue_mutation.yaml`, branch `mutation`): every timeline source except rule 11(2) of the
+  1969 Rules (citizen charter 2016 current?; ministerial statement periods against a notification; co-owner notice
+  proviso's rule; the civil-dispute judgment's court and date; the 90-day window, commercial guide only); 30-day
+  SLA; every `<GLRC clause: ...>`; Form I & XIV columns for tenant, mundkar and dispute entries; record-of-rights age
+  180 days; plausible ranges for holder counts; documents needed per trigger type.
+
 ### Open items
+- Revenue mutation gaps: the deterministic summary still says the engine's words (eligible / needs_review), not
+  "Ready for notice" (`app/agent.py` was allowed for item (c) only); no Form X notice or mutation order screen; no
+  notice / objection statuses; working days not counted; self-check prompts English only; `documents.deed` drafted
+  in hi / mr / kok for native-speaker review.
 - **Feature freeze from 2026-11-17.** No new features; only fixes, docs and demo preparation. One exception
   granted 2026-11-17: the tenant / mundkar rule and the deficiency notice.
 - Voice assistant: planned, not built. Multilingual helper: planned (Sahayak is English only).

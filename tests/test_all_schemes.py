@@ -48,6 +48,9 @@ def _check(expected, checks, eligibility, compensation):
     assert {r.rule_id: r.status for r in eligibility.results} == expected["eligibility"]["rules"]
     assert eligibility.overall == expected["eligibility"]["overall"]
     exp = expected["compensation"]
+    if exp is None:                      # a scheme with no compensation section calculates no amount
+        assert compensation is None
+        return
     assert compensation.status == exp["status"]
     assert {i.component: i.amount for i in compensation.items} == pytest.approx(exp["items"], abs=0.005)
     if exp["total"] is None:
@@ -70,7 +73,8 @@ def test_db_tools_reproduce_expected(scheme, case, expected):
             seed_case(s, c)
         verification = verify_documents(s, case.case_id)
         eligibility = check_eligibility(s, case.case_id)
-        compensation = compute_compensation(s, case.case_id)
+        has_amount = load_scheme_by_name(scheme).compensation is not None
+        compensation = compute_compensation(s, case.case_id) if has_amount else None
         _check(expected, verification.checks, eligibility, compensation)
         assert all(r.clause and r.rules_version for r in eligibility.results)
 
@@ -105,16 +109,20 @@ def test_intake_queue_case_page_analytics_and_audit(env):
     queue = api("GET", f"/cases?scheme={scheme}")[1]
     assert len(queue) == len(_cases(scheme)) + 1 and {c["scheme"] for c in queue} == {scheme}
     detail = api("GET", f"/cases/{first}")[1]
+    has_amount = load_scheme_by_name(scheme).compensation is not None
     assert detail["rule_results"] and all(r["clause"] for r in detail["rule_results"])
-    assert detail["compensation"]["items"] and detail["explanation"]["text"]
+    assert bool(detail["compensation"]["items"]) == has_amount and detail["explanation"]["text"]
     assert all(str(f["value"]).startswith("XXXX XXXX ") for d in detail["documents"] for f in d["fields"]
                if f["field"] == "id_number")
     analytics = api("GET", "/analytics")[1]
     assert analytics["per_scheme"][scheme] == len(_cases(scheme)) + 1
     actions = {a["action"] for a in api("GET", f"/cases/{first}/audit")[1]}
-    assert {"check_eligibility", "compute_compensation", "submit_to_officer"} <= actions
+    assert {"check_eligibility", "submit_to_officer"} <= actions
+    assert ("compute_compensation" in actions) == has_amount
     confirmed = {f["ref"]: f["value"] for f in detail["confirm_fields"]}
-    assert set(confirmed) and api("POST", f"/cases/{first}/decision", {"decision": "approve"})[0] == 409   # must confirm
+    assert bool(confirmed) == has_amount                     # no amount: nothing drives one, nothing to confirm
+    if has_amount:
+        assert api("POST", f"/cases/{first}/decision", {"decision": "approve"})[0] == 409   # must confirm
     approved = api("POST", f"/cases/{first}/decision", {"decision": "approve", "confirmed_fields": confirmed,
                                                         "confirmed_case": first})
     assert approved[1]["status"] == "approved"

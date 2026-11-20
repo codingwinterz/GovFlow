@@ -123,6 +123,11 @@ Written 17 Nov 2026 at commit `d73da8c` (the last code commit before this file);
 - `compensation`: `inputs` (from documents or officer-entered case inputs, ranges, defaults), `parameters`, `components`
   (formulas).
 - `self_check` (optional): questions and the rules they answer. `terms`: a human label for every identifier on screen.
+- Branch `mutation` adds: `on_false: needs_review` on a rule (a false `when` routes to review; default `fail`);
+  `recommendation_labels` (scheme words for eligible / not_eligible / needs_review; never decision words);
+  `timelines` (period as written, optional days, working_days, source_type, source, verify + verify_note, at most one
+  `drives_sla` equal to `sla_days`). With no `compensation`, `labels` needs only `title`, the pipeline has no
+  compensation step, and the case page, award letter, citizen amounts and analytics liability leave the scheme out.
 - Uncertain legal values are marked `# VERIFY: <what>` in the YAML.
 
 ### The two schemes
@@ -134,6 +139,12 @@ Written 17 Nov 2026 at commit `d73da8c` (the last code commit before this file);
 - **Disaster relief (second, YAML only):** housing-damage relief from the MHA SDRF/NDRF norms 2022-26 (labelled "to be
   confirmed" for Goa): full / partial damage by house type, hut, clothing and utensils, plain or hilly area. Documents:
   application, identity proof, residence proof, damage assessment. SLA 15 days (VERIFY). Has a self-check.
+- **Revenue mutation (branch `mutation`, merged into main 20 Nov, YAML only):** recommends "Ready for notice" / "Needs review" /
+  "Not ready for notice" and calculates no amount. Checks: applicant name, transferor against the Form I owner, survey
+  number across application / deed / Form I, co-owner notice (`on_false: needs_review`), tenant or mundkar entry,
+  recorded dispute ("refer; this system does not decide title"), another open mutation on the survey number.
+  Documents: application, deed or order, Form I & XIV, identity proof. SLA 30 days (VERIFY, the one timeline that
+  drives the clock). Source-cited timelines on the case page. Has a self-check (co-owner question). 5 cases RM-01..05.
 
 ## 3. Features built
 
@@ -214,7 +225,7 @@ Written 17 Nov 2026 at commit `d73da8c` (the last code commit before this file);
   `[g-r]` 245 + `[s-z]` 373); frontend **88** logic + **79** browser (1280 px and 390 px); build clean.
 - **UI polish (19 Nov):** branch `ui-polish` (tokens, case summary strip, analytics tiles, sticky queue header,
   44 px phone targets; before/after screenshots in `docs/screenshots/before|after/`) merged into main locally.
-- **Branch `weak-spots` (19 Nov, not merged):** `73e7e51` social welfare rebuilt from the published 2002 DSSS
+- **Branch `weak-spots` (19 Nov, merged into main 20 Nov):** `73e7e51` social welfare rebuilt from the published 2002 DSSS
   notification No. 4247 (income limit Rs 24,000; Rs 2,000 senior and disability, Rs 3,500 at 90 to 100%, Rs 2,500
   widows and single women below 60; 80+ and minor-child supplements removed; six cases re-derived by hand; single
   women 18+ vs unmarried above 50 left as a VERIFY conflict) · `1d4995e` `scripts/benchmark_processing.py` and

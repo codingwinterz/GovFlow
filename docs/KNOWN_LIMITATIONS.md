@@ -139,7 +139,20 @@ None of these may be used for a real decision until checked against official sou
 - **Voice assistant: planned**, not built. There is no voice input or spoken output anywhere in the product
   (Sahayak is text only).
 - **Multilingual helper: planned.** Sahayak answers in English only, whatever the page language, and says so.
-- **Revenue administration (mutation of Form I and XIV): designed, not built.** That scheme needs the engine changes listed in `docs/FUTURE_MUTATION_SCHEME.md` (per-scheme recommendation labels, `on_false: needs_review`, screens for a scheme with no amount, timelines as data); it cannot be added with YAML alone.
+- **Revenue mutation (Form I and XIV): built on branch `mutation`, merged into main 20 Nov 2026.** Engine changes (a) to
+  (d) from `docs/FUTURE_MUTATION_SCHEME.md`, then `rules/revenue_mutation.yaml` and 5 synthetic cases. Limits:
+  - Every source is VERIFY except rule 11(2) of the 1969 Rules (see the YAML `timelines` and `# VERIFY` comments);
+    the 30-day `sla_days` rests on a press report of a ministerial statement. Clauses are `<GLRC clause: ...>`
+    placeholders.
+  - The transferor check is a naming workaround (deed and Form I both use `owner_name`), not a cross-field comparison.
+  - The co-owner notice compares counts (holders on Form I & XIV against holders named on the deed), not names.
+  - No Form X notice or mutation order screen; no case statuses for notice issued or the objection period. Working
+    days are shown, never counted. The 90-day application window (commercial guide only) is shown, never checked.
+  - The deterministic summary (agent explanation without the LLM) and the case blockers still say the engine's own
+    words ("Eligibility recommendation: eligible / needs_review"), not "Ready for notice": `app/agent.py` could change
+    for item (c) only. The case page's eligibility card uses the scheme's words.
+  - Self-check prompts are English (as for every scheme); only `documents.deed` was added to hi / mr / kok, as a
+    draft for native-speaker review.
 - **Sahayak** (the self-check page's helper) answers only from `rules/sahayak_knowledge.yaml`: seven entries,
   keyword retrieval (no synonyms or spelling tolerance, so an unusual wording may find nothing and get the fixed
   "I can't help with that here" reply). Entries marked VERIFY carry a "Verify with …" tag naming who to check with (the Collectorate, the issuing

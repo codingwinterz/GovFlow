@@ -248,6 +248,9 @@ def _detail(session: Session, case: Case) -> dict[str, Any]:
         "rule_results": [{"rule_id": r.rule_id, "status": r.status, "reason": r.reason, "clause": r.clause,
                           "rules_version": r.rules_version} for r in rules],
         "recommendation": overall_from([r.status for r in rules]) if rules else None,
+        "recommendation_labels": scheme.recommendation_labels,
+        "has_compensation": scheme.compensation is not None,   # False: no amounts card, total or award letter
+        "timelines": [t.model_dump() for t in scheme.timelines],   # shown with sources; only sla_days drives the clock
         "compensation": {"items": [{"component": i.component, "amount": i.amount, "formula_note": i.formula_note}
                                    for i in items],
                          "total": round(sum(i.amount for i in items), 2) if items else None},
@@ -654,6 +657,8 @@ def create_app(engine: Optional[Engine] = None, agent_llm_factory: Optional[Call
         if case.status != "approved":
             raise HTTPException(409, f"Case {case_id} is {case.status}; an award letter is only for approved cases")
         scheme = load_scheme_by_name(case.scheme)
+        if scheme.compensation is None:
+            raise HTTPException(409, f"Scheme {scheme.labels['title']} calculates no amount; there is no award letter")
         decision = (session.query(AuditLog).filter_by(case_id=case_id, action="officer_decision")
                     .order_by(AuditLog.id.desc()).first())
         docs = load_case(session, case_id).documents

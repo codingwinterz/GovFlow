@@ -96,7 +96,7 @@ def test_the_loader_rejects_bad_entries(tmp_path, entry):
 
 def test_the_knowledge_file_is_not_a_scheme():
     from app.rules_loader import scheme_names
-    assert scheme_names() == ["disaster_relief", "land_acquisition", "social_welfare"]
+    assert scheme_names() == ["disaster_relief", "land_acquisition", "revenue_mutation", "social_welfare"]
 
 
 # --- answering, guard and fallback -------------------------------------------------------------------------------
