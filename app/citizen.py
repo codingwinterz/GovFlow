@@ -137,6 +137,8 @@ def _decision(session: Session, case: Case) -> Optional[dict[str, str]]:
 def _amounts(session: Session, case: Case, version: str) -> Optional[dict[str, Any]]:
     if case.status != "approved":
         return None   # before an officer decides, amounts are recommendations: not shown to the public
+    if load_scheme_by_name(case.scheme).compensation is None:
+        return None   # the scheme calculates no amount: no "Why this amount"
     items = session.query(CompensationItemRow).filter_by(case_id=case.id).all()
     return {"items": [{"component": i.component, "amount": i.amount, "source": i.formula_note} for i in items],
             "total": round(sum(i.amount for i in items), 2), "rules_version": version,

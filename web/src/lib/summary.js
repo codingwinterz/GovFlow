@@ -26,6 +26,11 @@ export function flagCounts(flags) {
   return [...known, ...other];
 }
 
+// A scheme with no compensation section calculates no amount: no amounts card, summary total or award letter.
+export function showsAmounts(detail) {
+  return detail?.has_compensation !== false;
+}
+
 export function summaryTotal(detail) {
   const total = detail?.compensation?.total;
   return total === undefined ? null : total;

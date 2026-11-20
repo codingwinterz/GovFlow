@@ -11,7 +11,7 @@ import {
   recommendationLabel,
 } from "../lib/display.js";
 import { DICTS } from "../i18n/index.js";
-import { flagCounts, slaClock, summaryTotal } from "../lib/summary.js";
+import { flagCounts, showsAmounts, slaClock, summaryTotal } from "../lib/summary.js";
 
 function RetryBanner({ caseId, docs, onDone, terms }) {
   const docName = (doc) => termLabel(terms, doc.doc_type);
@@ -282,7 +282,7 @@ function SummaryStrip({ detail }) {
   return (
     <dl className={`summary-strip strip-${detail.status}`} aria-label="Case summary">
       <div><dt>Status</dt><dd><span className={`status s-${detail.status}`}>{appLabel("status", detail.status)}</span></dd></div>
-      <div><dt>{detail.labels.total}</dt><dd className="num">{total === null ? <span className="muted">Not computed yet</span> : formatRupees(total)}</dd></div>
+      {showsAmounts(detail) && <div><dt>{detail.labels.total}</dt><dd className="num">{total === null ? <span className="muted">Not computed yet</span> : formatRupees(total)}</dd></div>}
       <div><dt>Flags</dt><dd>{counts.length === 0 ? <span className="muted">None</span>
         : counts.map((c, i) => <span key={c.severity}>{i > 0 && " · "}<span className={`flag-count sev sev-${c.severity}`}>{c.count} {appLabel("severity", c.severity).toLowerCase()}</span></span>)}</dd></div>
       <div><dt>SLA clock</dt><dd>{clock
@@ -322,7 +322,7 @@ export default function CasePage({ id, login }) {
             <div className="actions">
               <button onClick={runAgent} disabled={running}>{running ? "Running agent…" : "Run agent"}</button>
               {login.role === "officer" && <a href={href("audit", d.case_id)}>Audit trail</a>}
-              {login.role === "officer" && d.status === "approved" && <a href={href("award", d.case_id)}>Award letter</a>}
+              {login.role === "officer" && d.status === "approved" && showsAmounts(d) && <a href={href("award", d.case_id)}>Award letter</a>}
             </div>
             {runError && <p className="error">{runError}</p>}
           </div>
@@ -340,7 +340,7 @@ export default function CasePage({ id, login }) {
           )}
           <Explanation explanation={d.explanation} terms={d.terms} />
           <Rules detail={d} />
-          <Amounts compensation={d.compensation} version={d.rules_version} labels={d.labels} terms={d.terms} />
+          {showsAmounts(d) && <Amounts compensation={d.compensation} version={d.rules_version} labels={d.labels} terms={d.terms} />}
           <Documents documents={d.documents} terms={d.terms} />
           <section className="card">
             <h2>Officer-entered inputs</h2>

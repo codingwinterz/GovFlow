@@ -325,10 +325,14 @@ class Scheme(BaseModel):
 
     @model_validator(mode="after")
     def _labels(self) -> "Scheme":
-        missing = [k for k in LABELS if not str(self.labels.get(k, "")).strip()]
-        unknown = sorted(set(self.labels) - set(LABELS))
+        # A scheme that calculates no amount has a title only: it has no amounts card and no total to label.
+        expected = LABELS if self.compensation is not None else ("title",)
+        if self.compensation is None and set(self.labels) & {"amounts", "total"}:
+            raise ValueError("labels amounts and total are for a scheme with compensation; this one has no compensation")
+        missing = [k for k in expected if not str(self.labels.get(k, "")).strip()]
+        unknown = sorted(set(self.labels) - set(expected))
         if missing or unknown:
-            raise ValueError(f"labels missing {missing}, unknown {unknown}; expected {list(LABELS)}")
+            raise ValueError(f"labels missing {missing}, unknown {unknown}; expected {list(expected)}")
         return self
 
     @property

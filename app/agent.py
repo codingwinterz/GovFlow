@@ -21,7 +21,7 @@ from app.extraction import ExtractionProvider, OcrEngine, ProviderError
 from app.models import Case, CompensationItemRow, Document, RuleResultRow
 from app.privacy import mask_identifiers
 from app.rules_engine import overall_from
-from app.rules_loader import load_scheme_by_name
+from app.rules_loader import Scheme, load_scheme_by_name
 
 MAX_STEPS = 12
 
@@ -104,6 +104,14 @@ TOOL_SPECS = [
     ToolSpec(name="submit_to_officer", description="Put the assessed case in the officer queue for a decision."),
 ]
 AGENT_TOOL_NAMES = tuple(t.name for t in TOOL_SPECS)
+COMPENSATION_TOOL = "compute_compensation"
+# The answer when a scheme calculates no amount (no compensation section): not an error, nothing to compute.
+NOT_APPLICABLE = "This scheme calculates no amount; there is no compensation step."
+
+
+def tool_specs_for(scheme: Scheme) -> list[ToolSpec]:
+    """The tools offered for a case: all of them, less compute_compensation when the scheme has no compensation."""
+    return [t for t in TOOL_SPECS if scheme.compensation is not None or t.name != COMPENSATION_TOOL]
 REFUSAL = "Tool not available to the agent. Only an officer can approve, reject or send back a case."
 
 
@@ -140,12 +148,22 @@ RUNNERS: dict[str, Callable[[_Context, dict[str, Any]], BaseModel]] = {
 }
 
 
+def _scheme(ctx: _Context) -> Scheme:
+    return load_scheme_by_name(ctx.session.get(Case, ctx.case_id).scheme)
+
+
 def _rules_version(ctx: _Context) -> str:
-    return load_scheme_by_name(ctx.session.get(Case, ctx.case_id).scheme).version
+    return _scheme(ctx).version
 
 
 def _run_tool(ctx: _Context, call: ToolCall) -> tuple[Step, dict[str, Any]]:
-    version = _rules_version(ctx)
+    scheme = _scheme(ctx)
+    version = scheme.version
+    if call.name == COMPENSATION_TOOL and scheme.compensation is None:
+        step = Step(tool=call.name, args=call.args, ok=True)
+        log_action(ctx.session, ctx.case_id, ctx.actor, "agent_tool_call", step.model_dump(), version)
+        ctx.session.commit()
+        return step, {"not_applicable": NOT_APPLICABLE}
     if call.name not in RUNNERS:
         log_action(ctx.session, ctx.case_id, ctx.actor, "agent_tool_refused", call.model_dump(), version)
         ctx.session.commit()
@@ -239,7 +257,10 @@ def run_pipeline(session: Session, case_id: str, extraction: Optional[Extraction
             if not doc.file_path.startswith("seed:") and doc.extraction_status != "ok":
                 steps.append(_run_tool(ctx, ToolCall(id=f"p-{doc.id}", name="extract_document",
                                                      args={"document_id": doc.id}))[0])
-    for name in ("verify_documents", "check_eligibility", "compute_compensation"):
+    names = ["verify_documents", "check_eligibility"]
+    if _scheme(ctx).compensation is not None:       # a scheme with no amount has no compensation step
+        names.append(COMPENSATION_TOOL)
+    for name in names:
         steps.append(_run_tool(ctx, ToolCall(id=f"p-{name}", name=name))[0])
     if session.get(Case, case_id).status == "assessed":
         steps.append(_run_tool(ctx, ToolCall(id="p-submit", name="submit_to_officer"))[0])
@@ -255,7 +276,9 @@ def run_agent(session: Session, case_id: str, llm: AgentLLM, extraction: Optiona
                    cross_check=cross_check)
     if session.get(Case, case_id) is None:
         raise tools.ToolError(f"Unknown case {case_id}")
-    version = _rules_version(ctx)
+    scheme = _scheme(ctx)
+    version = scheme.version
+    offered = tool_specs_for(scheme)
     log_action(session, case_id, actor, "agent_run_started", {"llm": llm.name, "model": llm.model}, version)
     session.commit()
     messages = [Message(role="user", text=f"Process case {case_id} and explain the result for the officer.")]
@@ -264,7 +287,7 @@ def run_agent(session: Session, case_id: str, llm: AgentLLM, extraction: Optiona
     explanation, stopped = "", "max_steps"
     while len(steps) < max_steps:
         try:
-            reply = llm.complete(SYSTEM_PROMPT, messages, TOOL_SPECS)
+            reply = llm.complete(SYSTEM_PROMPT, messages, offered)
         except ProviderError as exc:
             log_action(session, case_id, actor, "agent_llm_unavailable",
                        {"error_kind": exc.kind, "error": str(exc)}, version)
