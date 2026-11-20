@@ -221,9 +221,15 @@ Written 17 Nov 2026 at commit `d73da8c` (the last code commit before this file);
 
 ## 5. Current state (at `9b648a6`, 18 Nov 2026)
 
-- **Tests, all green (20 Nov, main after merging `weak-spots` and `mutation`):** Python **1,304** passed (three
-  batches: `[a-f]` 602 + `[g-r]` 314 + `[s-z]` 388); frontend **99** logic + **81** browser (1280 px and 390 px);
-  build clean. Demo seed (`--reset`): 47 cases (21 land, 15 relief, 6 welfare, 5 mutation).
+- **Tests, all green (20 Nov, branch `simplify`):** Python **1,304** passed (three batches: `[a-f]` 602 +
+  `[g-r]` 314 + `[s-z]` 388); frontend **106** logic + **92** browser (1280 px and 390 px); build clean. On main
+  (before `simplify`): 99 logic + 81 browser. Demo seed (`--reset`): 47 cases (21 land, 15 relief, 6 welfare, 5 mutation).
+- **Branch `simplify` (20 Nov, not merged), UI only:** a juror or officer should get each page in five seconds.
+  Measured in `docs/USABILITY_BASELINE.md`: scroll over the five tasks 5,669 → 1,962 px (approving a clean case
+  4,740 → 1,398), clicks 16 → 17 (the document check is one click away); default case page 74–81% shorter.
+  Secondary sections are collapsed native `<details>` holding the original content; the decision panel is a sticky
+  bottom bar; analytics opens on four API numbers, one chart and an attention list; the queue has five columns and
+  one-click views; citizen pages have progress lines and *Why?* for each amount's basis.
 - **Fallback explanation masks ID numbers (20 Nov):** the no-LLM summary now shows "XXXX XXXX 1234" like the
   document view; a test runs the fallback for every synthetic case of every scheme. The SW-01 snapshot was retaken
   at the merge (it pinned the replaced draft welfare scheme) and then updated for this masking only.

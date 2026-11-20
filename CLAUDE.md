@@ -145,7 +145,7 @@ Fuller detail is in `docs/KNOWN_LIMITATIONS.md`.
   100%, widows and single women below 60 Rs 2,500 a month); invented 80+ and minor-child supplements removed.
   `scripts/benchmark_processing.py` writes `docs/BENCHMARK.md` (per scheme and stage: median, mean, p90; Gemini
   only after a one-call preflight, else labelled fallback provider). `scripts/export_translations.py` writes
-  `docs/translation_review.csv` (99 keys, en/hi/mr/kok, for native-speaker review).
+  `docs/translation_review.csv` (112 keys, en/hi/mr/kok, for native-speaker review).
 - Demo database re-seeded 2026-11-20 (`--reset`, 47 cases) for the mutation screenshots.
 - Branch `mutation` (merged into main 2026-11-20): revenue mutation, a fourth scheme from YAML only
   (`rules/revenue_mutation.yaml`, 5 synthetic cases RM-01..05, seeded with RM-01 approved), after four engine
@@ -165,10 +165,21 @@ Fuller detail is in `docs/KNOWN_LIMITATIONS.md`.
   case of every scheme.
 - Main (2026-11-20): `weak-spots` fast-forwarded, then `mutation` merged; demo re-seeded with `--reset`: 47 cases
   (21 land, 15 relief, 6 welfare, 5 mutation).
+- Branch `simplify` (not merged, 2026-11-20), UI only: measured in `docs/USABILITY_BASELINE.md` (five tasks, clicks
+  and scroll at 1280 px, `web/e2e/usability.mjs` against the real API on a fresh seed; before/after screenshots in
+  `docs/screenshots/simplify/`). Case page: one-line plain summary, strip, *Needs your attention* (flags with severity),
+  three steps (Review flags, Check amount, Decide); explanation, checks, timelines, amount steps, documents, staff
+  inputs and request documents collapsed (`details.more`, `web/src/Disclosure.jsx`, original content inside, original
+  term beside the plain one); decision panel a sticky bottom bar. Default case page 74–81% shorter. Analytics: four
+  headline numbers read from the API fields as sent (`web/src/lib/glance.js`), one chart (cases by stage), *Attention
+  needed* (overdue or high severity, from `/cases`; admins see a note), the rest under *More detail*. Queue: five
+  columns, *Needs attention* / *Overdue* views, *All columns*. Citizen: home with two choices and *How it works*,
+  progress lines, self-check shows questions or the document check one at a time, amount basis behind *Why?*.
+  13 new citizen keys in en/hi/mr/kok (hi/mr/kok drafts for native review).
 
 ### Tests (all green at commit time)
 - Python: 1,304 passed (`pytest -q`, run in 3 low-memory batches: `[a-f]` 602 + `[g-r]` 314 + `[s-z]` 388).
-- Frontend: 99 logic (`npm test`) + 81 browser (`npm run test:layout`); `npm run test:all` runs both. Build clean.
+- Frontend: 106 logic (`npm test`) + 92 browser (`npm run test:layout`); `npm run test:all` runs both. Build clean.
 
 
 
