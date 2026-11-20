@@ -202,11 +202,16 @@ class EligibilityRule(BaseModel):
     fail_reason: str
     when: Optional[str] = None
     depends_on: list[str] = []
+    # What a false `when` gives: `fail` (default), or `needs_review` for a requirement the officer must act on
+    # (e.g. a notice to all co-owners), so it never reads as "Not eligible". Failed depends_on checks still fail.
+    on_false: Literal["fail", "needs_review"] = "fail"
 
     @model_validator(mode="after")
     def _has_condition(self) -> "EligibilityRule":
         if self.when is None and not self.depends_on:
             raise ValueError(f"{self.id}: needs `when`, `depends_on`, or both")
+        if self.on_false != "fail" and self.when is None:
+            raise ValueError(f"{self.id}: on_false needs a `when` condition")
         return self
 
 

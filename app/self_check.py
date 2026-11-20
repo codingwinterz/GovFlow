@@ -14,7 +14,7 @@ from app.extraction import (
 from app.facts import CaseFacts, build_facts
 from app.privacy import mask_identifiers
 from app.providers.tesseract import TesseractBaselineProvider, TesseractOcr, tesseract_available
-from app.rules_engine import evaluate_when
+from app.rules_engine import rule_when
 from app.rules_loader import RequiredDocument, Scheme, load_scheme_by_name, scheme_names
 from app.verification import entry_is_empty, has_non_name_characters
 
@@ -81,9 +81,11 @@ def self_check(scheme: Scheme, answers: dict[str, str]) -> SelfCheckResult:
     guides: list[RuleGuide] = []
     for rule_id in scheme.self_check.rules:
         rule = rules[rule_id]
-        status, reason = evaluate_when(rule.when, facts)
+        status, reason, routed = rule_when(rule, facts)
         unanswered = [q for q in sorted(asked) if q in rule.when and q not in given]
-        if status == "needs_review":
+        if routed:
+            message = rule.fail_reason      # a requirement to act on (on_false: needs_review), not a refusal
+        elif status == "needs_review":
             message = f"Please answer: {', '.join(unanswered)}" if unanswered else reason   # reason names the field
         else:
             message = rule.fail_reason if status == "fail" else "Looks fine from your answers."
