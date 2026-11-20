@@ -221,8 +221,12 @@ Written 17 Nov 2026 at commit `d73da8c` (the last code commit before this file);
 
 ## 5. Current state (at `9b648a6`, 18 Nov 2026)
 
-- **Tests, all green (19 Nov, branch `weak-spots`):** Python **1,199** passed (three batches: `[a-f]` 581 +
-  `[g-r]` 245 + `[s-z]` 373); frontend **88** logic + **79** browser (1280 px and 390 px); build clean.
+- **Tests, all green (20 Nov, main after merging `weak-spots` and `mutation`):** Python **1,304** passed (three
+  batches: `[a-f]` 602 + `[g-r]` 314 + `[s-z]` 388); frontend **99** logic + **81** browser (1280 px and 390 px);
+  build clean. Demo seed (`--reset`): 47 cases (21 land, 15 relief, 6 welfare, 5 mutation).
+- **Fallback explanation masks ID numbers (20 Nov):** the no-LLM summary now shows "XXXX XXXX 1234" like the
+  document view; a test runs the fallback for every synthetic case of every scheme. The SW-01 snapshot was retaken
+  at the merge (it pinned the replaced draft welfare scheme) and then updated for this masking only.
 - **UI polish (19 Nov):** branch `ui-polish` (tokens, case summary strip, analytics tiles, sticky queue header,
   44 px phone targets; before/after screenshots in `docs/screenshots/before|after/`) merged into main locally.
 - **Branch `weak-spots` (19 Nov, merged into main 20 Nov):** `73e7e51` social welfare rebuilt from the published 2002 DSSS

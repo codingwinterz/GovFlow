@@ -49,9 +49,9 @@ Keep this section current: update it in the same commit as any change to what is
 Fuller detail is in `docs/KNOWN_LIMITATIONS.md`.
 
 ### Built
-- Three schemes from YAML only: land acquisition (21 synthetic cases), disaster relief (15), and social welfare
+- Four schemes from YAML only: land acquisition (21 synthetic cases), disaster relief (15), social welfare
   (6; `rules/social_welfare.yaml`, rebuilt 2026-11-19 from the published 2002 DSSS notification, zero
-  scheme-specific Python code), totaling 42
+  scheme-specific Python code) and revenue mutation (5, see below), totaling 47
   synthetic cases with hand-derived expected outcomes. LA-17 and DR-15 carry prompt-injection text at confidence
   1.0 and must end in review.
 - Tools: rules engine, compensation, extraction (Gemini vision, Tesseract fallback), verification, SLA, analytics,
@@ -157,11 +157,18 @@ Fuller detail is in `docs/KNOWN_LIMITATIONS.md`.
   clock. Checks: transferor vs Form I owner, survey number across documents, co-owner notice, tenant or mundkar
   flag, recorded dispute ("refer; this system does not decide title"), another open mutation. Regression snapshots
   of LA-01, DR-01, SW-01 (explanation, tool steps, rules, compensation, citizen page; `tests/snapshots/`,
-  `web/src/lib/citizen_snapshots.json`) were taken on main first and pass unchanged.
+  `web/src/lib/citizen_snapshots.json`) were taken on main first; LA-01 and DR-01 pass unchanged. SW-01 was retaken
+  at the merge on the weak-spots tip (it pinned the replaced 2026.1-draft welfare scheme; the merged tree gives the
+  identical output), then its explanation line was masked (below).
+- Fallback explanation masks ID numbers (2026-11-20): `deterministic_summary` passes through `mask_identifiers`, the
+  same "XXXX XXXX 1234" as the document view; `tests/test_fallback_explanation_masking.py` checks every synthetic
+  case of every scheme.
+- Main (2026-11-20): `weak-spots` fast-forwarded, then `mutation` merged; demo re-seeded with `--reset`: 47 cases
+  (21 land, 15 relief, 6 welfare, 5 mutation).
 
 ### Tests (all green at commit time)
-- Python: TBD
-- Frontend: TBD
+- Python: 1,304 passed (`pytest -q`, run in 3 low-memory batches: `[a-f]` 602 + `[g-r]` 314 + `[s-z]` 388).
+- Frontend: 99 logic (`npm test`) + 81 browser (`npm run test:layout`); `npm run test:all` runs both. Build clean.
 
 
 
