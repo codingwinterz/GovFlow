@@ -1,0 +1,29 @@
+GovFlow demo: narration, one line per beat (about 140 words a minute).
+Timestamps are the beats of docs/video/govflow_demo_captioned.mp4, written by scripts/make_demo_video.mjs.
+
+[0:00.0 - 0:11.3] Beat 1 (26 words, 138 words a minute)
+GovFlow is one AI agent for government case processing. Today, files are retyped by hand, checked from memory, and citizens cannot see where their application stands.
+
+[0:11.3 - 0:40.1] Beat 2 (65 words, 136 words a minute)
+A citizen can check a document before applying. Here is a synthetic ownership record, a clear scan. Each required field is either found or marked as unreadable, and nothing is saved: the file is checked in memory and thrown away. Now a blurred phone photo of the same record. It is only partly readable, and the page says in plain words what to do next.
+
+[0:40.1 - 0:54.3] Beat 3 (36 words, 151 words a minute)
+A citizen tracks an application with a reference and a code. This approved case shows the amount and the basis of each item. The page reads in Hindi too. A waiting case lists what is missing.
+
+[0:54.3 - 1:25.2] Beat 4 (65 words, 126 words a minute)
+A clerk opens a new land case and uploads its documents. They are synthetic: one ownership record image and four short printed records. The language model reads each document and returns every field with a confidence score. Waiting time is sped up on screen, and marked. The model only reads; it decides nothing. Then the agent runs the checks, the eligibility rules and the amount.
+
+[1:25.2 - 1:53.8] Beat 5 (68 words, 142 words a minute)
+Now the officer opens the new case. One plain sentence says where it stands, then the total and what needs attention. The checks are fixed rules written in the scheme file, not the model, and each shows its result and rules version. Each field shows how sure the reading was. The amount is worked out step by step: area, value and multiplier, then solatium, then the additional amount.
+
+[1:53.8 - 2:27.1] Beat 6 (76 words, 137 words a minute)
+On LA-18, a tenant entry on the record of rights is flagged, citing the Goa tenancy and mundkar Acts. The model writes the explanation, but every figure in it comes from the tools. On LA-06, where a document has expired, the officer previews a notice to the citizen in English and Hindi. Back on LA-18, the officer confirms each money field, records the resolution, and approves. A clerk sees no decision controls. Only an officer decides.
+
+[2:27.1 - 2:48.6] Beat 7 (50 words, 139 words a minute)
+An administrator sees four headline numbers, read straight from the system, then one chart, and more detail only when asked. The case list itself is for officers and clerks. The rule simulator changes one parameter on the synthetic test cases and shows which would change. It never edits the rules.
+
+[2:48.6 - 3:04.4] Beat 8 (39 words, 148 words a minute)
+Every action goes into an audit log chained by hash, and the log checks out intact. Duplicate claims and open mutations go to review, never to rejection. Four schemes run on one engine, each defined in a rules file.
+
+[3:04.4 - 3:14.4] Beat 9 (25 words, 150 words a minute)
+These results come from our own tests on synthetic data. Legal values stay placeholders until the offices confirm. A scripted walkthrough of the live prototype.

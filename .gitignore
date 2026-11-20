@@ -15,3 +15,7 @@ secrets*.json
 # real-model evaluation output (contains model responses; never commit)
 eval_results/
 uploads/
+
+# Demo video build output (scripts/make_demo_video.mjs); only the narration is kept
+docs/video/*
+!docs/video/narration.txt
