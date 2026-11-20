@@ -273,6 +273,43 @@ OUTCOMES = ("eligible", "not_eligible", "needs_review")   # the rules engine's r
 DECISION_WORDING = re.compile(r"\b(approv\w*|reject\w*|sanction\w*|grant(ed)?|refus\w*)\b", re.IGNORECASE)
 
 
+SOURCE_TYPES = ("official_document", "ministerial_statement", "commercial_guide", "lead_only")
+
+
+class Timeline(BaseModel):
+    """A step's period as a source states it (e.g. public notice, 15 days). Data shown on the case page only:
+    nothing counts these days except the one marked drives_sla, which must equal sla_days."""
+    id: str
+    label: str
+    period: str                        # as written by the source, e.g. "7 working days", "Within three months"
+    days: Optional[int] = None         # None when the source gives no day count
+    working_days: bool = False
+    source_type: Literal["official_document", "ministerial_statement", "commercial_guide", "lead_only"]
+    source: str
+    verify: bool
+    verify_note: Optional[str] = None  # what to verify, when verify is true
+    drives_sla: bool = False
+
+    @model_validator(mode="after")
+    def _shape(self) -> "Timeline":
+        if not self.label.strip() or "_" in self.label:
+            raise ValueError(f"timeline {self.id}: label must be human wording (non-empty, no underscores)")
+        if not self.period.strip():
+            raise ValueError(f"timeline {self.id}: period must say the period as the source gives it")
+        if not self.source.strip():
+            raise ValueError(f"timeline {self.id}: source must name where the period comes from")
+        if self.days is not None and self.days <= 0:
+            raise ValueError(f"timeline {self.id}: days must be a positive whole number")
+        if self.working_days and self.days is None:
+            raise ValueError(f"timeline {self.id}: working_days needs days")
+        if self.verify and not (self.verify_note or "").strip():
+            raise ValueError(f"timeline {self.id}: verify needs a verify_note saying what to verify")
+        if self.drives_sla and (self.days is None or self.working_days):
+            raise ValueError(f"timeline {self.id}: the clock timeline needs calendar days (the clock counts no "
+                             "working days)")
+        return self
+
+
 class SelfCheckQuestion(BaseModel):
     field: str                         # doc_id.field, a declared document field
     prompt: str
@@ -300,6 +337,21 @@ class Scheme(BaseModel):
     # Optional words for the engine's outcomes on this scheme's screens, e.g. {eligible: "Ready for notice"}.
     # The outcomes themselves never change; an outcome left out keeps the app-wide label.
     recommendation_labels: dict[str, str] = {}
+    timelines: list[Timeline] = []   # source-cited periods shown on the case page; only sla_days drives the clock
+
+    @model_validator(mode="after")
+    def _timelines(self) -> "Scheme":
+        ids = [t.id for t in self.timelines]
+        duplicate = sorted({i for i in ids if ids.count(i) > 1})
+        if duplicate:
+            raise ValueError(f"timelines have duplicate ids {duplicate}")
+        clock = [t for t in self.timelines if t.drives_sla]
+        if len(clock) > 1:
+            raise ValueError(f"only one timeline may drive the clock, got {[t.id for t in clock]}")
+        if clock and clock[0].days != self.sla_days:
+            raise ValueError(f"timeline {clock[0].id} drives the clock with {clock[0].days} days but sla_days is "
+                             f"{self.sla_days}")
+        return self
 
     @model_validator(mode="after")
     def _recommendation_labels(self) -> "Scheme":

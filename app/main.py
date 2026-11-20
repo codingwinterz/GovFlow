@@ -250,6 +250,7 @@ def _detail(session: Session, case: Case) -> dict[str, Any]:
         "recommendation": overall_from([r.status for r in rules]) if rules else None,
         "recommendation_labels": scheme.recommendation_labels,
         "has_compensation": scheme.compensation is not None,   # False: no amounts card, total or award letter
+        "timelines": [t.model_dump() for t in scheme.timelines],   # shown with sources; only sla_days drives the clock
         "compensation": {"items": [{"component": i.component, "amount": i.amount, "formula_note": i.formula_note}
                                    for i in items],
                          "total": round(sum(i.amount for i in items), 2) if items else None},

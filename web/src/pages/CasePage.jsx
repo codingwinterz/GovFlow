@@ -12,6 +12,7 @@ import {
 } from "../lib/display.js";
 import { DICTS } from "../i18n/index.js";
 import { flagCounts, showsAmounts, slaClock, summaryTotal } from "../lib/summary.js";
+import { timelineNote, timelineRows } from "../lib/timelines.js";
 
 function RetryBanner({ caseId, docs, onDone, terms }) {
   const docName = (doc) => termLabel(terms, doc.doc_type);
@@ -271,6 +272,28 @@ function RequestDocuments({ caseId, onDone }) {
   );
 }
 
+// Source-cited periods from the scheme YAML (data only). The SLA clock counts sla_days alone.
+function Timelines({ timelines }) {
+  const rows = timelineRows(timelines);
+  if (rows.length === 0) return null;
+  return (
+    <section className="card">
+      <h2>Timelines</h2>
+      <p className="muted small">{timelineNote(timelines)}</p>
+      <div className="table-scroll"><table>
+        <thead><tr><th>Step</th><th>Period</th><th>Source</th><th>Status</th></tr></thead>
+        <tbody>{rows.map((r) => (
+          <tr key={r.id}>
+            <td>{r.step}{r.clock && <> <span className="badge">drives the SLA clock</span></>}</td>
+            <td>{r.period}</td><td className="small">{r.source}</td>
+            <td className={r.verify ? "small verify" : "small"}>{r.verifyText}</td>
+          </tr>
+        ))}</tbody>
+      </table></div>
+    </section>
+  );
+}
+
 // At a glance: status, the stored total, flags by severity and the SLA clock. The clock is the case's own row from
 // the queue endpoint (days open with waiting excluded, the scheme's target, the overdue flag), as the queue shows it.
 function SummaryStrip({ detail }) {
@@ -340,6 +363,7 @@ export default function CasePage({ id, login }) {
           )}
           <Explanation explanation={d.explanation} terms={d.terms} />
           <Rules detail={d} />
+          <Timelines timelines={d.timelines} />
           {showsAmounts(d) && <Amounts compensation={d.compensation} version={d.rules_version} labels={d.labels} terms={d.terms} />}
           <Documents documents={d.documents} terms={d.terms} />
           <section className="card">
