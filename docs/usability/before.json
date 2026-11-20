@@ -1,0 +1,183 @@
+{
+  "label": "before",
+  "viewport": {
+    "width": 1280,
+    "height": 800
+  },
+  "tasks": [
+    {
+      "task": "Officer finds why LA-18 is flagged and its total",
+      "clicks": 1,
+      "scroll_px": 491,
+      "pages": [
+        {
+          "label": "start",
+          "scroll": 491,
+          "height": 2461
+        },
+        {
+          "label": "LA-18 in the queue",
+          "scroll": 0,
+          "height": 4395
+        }
+      ],
+      "steps": [
+        "see LA-18 in the queue (491 px below the fold)",
+        "click LA-18 in the queue",
+        "see the first flag's reason (0 px below the fold)",
+        "see the total (0 px below the fold)"
+      ]
+    },
+    {
+      "task": "Officer approves clean case LA-16",
+      "clicks": 5,
+      "scroll_px": 4740,
+      "pages": [
+        {
+          "label": "start",
+          "scroll": 1468,
+          "height": 2461
+        },
+        {
+          "label": "LA-16 in the queue",
+          "scroll": 3272,
+          "height": 3976
+        }
+      ],
+      "steps": [
+        "see LA-16 in the queue (1468 px below the fold)",
+        "click LA-16 in the queue",
+        "see Approve (2894 px below the fold)",
+        "click Approve",
+        "see confirm value 1 of 2 (3031 px below the fold)",
+        "click confirm value 1 of 2",
+        "see confirm value 2 of 2 (3069 px below the fold)",
+        "click confirm value 2 of 2",
+        "see Record decision (3272 px below the fold)",
+        "click Record decision",
+        "case shows Approved"
+      ]
+    },
+    {
+      "task": "Manager checks how many cases are overdue",
+      "clicks": 1,
+      "scroll_px": 0,
+      "pages": [
+        {
+          "label": "start",
+          "scroll": 0,
+          "height": 2461
+        },
+        {
+          "label": "Analytics in the menu",
+          "scroll": 0,
+          "height": 3442
+        }
+      ],
+      "steps": [
+        "see Analytics in the menu (0 px below the fold)",
+        "click Analytics in the menu",
+        "see the overdue number (0 px below the fold)"
+      ]
+    },
+    {
+      "task": "Citizen checks a document before applying",
+      "clicks": 4,
+      "scroll_px": 438,
+      "pages": [
+        {
+          "label": "start",
+          "scroll": 0,
+          "height": 800
+        },
+        {
+          "label": "Citizen services",
+          "scroll": 0,
+          "height": 800
+        },
+        {
+          "label": "Check before you apply",
+          "scroll": 438,
+          "height": 800
+        }
+      ],
+      "steps": [
+        "see Citizen services (0 px below the fold)",
+        "click Citizen services",
+        "see Check before you apply (0 px below the fold)",
+        "click Check before you apply",
+        "see identity_proof image (305 px below the fold)",
+        "choose file identity_proof image",
+        "see Check document (365 px below the fold)",
+        "click Check document",
+        "see the result (438 px below the fold)"
+      ],
+      "document": "disaster_relief / identity_proof"
+    },
+    {
+      "task": "Citizen tracks application LA-01",
+      "clicks": 5,
+      "scroll_px": 0,
+      "pages": [
+        {
+          "label": "start",
+          "scroll": 0,
+          "height": 800
+        },
+        {
+          "label": "Citizen services",
+          "scroll": 0,
+          "height": 800
+        },
+        {
+          "label": "Track",
+          "scroll": 0,
+          "height": 800
+        }
+      ],
+      "steps": [
+        "see Citizen services (0 px below the fold)",
+        "click Citizen services",
+        "see Track (0 px below the fold)",
+        "click Track",
+        "see reference field (0 px below the fold)",
+        "click reference field",
+        "type reference",
+        "see verification code field (0 px below the fold)",
+        "click verification code field",
+        "type verification code",
+        "see Check status (0 px below the fold)",
+        "click Check status",
+        "see the status (0 px below the fold)"
+      ]
+    }
+  ],
+  "page_heights": {
+    "01-landing-1280": 800,
+    "02-citizen-home-1280": 800,
+    "03-self-check-1280": 1369,
+    "06-queue-1280": 2461,
+    "07-case-LA-18-1280": 4395,
+    "08-case-LA-16-1280": 3976,
+    "09-case-RM-02-1280": 5028,
+    "10-intake-1280": 800,
+    "11-analytics-1280": 3442,
+    "12-audit-LA-18-1280": 800,
+    "13-simulator-1280": 800,
+    "14-award-LA-01-1280": 1304,
+    "15-sign-in-1280": 800,
+    "01-landing-390": 844,
+    "02-citizen-home-390": 905,
+    "03-self-check-390": 1819,
+    "06-queue-390": 4888,
+    "07-case-LA-18-390": 6542,
+    "08-case-LA-16-390": 5842,
+    "09-case-RM-02-390": 7933,
+    "10-intake-390": 844,
+    "11-analytics-390": 5600,
+    "12-audit-LA-18-390": 1961,
+    "13-simulator-390": 844,
+    "14-award-LA-01-390": 2812,
+    "15-sign-in-390": 844
+  }
+}
