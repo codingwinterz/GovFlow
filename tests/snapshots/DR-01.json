@@ -1,0 +1,208 @@
+{
+  "case_id": "DR-01",
+  "steps": [
+    {
+      "tool": "verify_documents",
+      "args": {},
+      "ok": true,
+      "error": null
+    },
+    {
+      "tool": "check_eligibility",
+      "args": {},
+      "ok": true,
+      "error": null
+    },
+    {
+      "tool": "compute_compensation",
+      "args": {},
+      "ok": true,
+      "error": null
+    },
+    {
+      "tool": "submit_to_officer",
+      "args": {},
+      "ok": true,
+      "error": null
+    }
+  ],
+  "explanation": "Summary generated without the LLM (LLM unavailable). This is a recommendation; only an officer can approve, reject or send back the case.\nStatus: in_officer_review. Next step: awaiting officer decision.\nEligibility recommendation: eligible (rules version 0.1.0)\n- documents_complete: pass [<clause ref>] All conditions met: `all_documents_present` is true\n- identity_verified: pass [<clause ref>] All conditions met: name_match: pass (Lowest similarity 1.000 (application.name='Anita Mandrekar' vs identity_proof.name='Anita Mandrekar')); `identity_proof.present` is true\n- residence_in_affected_area: pass [<clause ref>] All conditions met: house_match: pass (All values match exactly.); `lower(damage_assessment.notified_area) == 'yes'` is true\n- damage_category_eligible: pass [<clause ref>] All conditions met: `damage_assessment.damage_percent >= params.partial_damage_threshold` is true\n- documents_not_expired: pass [<clause ref>] All conditions met: `all_documents_valid` is true\n- no_duplicate_relief: pass [<clause ref>] All conditions met: duplicate_claim: pass (No other open relief claim for house Siolim/H-101.)\nCompensation total: Rs 125,000.00\n- house_full_plain: Rs 120,000.00 (full_house_plain * (damage_percent >= full_damage_threshold) * (house_type != 'hut') * (area_type == 'plain') with full_house_plain=120000, damage_percent=80, full_damage_threshold=75, house_type=pucca, area_type=plain)\n- house_full_hilly: Rs 0.00 (full_house_hilly * (damage_percent >= full_damage_threshold) * (house_type != 'hut') * (area_type == 'hilly') with full_house_hilly=130000, damage_percent=80, full_damage_threshold=75, house_type=pucca, area_type=plain)\n- house_partial_pucca: Rs 0.00 (partial_pucca * (damage_percent >= partial_damage_threshold) * (damage_percent < full_damage_threshold) * (house_type == 'pucca') with partial_pucca=6500, damage_percent=80, partial_damage_threshold=15, full_damage_threshold=75, house_type=pucca)\n- house_partial_kutcha: Rs 0.00 (partial_kutcha * (damage_percent >= partial_damage_threshold) * (damage_percent < full_damage_threshold) * (house_type == 'kutcha') with partial_kutcha=4000, damage_percent=80, partial_damage_threshold=15, full_damage_threshold=75, house_type=pucca)\n- hut: Rs 0.00 (hut * (damage_percent >= partial_damage_threshold) * (house_type == 'hut') with hut=8000, damage_percent=80, partial_damage_threshold=15, house_type=pucca)\n- clothing: Rs 2,500.00 (clothing * (damage_percent >= partial_damage_threshold) with clothing=2500, damage_percent=80, partial_damage_threshold=15)\n- utensils: Rs 2,500.00 (utensils * (damage_percent >= partial_damage_threshold) with utensils=2500, damage_percent=80, partial_damage_threshold=15)",
+  "explanation_warnings": [],
+  "used_fallback": true,
+  "final_status": "in_officer_review",
+  "status_before_decision": "in_officer_review",
+  "rules": [
+    {
+      "rule_id": "documents_complete",
+      "status": "pass",
+      "reason": "All conditions met: `all_documents_present` is true",
+      "clause": "<clause ref>",
+      "rules_version": "0.1.0"
+    },
+    {
+      "rule_id": "identity_verified",
+      "status": "pass",
+      "reason": "All conditions met: name_match: pass (Lowest similarity 1.000 (application.name='Anita Mandrekar' vs identity_proof.name='Anita Mandrekar')); `identity_proof.present` is true",
+      "clause": "<clause ref>",
+      "rules_version": "0.1.0"
+    },
+    {
+      "rule_id": "residence_in_affected_area",
+      "status": "pass",
+      "reason": "All conditions met: house_match: pass (All values match exactly.); `lower(damage_assessment.notified_area) == 'yes'` is true",
+      "clause": "<clause ref>",
+      "rules_version": "0.1.0"
+    },
+    {
+      "rule_id": "damage_category_eligible",
+      "status": "pass",
+      "reason": "All conditions met: `damage_assessment.damage_percent >= params.partial_damage_threshold` is true",
+      "clause": "<clause ref>",
+      "rules_version": "0.1.0"
+    },
+    {
+      "rule_id": "documents_not_expired",
+      "status": "pass",
+      "reason": "All conditions met: `all_documents_valid` is true",
+      "clause": "<clause ref>",
+      "rules_version": "0.1.0"
+    },
+    {
+      "rule_id": "no_duplicate_relief",
+      "status": "pass",
+      "reason": "All conditions met: duplicate_claim: pass (No other open relief claim for house Siolim/H-101.)",
+      "clause": "<clause ref>",
+      "rules_version": "0.1.0"
+    }
+  ],
+  "compensation": [
+    {
+      "component": "house_full_plain",
+      "amount": 120000.0,
+      "formula_note": "full_house_plain * (damage_percent >= full_damage_threshold) * (house_type != 'hut') * (area_type == 'plain') with full_house_plain=120000, damage_percent=80, full_damage_threshold=75, house_type=pucca, area_type=plain"
+    },
+    {
+      "component": "house_full_hilly",
+      "amount": 0.0,
+      "formula_note": "full_house_hilly * (damage_percent >= full_damage_threshold) * (house_type != 'hut') * (area_type == 'hilly') with full_house_hilly=130000, damage_percent=80, full_damage_threshold=75, house_type=pucca, area_type=plain"
+    },
+    {
+      "component": "house_partial_pucca",
+      "amount": 0.0,
+      "formula_note": "partial_pucca * (damage_percent >= partial_damage_threshold) * (damage_percent < full_damage_threshold) * (house_type == 'pucca') with partial_pucca=6500, damage_percent=80, partial_damage_threshold=15, full_damage_threshold=75, house_type=pucca"
+    },
+    {
+      "component": "house_partial_kutcha",
+      "amount": 0.0,
+      "formula_note": "partial_kutcha * (damage_percent >= partial_damage_threshold) * (damage_percent < full_damage_threshold) * (house_type == 'kutcha') with partial_kutcha=4000, damage_percent=80, partial_damage_threshold=15, full_damage_threshold=75, house_type=pucca"
+    },
+    {
+      "component": "hut",
+      "amount": 0.0,
+      "formula_note": "hut * (damage_percent >= partial_damage_threshold) * (house_type == 'hut') with hut=8000, damage_percent=80, partial_damage_threshold=15, house_type=pucca"
+    },
+    {
+      "component": "clothing",
+      "amount": 2500.0,
+      "formula_note": "clothing * (damage_percent >= partial_damage_threshold) with clothing=2500, damage_percent=80, partial_damage_threshold=15"
+    },
+    {
+      "component": "utensils",
+      "amount": 2500.0,
+      "formula_note": "utensils * (damage_percent >= partial_damage_threshold) with utensils=2500, damage_percent=80, partial_damage_threshold=15"
+    }
+  ],
+  "citizen_view": {
+    "case_ref": "DR-01",
+    "scheme": "disaster_relief",
+    "status": "approved",
+    "next_step": "approved",
+    "missing": [],
+    "notices": [],
+    "documents_needed": null,
+    "decision": {
+      "decision": "approve",
+      "date": "2026-01-01"
+    },
+    "amounts": {
+      "items": [
+        {
+          "component": "house_full_plain",
+          "amount": 120000.0,
+          "source": "full_house_plain * (damage_percent >= full_damage_threshold) * (house_type != 'hut') * (area_type == 'plain') with full_house_plain=120000, damage_percent=80, full_damage_threshold=75, house_type=pucca, area_type=plain"
+        },
+        {
+          "component": "house_full_hilly",
+          "amount": 0.0,
+          "source": "full_house_hilly * (damage_percent >= full_damage_threshold) * (house_type != 'hut') * (area_type == 'hilly') with full_house_hilly=130000, damage_percent=80, full_damage_threshold=75, house_type=pucca, area_type=plain"
+        },
+        {
+          "component": "house_partial_pucca",
+          "amount": 0.0,
+          "source": "partial_pucca * (damage_percent >= partial_damage_threshold) * (damage_percent < full_damage_threshold) * (house_type == 'pucca') with partial_pucca=6500, damage_percent=80, partial_damage_threshold=15, full_damage_threshold=75, house_type=pucca"
+        },
+        {
+          "component": "house_partial_kutcha",
+          "amount": 0.0,
+          "source": "partial_kutcha * (damage_percent >= partial_damage_threshold) * (damage_percent < full_damage_threshold) * (house_type == 'kutcha') with partial_kutcha=4000, damage_percent=80, partial_damage_threshold=15, full_damage_threshold=75, house_type=pucca"
+        },
+        {
+          "component": "hut",
+          "amount": 0.0,
+          "source": "hut * (damage_percent >= partial_damage_threshold) * (house_type == 'hut') with hut=8000, damage_percent=80, partial_damage_threshold=15, house_type=pucca"
+        },
+        {
+          "component": "clothing",
+          "amount": 2500.0,
+          "source": "clothing * (damage_percent >= partial_damage_threshold) with clothing=2500, damage_percent=80, partial_damage_threshold=15"
+        },
+        {
+          "component": "utensils",
+          "amount": 2500.0,
+          "source": "utensils * (damage_percent >= partial_damage_threshold) with utensils=2500, damage_percent=80, partial_damage_threshold=15"
+        }
+      ],
+      "total": 125000.0,
+      "rules_version": "0.1.0",
+      "terms": {
+        "application": "Application form",
+        "identity_proof": "Identity proof",
+        "residence_proof": "Residence proof",
+        "damage_assessment": "Damage assessment report",
+        "name": "Name",
+        "id_number": "ID number",
+        "expiry_date": "Expiry date",
+        "house_number": "House number",
+        "village": "Village",
+        "issue_date": "Issue date",
+        "damage_percent": "Damage (%)",
+        "house_type": "House type",
+        "area_type": "Area type",
+        "notified_area": "In the notified area",
+        "assessment_date": "Assessment date",
+        "name_match": "Name check across documents",
+        "house_match": "Assessed house versus residence",
+        "duplicate_claim": "Other claims on this house",
+        "documents_complete": "All documents submitted",
+        "identity_verified": "Identity verified",
+        "residence_in_affected_area": "Residence in the affected area",
+        "damage_category_eligible": "Damage meets the minimum",
+        "documents_not_expired": "Documents current",
+        "no_duplicate_relief": "No duplicate relief",
+        "house_full_plain": "Fully damaged house, plain area",
+        "house_full_hilly": "Fully damaged house, hilly area",
+        "house_partial_pucca": "Partly damaged pucca house",
+        "house_partial_kutcha": "Partly damaged kutcha house",
+        "hut": "Damaged hut",
+        "clothing": "Loss of clothing",
+        "utensils": "Loss of utensils and household goods",
+        "full_damage_threshold": "Full damage threshold (%)",
+        "partial_damage_threshold": "Minimum damage (%)",
+        "full_house_plain": "Full damage amount, plain area",
+        "full_house_hilly": "Full damage amount, hilly area",
+        "partial_pucca": "Partial damage amount, pucca house",
+        "partial_kutcha": "Partial damage amount, kutcha house"
+      }
+    }
+  }
+}

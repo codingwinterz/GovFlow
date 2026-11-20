@@ -1,0 +1,172 @@
+{
+  "case_id": "LA-01",
+  "steps": [
+    {
+      "tool": "verify_documents",
+      "args": {},
+      "ok": true,
+      "error": null
+    },
+    {
+      "tool": "check_eligibility",
+      "args": {},
+      "ok": true,
+      "error": null
+    },
+    {
+      "tool": "compute_compensation",
+      "args": {},
+      "ok": true,
+      "error": null
+    },
+    {
+      "tool": "submit_to_officer",
+      "args": {},
+      "ok": true,
+      "error": null
+    }
+  ],
+  "explanation": "Summary generated without the LLM (LLM unavailable). This is a recommendation; only an officer can approve, reject or send back the case.\nStatus: in_officer_review. Next step: awaiting officer decision.\nEligibility recommendation: eligible (rules version 0.1.0)\n- documents_complete: pass [<clause ref>] All conditions met: `all_documents_present` is true\n- valid_ownership: pass [<clause ref>] All conditions met: name_match: pass (Lowest similarity 1.000 (application.name='Asha Naik' vs ownership_record.name='Asha Naik')); tenant_or_mundkar_claim: pass (No tenant or mundkar entry on the record of rights.); `ownership_record.present` is true\n- land_identified: pass [<clause ref>] All conditions met: survey_no_match: pass (All values match exactly.)\n- documents_not_expired: pass [<clause ref>] All conditions met: `all_documents_valid` is true\n- no_competing_claim: pass [<clause ref>] All conditions met: duplicate_claim: pass (No other open case claims 123/4.); duplicate_survey_claim: pass (No other open or decided case names survey number 123/4.)\nCompensation total: Rs 17,200,000.00\n- land_value: Rs 7,500,000.00 (area_sqm * market_value_per_sqm * multiplier with area_sqm=2500, market_value_per_sqm=3000, multiplier=1)\n- assets_value: Rs 200,000.00 (assets_total with assets_total=200000)\n- solatium: Rs 7,700,000.00 ((land_value + assets_value) * solatium_rate with land_value=7500000, assets_value=200000, solatium_rate=1)\n- interest: Rs 1,800,000.00 (land_value * interest_rate * years_since_notification with land_value=7500000, interest_rate=0.12, years_since_notification=2)",
+  "explanation_warnings": [],
+  "used_fallback": true,
+  "final_status": "in_officer_review",
+  "status_before_decision": "in_officer_review",
+  "rules": [
+    {
+      "rule_id": "documents_complete",
+      "status": "pass",
+      "reason": "All conditions met: `all_documents_present` is true",
+      "clause": "<clause ref>",
+      "rules_version": "0.1.0"
+    },
+    {
+      "rule_id": "valid_ownership",
+      "status": "pass",
+      "reason": "All conditions met: name_match: pass (Lowest similarity 1.000 (application.name='Asha Naik' vs ownership_record.name='Asha Naik')); tenant_or_mundkar_claim: pass (No tenant or mundkar entry on the record of rights.); `ownership_record.present` is true",
+      "clause": "<clause ref>",
+      "rules_version": "0.1.0"
+    },
+    {
+      "rule_id": "land_identified",
+      "status": "pass",
+      "reason": "All conditions met: survey_no_match: pass (All values match exactly.)",
+      "clause": "<clause ref>",
+      "rules_version": "0.1.0"
+    },
+    {
+      "rule_id": "documents_not_expired",
+      "status": "pass",
+      "reason": "All conditions met: `all_documents_valid` is true",
+      "clause": "<clause ref>",
+      "rules_version": "0.1.0"
+    },
+    {
+      "rule_id": "no_competing_claim",
+      "status": "pass",
+      "reason": "All conditions met: duplicate_claim: pass (No other open case claims 123/4.); duplicate_survey_claim: pass (No other open or decided case names survey number 123/4.)",
+      "clause": "<clause ref>",
+      "rules_version": "0.1.0"
+    }
+  ],
+  "compensation": [
+    {
+      "component": "land_value",
+      "amount": 7500000.0,
+      "formula_note": "area_sqm * market_value_per_sqm * multiplier with area_sqm=2500, market_value_per_sqm=3000, multiplier=1"
+    },
+    {
+      "component": "assets_value",
+      "amount": 200000.0,
+      "formula_note": "assets_total with assets_total=200000"
+    },
+    {
+      "component": "solatium",
+      "amount": 7700000.0,
+      "formula_note": "(land_value + assets_value) * solatium_rate with land_value=7500000, assets_value=200000, solatium_rate=1"
+    },
+    {
+      "component": "interest",
+      "amount": 1800000.0,
+      "formula_note": "land_value * interest_rate * years_since_notification with land_value=7500000, interest_rate=0.12, years_since_notification=2"
+    }
+  ],
+  "citizen_view": {
+    "case_ref": "LA-01",
+    "scheme": "land_acquisition",
+    "status": "approved",
+    "next_step": "approved",
+    "missing": [],
+    "notices": [],
+    "documents_needed": null,
+    "decision": {
+      "decision": "approve",
+      "date": "2026-01-01"
+    },
+    "amounts": {
+      "items": [
+        {
+          "component": "land_value",
+          "amount": 7500000.0,
+          "source": "area_sqm * market_value_per_sqm * multiplier with area_sqm=2500, market_value_per_sqm=3000, multiplier=1"
+        },
+        {
+          "component": "assets_value",
+          "amount": 200000.0,
+          "source": "assets_total with assets_total=200000"
+        },
+        {
+          "component": "solatium",
+          "amount": 7700000.0,
+          "source": "(land_value + assets_value) * solatium_rate with land_value=7500000, assets_value=200000, solatium_rate=1"
+        },
+        {
+          "component": "interest",
+          "amount": 1800000.0,
+          "source": "land_value * interest_rate * years_since_notification with land_value=7500000, interest_rate=0.12, years_since_notification=2"
+        }
+      ],
+      "total": 17200000.0,
+      "rules_version": "0.1.0",
+      "terms": {
+        "application": "Application form",
+        "ownership_record": "Ownership record (Form I & XIV)",
+        "identity_proof": "Identity proof",
+        "survey_sheet": "Survey sheet",
+        "mutation_record": "Mutation record",
+        "name": "Name",
+        "survey_number": "Survey number",
+        "area": "Area",
+        "area_unit": "Area unit",
+        "area_sqm": "Area (sq m)",
+        "issue_date": "Issue date",
+        "id_number": "ID number",
+        "expiry_date": "Expiry date",
+        "name_match": "Name check across documents",
+        "survey_no_match": "Survey number check",
+        "duplicate_claim": "Overlapping claims on this survey number",
+        "duplicate_survey_claim": "Survey number named in another case",
+        "tenant_or_mundkar_claim": "Tenant or mundkar entry on the record of rights",
+        "tenant_entry": "Tenant entry",
+        "other_rights_entry": "Mundkar or other-rights entry",
+        "documents_complete": "All documents submitted",
+        "valid_ownership": "Valid ownership",
+        "land_identified": "Land identified",
+        "documents_not_expired": "Documents current",
+        "no_competing_claim": "No competing claim",
+        "land_value": "Land value",
+        "assets_value": "Assets on the land",
+        "solatium": "Solatium",
+        "interest": "Additional amount at 12% a year",
+        "market_value_per_sqm": "Market value per sq m",
+        "assets_total": "Value of assets",
+        "multiplier": "Rural multiplier",
+        "years_since_notification": "Years from notification",
+        "sia_notification_date": "SIA notification date",
+        "award_date": "Award date",
+        "possession_date": "Possession date",
+        "solatium_rate": "Solatium rate",
+        "interest_rate": "Additional amount rate"
+      }
+    }
+  }
+}

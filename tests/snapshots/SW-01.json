@@ -1,0 +1,178 @@
+{
+  "case_id": "SW-01",
+  "steps": [
+    {
+      "tool": "verify_documents",
+      "args": {},
+      "ok": true,
+      "error": null
+    },
+    {
+      "tool": "check_eligibility",
+      "args": {},
+      "ok": true,
+      "error": null
+    },
+    {
+      "tool": "compute_compensation",
+      "args": {},
+      "ok": true,
+      "error": null
+    },
+    {
+      "tool": "submit_to_officer",
+      "args": {},
+      "ok": true,
+      "error": null
+    }
+  ],
+  "explanation": "Summary generated without the LLM (LLM unavailable). This is a recommendation; only an officer can approve, reject or send back the case.\nStatus: in_officer_review. Next step: awaiting officer decision.\nEligibility recommendation: eligible (rules version 2026.1-draft)\n- documents_complete: pass [<DSSS clause: required documents>] All conditions met: `all_documents_present` is true\n- identity_verified: pass [<DSSS clause: identity verification>] All conditions met: name_match: pass (Lowest similarity 1.000 (application.name='Laxmi Naik' vs identity_proof.name='Laxmi Naik')); `identity_proof.present` is true\n- goa_residency_eligible: pass [<DSSS clause: 15-year Goa residence>] All conditions met: `residence_proof.years_in_goa >= params.min_residency_years` is true\n- income_within_limit: pass [<DSSS clause: annual family income ceiling>] All conditions met: `income_certificate.annual_income <= params.max_annual_income` is true\n- category_threshold_met: pass [<DSSS clause: category age or disability threshold>] All conditions met: `(category_proof.applicant_category == 'senior_citizen' and category_proof.age_years >= params.senior_min_age) or (category_proof.applicant_category == 'person_with_disability' and category_proof.disability_percent >= params.min_disability_percent) or (category_proof.applicant_category == 'widow') or (category_proof.applicant_category == 'single_woman' and category_proof.age_years >= params.single_woman_min_age)` is true\n- documents_not_expired: pass [<DSSS clause: document validity>] All conditions met: `all_documents_valid` is true\n- no_competing_claim: pass [<DSSS clause: single active pension>] All conditions met: duplicate_claim: pass (No other pension claim for ID 9999 3000 0001.)\nCompensation total: Rs 24,000.00\n- base_pension: Rs 24,000.00 ((senior_base_annual * (applicant_category == 'senior_citizen')) + (widow_base_annual * (applicant_category == 'widow')) + (disability_base_annual * (applicant_category == 'person_with_disability')) + (single_woman_base_annual * (applicant_category == 'single_woman')) with senior_base_annual=24000, applicant_category=senior_citizen, widow_base_annual=24000, disability_base_annual=24000, single_woman_base_annual=24000)\n- senior_age_supplement: Rs 0.00 (high_age_bonus_annual * (applicant_category == 'senior_citizen') * (age_years >= 80) with high_age_bonus_annual=6000, applicant_category=senior_citizen, age_years=68)\n- widow_child_supplement: Rs 0.00 (minor_child_supplement_annual * (applicant_category == 'widow') * (minor_child_count >= 1) with minor_child_supplement_annual=6000, applicant_category=senior_citizen, minor_child_count=0)",
+  "explanation_warnings": [],
+  "used_fallback": true,
+  "final_status": "in_officer_review",
+  "status_before_decision": "in_officer_review",
+  "rules": [
+    {
+      "rule_id": "documents_complete",
+      "status": "pass",
+      "reason": "All conditions met: `all_documents_present` is true",
+      "clause": "<DSSS clause: required documents>",
+      "rules_version": "2026.1-draft"
+    },
+    {
+      "rule_id": "identity_verified",
+      "status": "pass",
+      "reason": "All conditions met: name_match: pass (Lowest similarity 1.000 (application.name='Laxmi Naik' vs identity_proof.name='Laxmi Naik')); `identity_proof.present` is true",
+      "clause": "<DSSS clause: identity verification>",
+      "rules_version": "2026.1-draft"
+    },
+    {
+      "rule_id": "goa_residency_eligible",
+      "status": "pass",
+      "reason": "All conditions met: `residence_proof.years_in_goa >= params.min_residency_years` is true",
+      "clause": "<DSSS clause: 15-year Goa residence>",
+      "rules_version": "2026.1-draft"
+    },
+    {
+      "rule_id": "income_within_limit",
+      "status": "pass",
+      "reason": "All conditions met: `income_certificate.annual_income <= params.max_annual_income` is true",
+      "clause": "<DSSS clause: annual family income ceiling>",
+      "rules_version": "2026.1-draft"
+    },
+    {
+      "rule_id": "category_threshold_met",
+      "status": "pass",
+      "reason": "All conditions met: `(category_proof.applicant_category == 'senior_citizen' and category_proof.age_years >= params.senior_min_age) or (category_proof.applicant_category == 'person_with_disability' and category_proof.disability_percent >= params.min_disability_percent) or (category_proof.applicant_category == 'widow') or (category_proof.applicant_category == 'single_woman' and category_proof.age_years >= params.single_woman_min_age)` is true",
+      "clause": "<DSSS clause: category age or disability threshold>",
+      "rules_version": "2026.1-draft"
+    },
+    {
+      "rule_id": "documents_not_expired",
+      "status": "pass",
+      "reason": "All conditions met: `all_documents_valid` is true",
+      "clause": "<DSSS clause: document validity>",
+      "rules_version": "2026.1-draft"
+    },
+    {
+      "rule_id": "no_competing_claim",
+      "status": "pass",
+      "reason": "All conditions met: duplicate_claim: pass (No other pension claim for ID 9999 3000 0001.)",
+      "clause": "<DSSS clause: single active pension>",
+      "rules_version": "2026.1-draft"
+    }
+  ],
+  "compensation": [
+    {
+      "component": "base_pension",
+      "amount": 24000.0,
+      "formula_note": "(senior_base_annual * (applicant_category == 'senior_citizen')) + (widow_base_annual * (applicant_category == 'widow')) + (disability_base_annual * (applicant_category == 'person_with_disability')) + (single_woman_base_annual * (applicant_category == 'single_woman')) with senior_base_annual=24000, applicant_category=senior_citizen, widow_base_annual=24000, disability_base_annual=24000, single_woman_base_annual=24000"
+    },
+    {
+      "component": "senior_age_supplement",
+      "amount": 0.0,
+      "formula_note": "high_age_bonus_annual * (applicant_category == 'senior_citizen') * (age_years >= 80) with high_age_bonus_annual=6000, applicant_category=senior_citizen, age_years=68"
+    },
+    {
+      "component": "widow_child_supplement",
+      "amount": 0.0,
+      "formula_note": "minor_child_supplement_annual * (applicant_category == 'widow') * (minor_child_count >= 1) with minor_child_supplement_annual=6000, applicant_category=senior_citizen, minor_child_count=0"
+    }
+  ],
+  "citizen_view": {
+    "case_ref": "SW-01",
+    "scheme": "social_welfare",
+    "status": "approved",
+    "next_step": "approved",
+    "missing": [],
+    "notices": [],
+    "documents_needed": null,
+    "decision": {
+      "decision": "approve",
+      "date": "2026-01-01"
+    },
+    "amounts": {
+      "items": [
+        {
+          "component": "base_pension",
+          "amount": 24000.0,
+          "source": "(senior_base_annual * (applicant_category == 'senior_citizen')) + (widow_base_annual * (applicant_category == 'widow')) + (disability_base_annual * (applicant_category == 'person_with_disability')) + (single_woman_base_annual * (applicant_category == 'single_woman')) with senior_base_annual=24000, applicant_category=senior_citizen, widow_base_annual=24000, disability_base_annual=24000, single_woman_base_annual=24000"
+        },
+        {
+          "component": "senior_age_supplement",
+          "amount": 0.0,
+          "source": "high_age_bonus_annual * (applicant_category == 'senior_citizen') * (age_years >= 80) with high_age_bonus_annual=6000, applicant_category=senior_citizen, age_years=68"
+        },
+        {
+          "component": "widow_child_supplement",
+          "amount": 0.0,
+          "source": "minor_child_supplement_annual * (applicant_category == 'widow') * (minor_child_count >= 1) with minor_child_supplement_annual=6000, applicant_category=senior_citizen, minor_child_count=0"
+        }
+      ],
+      "total": 24000.0,
+      "rules_version": "2026.1-draft",
+      "terms": {
+        "application": "Application form",
+        "identity_proof": "Identity proof",
+        "residence_proof": "Residence proof",
+        "income_certificate": "Income certificate",
+        "category_proof": "Category proof",
+        "name": "Name",
+        "id_number": "ID number",
+        "expiry_date": "Expiry date",
+        "village": "Village",
+        "years_in_goa": "Years in Goa",
+        "issue_date": "Issue date",
+        "annual_income": "Annual family income",
+        "applicant_category": "Applicant category",
+        "age_years": "Age (years)",
+        "disability_percent": "Disability (%)",
+        "minor_child_count": "Minor children count",
+        "remarks": "Remarks",
+        "documents_complete": "All required documents submitted",
+        "identity_verified": "Identity verified and name matches",
+        "goa_residency_eligible": "Minimum Goa residence met",
+        "income_within_limit": "Annual family income within limit",
+        "category_threshold_met": "Category age or disability threshold met",
+        "documents_not_expired": "Documents within validity period",
+        "no_competing_claim": "No competing pension claim on this ID",
+        "name_match": "Name across documents",
+        "duplicate_claim": "Duplicate ID number check",
+        "base_pension": "Base annual pension",
+        "senior_age_supplement": "Senior age supplement",
+        "widow_child_supplement": "Widow minor-child supplement",
+        "senior_base_annual": "Senior citizen base annual pension",
+        "widow_base_annual": "Widow base annual pension",
+        "disability_base_annual": "Disability base annual pension",
+        "single_woman_base_annual": "Single woman base annual pension",
+        "high_age_bonus_annual": "Additional support for age 80+",
+        "minor_child_supplement_annual": "Widow minor-child annual supplement",
+        "min_residency_years": "Minimum years of Goa residence",
+        "max_annual_income": "Annual family income ceiling",
+        "senior_min_age": "Minimum age for senior citizen",
+        "single_woman_min_age": "Minimum age for single woman",
+        "min_disability_percent": "Minimum disability (%)"
+      }
+    }
+  }
+}

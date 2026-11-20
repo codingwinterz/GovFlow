@@ -1,0 +1,912 @@
+{
+  "LA-01": {
+    "en": [
+      {
+        "kind": "status",
+        "text": "Status: Approved"
+      },
+      {
+        "kind": "next",
+        "text": "Next step: Your application has been approved. The office will give you further details."
+      },
+      {
+        "kind": "heading",
+        "text": "Officer's decision"
+      },
+      {
+        "kind": "decision",
+        "text": "Approved"
+      },
+      {
+        "kind": "date",
+        "text": "Decided on 1 Jan 2026"
+      },
+      {
+        "kind": "heading",
+        "text": "Why this amount"
+      },
+      {
+        "kind": "intro",
+        "text": "The amount approved by the officer, with the basis of each item:"
+      },
+      {
+        "kind": "item",
+        "text": "Land value (area × market rate × multiplier): ₹75,00,000.00"
+      },
+      {
+        "kind": "source",
+        "text": "Basis: Area (sq m) × Market value per sq m × Rural multiplier with Area (sq m) = 2500, Market value per sq m = 3000, Rural multiplier = 1"
+      },
+      {
+        "kind": "item",
+        "text": "Value of assets on the land (buildings, trees and so on): ₹2,00,000.00"
+      },
+      {
+        "kind": "source",
+        "text": "Basis: Value of assets with Value of assets = 200000"
+      },
+      {
+        "kind": "item",
+        "text": "Solatium (additional compensation for compulsory acquisition): ₹77,00,000.00"
+      },
+      {
+        "kind": "source",
+        "text": "Basis: (Land value + Assets on the land) × Solatium rate with Land value = 7500000, Assets on the land = 200000, Solatium rate = 1"
+      },
+      {
+        "kind": "item",
+        "text": "Additional amount at twelve per cent a year, from the notification to the award or possession, whichever is earlier: ₹18,00,000.00"
+      },
+      {
+        "kind": "source",
+        "text": "Basis: Land value × Additional amount rate × Years from notification with Land value = 7500000, Additional amount rate = 0.12, Years from notification = 2"
+      },
+      {
+        "kind": "total",
+        "text": "Total: ₹1,72,00,000.00"
+      },
+      {
+        "kind": "source",
+        "text": "Rules version: 0.1.0"
+      }
+    ],
+    "hi": [
+      {
+        "kind": "status",
+        "text": "स्थिति: स्वीकृत"
+      },
+      {
+        "kind": "next",
+        "text": "अगला कदम: आपका आवेदन स्वीकृत हो गया है। आगे की जानकारी कार्यालय देगा।"
+      },
+      {
+        "kind": "heading",
+        "text": "अधिकारी का निर्णय"
+      },
+      {
+        "kind": "decision",
+        "text": "स्वीकृत"
+      },
+      {
+        "kind": "date",
+        "text": "निर्णय की तिथि: 1 Jan 2026"
+      },
+      {
+        "kind": "heading",
+        "text": "यह राशि क्यों"
+      },
+      {
+        "kind": "intro",
+        "text": "अधिकारी द्वारा स्वीकृत राशि, हर मद के आधार के साथ:"
+      },
+      {
+        "kind": "item",
+        "text": "भूमि का मूल्य (क्षेत्रफल × बाज़ार दर × गुणक): ₹75,00,000.00"
+      },
+      {
+        "kind": "source",
+        "text": "आधार: Area (sq m) × Market value per sq m × Rural multiplier with Area (sq m) = 2500, Market value per sq m = 3000, Rural multiplier = 1"
+      },
+      {
+        "kind": "item",
+        "text": "भूमि पर संपत्तियों का मूल्य (भवन, पेड़ आदि): ₹2,00,000.00"
+      },
+      {
+        "kind": "source",
+        "text": "आधार: Value of assets with Value of assets = 200000"
+      },
+      {
+        "kind": "item",
+        "text": "सोलेशियम (अनिवार्य अधिग्रहण के लिए अतिरिक्त मुआवज़ा): ₹77,00,000.00"
+      },
+      {
+        "kind": "source",
+        "text": "आधार: (Land value + Assets on the land) × Solatium rate with Land value = 7500000, Assets on the land = 200000, Solatium rate = 1"
+      },
+      {
+        "kind": "item",
+        "text": "अधिसूचना से अवार्ड या कब्ज़े तक, जो पहले हो, बारह प्रतिशत वार्षिक की अतिरिक्त राशि: ₹18,00,000.00"
+      },
+      {
+        "kind": "source",
+        "text": "आधार: Land value × Additional amount rate × Years from notification with Land value = 7500000, Additional amount rate = 0.12, Years from notification = 2"
+      },
+      {
+        "kind": "total",
+        "text": "कुल: ₹1,72,00,000.00"
+      },
+      {
+        "kind": "source",
+        "text": "नियम संस्करण: 0.1.0"
+      }
+    ],
+    "mr": [
+      {
+        "kind": "status",
+        "text": "स्थिती: मंजूर"
+      },
+      {
+        "kind": "next",
+        "text": "पुढील पायरी: तुमचा अर्ज मंजूर झाला आहे. पुढील माहिती कार्यालयाकडून मिळेल."
+      },
+      {
+        "kind": "heading",
+        "text": "अधिकाऱ्यांचा निर्णय"
+      },
+      {
+        "kind": "decision",
+        "text": "मंजूर"
+      },
+      {
+        "kind": "date",
+        "text": "निर्णयाची तारीख: 1 Jan 2026"
+      },
+      {
+        "kind": "heading",
+        "text": "ही रक्कम का"
+      },
+      {
+        "kind": "intro",
+        "text": "अधिकाऱ्यांनी मंजूर केलेली रक्कम, प्रत्येक बाबीच्या आधारासह:"
+      },
+      {
+        "kind": "item",
+        "text": "जमिनीचे मूल्य (क्षेत्रफळ × बाजारभाव × गुणक): ₹75,00,000.00"
+      },
+      {
+        "kind": "source",
+        "text": "आधार: Area (sq m) × Market value per sq m × Rural multiplier with Area (sq m) = 2500, Market value per sq m = 3000, Rural multiplier = 1"
+      },
+      {
+        "kind": "item",
+        "text": "जमिनीवरील मालमत्तेचे मूल्य (इमारती, झाडे इत्यादी): ₹2,00,000.00"
+      },
+      {
+        "kind": "source",
+        "text": "आधार: Value of assets with Value of assets = 200000"
+      },
+      {
+        "kind": "item",
+        "text": "सोलेशियम (सक्तीच्या संपादनासाठी अतिरिक्त भरपाई): ₹77,00,000.00"
+      },
+      {
+        "kind": "source",
+        "text": "आधार: (Land value + Assets on the land) × Solatium rate with Land value = 7500000, Assets on the land = 200000, Solatium rate = 1"
+      },
+      {
+        "kind": "item",
+        "text": "अधिसूचनेपासून निवाडा किंवा ताबा, जे आधी होईल तोपर्यंत, दरवर्षी बारा टक्के अतिरिक्त रक्कम: ₹18,00,000.00"
+      },
+      {
+        "kind": "source",
+        "text": "आधार: Land value × Additional amount rate × Years from notification with Land value = 7500000, Additional amount rate = 0.12, Years from notification = 2"
+      },
+      {
+        "kind": "total",
+        "text": "एकूण: ₹1,72,00,000.00"
+      },
+      {
+        "kind": "source",
+        "text": "नियम आवृत्ती: 0.1.0"
+      }
+    ],
+    "kok": [
+      {
+        "kind": "status",
+        "text": "स्थिती: मान्य"
+      },
+      {
+        "kind": "next",
+        "text": "फुडली पावंडी: तुमचो अर्ज मान्य जाला. फुडली म्हायती कार्यालय दितलें."
+      },
+      {
+        "kind": "heading",
+        "text": "अधिकाऱ्याचो निर्णय"
+      },
+      {
+        "kind": "decision",
+        "text": "मान्य"
+      },
+      {
+        "kind": "date",
+        "text": "निर्णयाची तारीख: 1 Jan 2026"
+      },
+      {
+        "kind": "heading",
+        "text": "ही रक्कम कित्याक"
+      },
+      {
+        "kind": "intro",
+        "text": "अधिकाऱ्यान मान्य केल्ली रक्कम, दर एका वस्तूच्या आधारा सयत:"
+      },
+      {
+        "kind": "item",
+        "text": "जमनीचें मोल (वाठार × बाजार दर × गुणक): ₹75,00,000.00"
+      },
+      {
+        "kind": "source",
+        "text": "आधार: Area (sq m) × Market value per sq m × Rural multiplier with Area (sq m) = 2500, Market value per sq m = 3000, Rural multiplier = 1"
+      },
+      {
+        "kind": "item",
+        "text": "जमनीर आशिल्ल्या मालमत्तेचें मोल (इमारती, झाडां आदी): ₹2,00,000.00"
+      },
+      {
+        "kind": "source",
+        "text": "आधार: Value of assets with Value of assets = 200000"
+      },
+      {
+        "kind": "item",
+        "text": "सोलेशियम (सक्तीच्या संपादनाखातीर आनीक भरपाय): ₹77,00,000.00"
+      },
+      {
+        "kind": "source",
+        "text": "आधार: (Land value + Assets on the land) × Solatium rate with Land value = 7500000, Assets on the land = 200000, Solatium rate = 1"
+      },
+      {
+        "kind": "item",
+        "text": "अधिसूचने सावन निवाडो वा ताबो, जें आदीं जाता तें मेरेन, वर्साक बारा टक्के आनीक रक्कम: ₹18,00,000.00"
+      },
+      {
+        "kind": "source",
+        "text": "आधार: Land value × Additional amount rate × Years from notification with Land value = 7500000, Additional amount rate = 0.12, Years from notification = 2"
+      },
+      {
+        "kind": "total",
+        "text": "एकूण: ₹1,72,00,000.00"
+      },
+      {
+        "kind": "source",
+        "text": "नेम आवृत्ती: 0.1.0"
+      }
+    ]
+  },
+  "DR-01": {
+    "en": [
+      {
+        "kind": "status",
+        "text": "Status: Approved"
+      },
+      {
+        "kind": "next",
+        "text": "Next step: Your application has been approved. The office will give you further details."
+      },
+      {
+        "kind": "heading",
+        "text": "Officer's decision"
+      },
+      {
+        "kind": "decision",
+        "text": "Approved"
+      },
+      {
+        "kind": "date",
+        "text": "Decided on 1 Jan 2026"
+      },
+      {
+        "kind": "heading",
+        "text": "Why this amount"
+      },
+      {
+        "kind": "intro",
+        "text": "The amount approved by the officer, with the basis of each item:"
+      },
+      {
+        "kind": "item",
+        "text": "Relief for a fully damaged house, plain area: ₹1,20,000.00"
+      },
+      {
+        "kind": "source",
+        "text": "Basis: Full damage amount, plain area × (Damage (%) ≥ Full damage threshold (%)) × (House type ≠ 'hut') × (Area type = 'plain') with Full damage amount, plain area = 120000, Damage (%) = 80, Full damage threshold (%) = 75, House type = pucca, Area type = plain"
+      },
+      {
+        "kind": "item",
+        "text": "Relief for a fully damaged house, hilly area: ₹0.00"
+      },
+      {
+        "kind": "source",
+        "text": "Basis: Full damage amount, hilly area × (Damage (%) ≥ Full damage threshold (%)) × (House type ≠ 'hut') × (Area type = 'hilly') with Full damage amount, hilly area = 130000, Damage (%) = 80, Full damage threshold (%) = 75, House type = pucca, Area type = plain"
+      },
+      {
+        "kind": "item",
+        "text": "Relief for a partially damaged pucca house: ₹0.00"
+      },
+      {
+        "kind": "source",
+        "text": "Basis: Partial damage amount, pucca house × (Damage (%) ≥ Minimum damage (%)) × (Damage (%) < Full damage threshold (%)) × (House type = 'pucca') with Partial damage amount, pucca house = 6500, Damage (%) = 80, Minimum damage (%) = 15, Full damage threshold (%) = 75, House type = pucca"
+      },
+      {
+        "kind": "item",
+        "text": "Relief for a partially damaged kutcha house: ₹0.00"
+      },
+      {
+        "kind": "source",
+        "text": "Basis: Partial damage amount, kutcha house × (Damage (%) ≥ Minimum damage (%)) × (Damage (%) < Full damage threshold (%)) × (House type = 'kutcha') with Partial damage amount, kutcha house = 4000, Damage (%) = 80, Minimum damage (%) = 15, Full damage threshold (%) = 75, House type = pucca"
+      },
+      {
+        "kind": "item",
+        "text": "Relief for a damaged hut: ₹0.00"
+      },
+      {
+        "kind": "source",
+        "text": "Basis: Damaged hut × (Damage (%) ≥ Minimum damage (%)) × (House type = 'hut') with Damaged hut = 8000, Damage (%) = 80, Minimum damage (%) = 15, House type = pucca"
+      },
+      {
+        "kind": "item",
+        "text": "Relief for loss of clothing: ₹2,500.00"
+      },
+      {
+        "kind": "source",
+        "text": "Basis: Loss of clothing × (Damage (%) ≥ Minimum damage (%)) with Loss of clothing = 2500, Damage (%) = 80, Minimum damage (%) = 15"
+      },
+      {
+        "kind": "item",
+        "text": "Relief for loss of utensils and household goods: ₹2,500.00"
+      },
+      {
+        "kind": "source",
+        "text": "Basis: Loss of utensils and household goods × (Damage (%) ≥ Minimum damage (%)) with Loss of utensils and household goods = 2500, Damage (%) = 80, Minimum damage (%) = 15"
+      },
+      {
+        "kind": "total",
+        "text": "Total: ₹1,25,000.00"
+      },
+      {
+        "kind": "source",
+        "text": "Rules version: 0.1.0"
+      }
+    ],
+    "hi": [
+      {
+        "kind": "status",
+        "text": "स्थिति: स्वीकृत"
+      },
+      {
+        "kind": "next",
+        "text": "अगला कदम: आपका आवेदन स्वीकृत हो गया है। आगे की जानकारी कार्यालय देगा।"
+      },
+      {
+        "kind": "heading",
+        "text": "अधिकारी का निर्णय"
+      },
+      {
+        "kind": "decision",
+        "text": "स्वीकृत"
+      },
+      {
+        "kind": "date",
+        "text": "निर्णय की तिथि: 1 Jan 2026"
+      },
+      {
+        "kind": "heading",
+        "text": "यह राशि क्यों"
+      },
+      {
+        "kind": "intro",
+        "text": "अधिकारी द्वारा स्वीकृत राशि, हर मद के आधार के साथ:"
+      },
+      {
+        "kind": "item",
+        "text": "पूरी तरह क्षतिग्रस्त घर के लिए सहायता, मैदानी क्षेत्र: ₹1,20,000.00"
+      },
+      {
+        "kind": "source",
+        "text": "आधार: Full damage amount, plain area × (Damage (%) ≥ Full damage threshold (%)) × (House type ≠ 'hut') × (Area type = 'plain') with Full damage amount, plain area = 120000, Damage (%) = 80, Full damage threshold (%) = 75, House type = pucca, Area type = plain"
+      },
+      {
+        "kind": "item",
+        "text": "पूरी तरह क्षतिग्रस्त घर के लिए सहायता, पहाड़ी क्षेत्र: ₹0.00"
+      },
+      {
+        "kind": "source",
+        "text": "आधार: Full damage amount, hilly area × (Damage (%) ≥ Full damage threshold (%)) × (House type ≠ 'hut') × (Area type = 'hilly') with Full damage amount, hilly area = 130000, Damage (%) = 80, Full damage threshold (%) = 75, House type = pucca, Area type = plain"
+      },
+      {
+        "kind": "item",
+        "text": "आंशिक रूप से क्षतिग्रस्त पक्के घर के लिए सहायता: ₹0.00"
+      },
+      {
+        "kind": "source",
+        "text": "आधार: Partial damage amount, pucca house × (Damage (%) ≥ Minimum damage (%)) × (Damage (%) < Full damage threshold (%)) × (House type = 'pucca') with Partial damage amount, pucca house = 6500, Damage (%) = 80, Minimum damage (%) = 15, Full damage threshold (%) = 75, House type = pucca"
+      },
+      {
+        "kind": "item",
+        "text": "आंशिक रूप से क्षतिग्रस्त कच्चे घर के लिए सहायता: ₹0.00"
+      },
+      {
+        "kind": "source",
+        "text": "आधार: Partial damage amount, kutcha house × (Damage (%) ≥ Minimum damage (%)) × (Damage (%) < Full damage threshold (%)) × (House type = 'kutcha') with Partial damage amount, kutcha house = 4000, Damage (%) = 80, Minimum damage (%) = 15, Full damage threshold (%) = 75, House type = pucca"
+      },
+      {
+        "kind": "item",
+        "text": "क्षतिग्रस्त झोपड़ी के लिए सहायता: ₹0.00"
+      },
+      {
+        "kind": "source",
+        "text": "आधार: Damaged hut × (Damage (%) ≥ Minimum damage (%)) × (House type = 'hut') with Damaged hut = 8000, Damage (%) = 80, Minimum damage (%) = 15, House type = pucca"
+      },
+      {
+        "kind": "item",
+        "text": "कपड़ों के नुकसान के लिए सहायता: ₹2,500.00"
+      },
+      {
+        "kind": "source",
+        "text": "आधार: Loss of clothing × (Damage (%) ≥ Minimum damage (%)) with Loss of clothing = 2500, Damage (%) = 80, Minimum damage (%) = 15"
+      },
+      {
+        "kind": "item",
+        "text": "बर्तनों और घरेलू सामान के नुकसान के लिए सहायता: ₹2,500.00"
+      },
+      {
+        "kind": "source",
+        "text": "आधार: Loss of utensils and household goods × (Damage (%) ≥ Minimum damage (%)) with Loss of utensils and household goods = 2500, Damage (%) = 80, Minimum damage (%) = 15"
+      },
+      {
+        "kind": "total",
+        "text": "कुल: ₹1,25,000.00"
+      },
+      {
+        "kind": "source",
+        "text": "नियम संस्करण: 0.1.0"
+      }
+    ],
+    "mr": [
+      {
+        "kind": "status",
+        "text": "स्थिती: मंजूर"
+      },
+      {
+        "kind": "next",
+        "text": "पुढील पायरी: तुमचा अर्ज मंजूर झाला आहे. पुढील माहिती कार्यालयाकडून मिळेल."
+      },
+      {
+        "kind": "heading",
+        "text": "अधिकाऱ्यांचा निर्णय"
+      },
+      {
+        "kind": "decision",
+        "text": "मंजूर"
+      },
+      {
+        "kind": "date",
+        "text": "निर्णयाची तारीख: 1 Jan 2026"
+      },
+      {
+        "kind": "heading",
+        "text": "ही रक्कम का"
+      },
+      {
+        "kind": "intro",
+        "text": "अधिकाऱ्यांनी मंजूर केलेली रक्कम, प्रत्येक बाबीच्या आधारासह:"
+      },
+      {
+        "kind": "item",
+        "text": "पूर्णपणे नुकसान झालेल्या घरासाठी मदत, सपाट भाग: ₹1,20,000.00"
+      },
+      {
+        "kind": "source",
+        "text": "आधार: Full damage amount, plain area × (Damage (%) ≥ Full damage threshold (%)) × (House type ≠ 'hut') × (Area type = 'plain') with Full damage amount, plain area = 120000, Damage (%) = 80, Full damage threshold (%) = 75, House type = pucca, Area type = plain"
+      },
+      {
+        "kind": "item",
+        "text": "पूर्णपणे नुकसान झालेल्या घरासाठी मदत, डोंगराळ भाग: ₹0.00"
+      },
+      {
+        "kind": "source",
+        "text": "आधार: Full damage amount, hilly area × (Damage (%) ≥ Full damage threshold (%)) × (House type ≠ 'hut') × (Area type = 'hilly') with Full damage amount, hilly area = 130000, Damage (%) = 80, Full damage threshold (%) = 75, House type = pucca, Area type = plain"
+      },
+      {
+        "kind": "item",
+        "text": "अंशतः नुकसान झालेल्या पक्क्या घरासाठी मदत: ₹0.00"
+      },
+      {
+        "kind": "source",
+        "text": "आधार: Partial damage amount, pucca house × (Damage (%) ≥ Minimum damage (%)) × (Damage (%) < Full damage threshold (%)) × (House type = 'pucca') with Partial damage amount, pucca house = 6500, Damage (%) = 80, Minimum damage (%) = 15, Full damage threshold (%) = 75, House type = pucca"
+      },
+      {
+        "kind": "item",
+        "text": "अंशतः नुकसान झालेल्या कच्च्या घरासाठी मदत: ₹0.00"
+      },
+      {
+        "kind": "source",
+        "text": "आधार: Partial damage amount, kutcha house × (Damage (%) ≥ Minimum damage (%)) × (Damage (%) < Full damage threshold (%)) × (House type = 'kutcha') with Partial damage amount, kutcha house = 4000, Damage (%) = 80, Minimum damage (%) = 15, Full damage threshold (%) = 75, House type = pucca"
+      },
+      {
+        "kind": "item",
+        "text": "नुकसान झालेल्या झोपडीसाठी मदत: ₹0.00"
+      },
+      {
+        "kind": "source",
+        "text": "आधार: Damaged hut × (Damage (%) ≥ Minimum damage (%)) × (House type = 'hut') with Damaged hut = 8000, Damage (%) = 80, Minimum damage (%) = 15, House type = pucca"
+      },
+      {
+        "kind": "item",
+        "text": "कपड्यांच्या नुकसानीसाठी मदत: ₹2,500.00"
+      },
+      {
+        "kind": "source",
+        "text": "आधार: Loss of clothing × (Damage (%) ≥ Minimum damage (%)) with Loss of clothing = 2500, Damage (%) = 80, Minimum damage (%) = 15"
+      },
+      {
+        "kind": "item",
+        "text": "भांडी आणि घरगुती वस्तूंच्या नुकसानीसाठी मदत: ₹2,500.00"
+      },
+      {
+        "kind": "source",
+        "text": "आधार: Loss of utensils and household goods × (Damage (%) ≥ Minimum damage (%)) with Loss of utensils and household goods = 2500, Damage (%) = 80, Minimum damage (%) = 15"
+      },
+      {
+        "kind": "total",
+        "text": "एकूण: ₹1,25,000.00"
+      },
+      {
+        "kind": "source",
+        "text": "नियम आवृत्ती: 0.1.0"
+      }
+    ],
+    "kok": [
+      {
+        "kind": "status",
+        "text": "स्थिती: मान्य"
+      },
+      {
+        "kind": "next",
+        "text": "फुडली पावंडी: तुमचो अर्ज मान्य जाला. फुडली म्हायती कार्यालय दितलें."
+      },
+      {
+        "kind": "heading",
+        "text": "अधिकाऱ्याचो निर्णय"
+      },
+      {
+        "kind": "decision",
+        "text": "मान्य"
+      },
+      {
+        "kind": "date",
+        "text": "निर्णयाची तारीख: 1 Jan 2026"
+      },
+      {
+        "kind": "heading",
+        "text": "ही रक्कम कित्याक"
+      },
+      {
+        "kind": "intro",
+        "text": "अधिकाऱ्यान मान्य केल्ली रक्कम, दर एका वस्तूच्या आधारा सयत:"
+      },
+      {
+        "kind": "item",
+        "text": "पुराय लुकसाण जाल्ल्या घराखातीर मदत, सपाट वाठार: ₹1,20,000.00"
+      },
+      {
+        "kind": "source",
+        "text": "आधार: Full damage amount, plain area × (Damage (%) ≥ Full damage threshold (%)) × (House type ≠ 'hut') × (Area type = 'plain') with Full damage amount, plain area = 120000, Damage (%) = 80, Full damage threshold (%) = 75, House type = pucca, Area type = plain"
+      },
+      {
+        "kind": "item",
+        "text": "पुराय लुकसाण जाल्ल्या घराखातीर मदत, दोंगराळ वाठार: ₹0.00"
+      },
+      {
+        "kind": "source",
+        "text": "आधार: Full damage amount, hilly area × (Damage (%) ≥ Full damage threshold (%)) × (House type ≠ 'hut') × (Area type = 'hilly') with Full damage amount, hilly area = 130000, Damage (%) = 80, Full damage threshold (%) = 75, House type = pucca, Area type = plain"
+      },
+      {
+        "kind": "item",
+        "text": "थोडें लुकसाण जाल्ल्या पक्क्या घराखातीर मदत: ₹0.00"
+      },
+      {
+        "kind": "source",
+        "text": "आधार: Partial damage amount, pucca house × (Damage (%) ≥ Minimum damage (%)) × (Damage (%) < Full damage threshold (%)) × (House type = 'pucca') with Partial damage amount, pucca house = 6500, Damage (%) = 80, Minimum damage (%) = 15, Full damage threshold (%) = 75, House type = pucca"
+      },
+      {
+        "kind": "item",
+        "text": "थोडें लुकसाण जाल्ल्या कच्च्या घराखातीर मदत: ₹0.00"
+      },
+      {
+        "kind": "source",
+        "text": "आधार: Partial damage amount, kutcha house × (Damage (%) ≥ Minimum damage (%)) × (Damage (%) < Full damage threshold (%)) × (House type = 'kutcha') with Partial damage amount, kutcha house = 4000, Damage (%) = 80, Minimum damage (%) = 15, Full damage threshold (%) = 75, House type = pucca"
+      },
+      {
+        "kind": "item",
+        "text": "लुकसाण जाल्ल्या खोपीखातीर मदत: ₹0.00"
+      },
+      {
+        "kind": "source",
+        "text": "आधार: Damaged hut × (Damage (%) ≥ Minimum damage (%)) × (House type = 'hut') with Damaged hut = 8000, Damage (%) = 80, Minimum damage (%) = 15, House type = pucca"
+      },
+      {
+        "kind": "item",
+        "text": "कपड्यांच्या लुकसाणाखातीर मदत: ₹2,500.00"
+      },
+      {
+        "kind": "source",
+        "text": "आधार: Loss of clothing × (Damage (%) ≥ Minimum damage (%)) with Loss of clothing = 2500, Damage (%) = 80, Minimum damage (%) = 15"
+      },
+      {
+        "kind": "item",
+        "text": "भांडीं आनी घरगुती वस्तूंच्या लुकसाणाखातीर मदत: ₹2,500.00"
+      },
+      {
+        "kind": "source",
+        "text": "आधार: Loss of utensils and household goods × (Damage (%) ≥ Minimum damage (%)) with Loss of utensils and household goods = 2500, Damage (%) = 80, Minimum damage (%) = 15"
+      },
+      {
+        "kind": "total",
+        "text": "एकूण: ₹1,25,000.00"
+      },
+      {
+        "kind": "source",
+        "text": "नेम आवृत्ती: 0.1.0"
+      }
+    ]
+  },
+  "SW-01": {
+    "en": [
+      {
+        "kind": "status",
+        "text": "Status: Approved"
+      },
+      {
+        "kind": "next",
+        "text": "Next step: Your application has been approved. The office will give you further details."
+      },
+      {
+        "kind": "heading",
+        "text": "Officer's decision"
+      },
+      {
+        "kind": "decision",
+        "text": "Approved"
+      },
+      {
+        "kind": "date",
+        "text": "Decided on 1 Jan 2026"
+      },
+      {
+        "kind": "heading",
+        "text": "Why this amount"
+      },
+      {
+        "kind": "intro",
+        "text": "The amount approved by the officer, with the basis of each item:"
+      },
+      {
+        "kind": "item",
+        "text": "Base annual social security pension: ₹24,000.00"
+      },
+      {
+        "kind": "source",
+        "text": "Basis: (Senior citizen base annual pension × (Applicant category = 'senior_citizen')) + (Widow base annual pension × (Applicant category = 'widow')) + (Disability base annual pension × (Applicant category = 'person_with_disability')) + (Single woman base annual pension × (Applicant category = 'single_woman')) with Senior citizen base annual pension = 24000, Applicant category = Senior citizen, Widow base annual pension = 24000, Disability base annual pension = 24000, Single woman base annual pension = 24000"
+      },
+      {
+        "kind": "item",
+        "text": "Additional annual support for older senior citizens: ₹0.00"
+      },
+      {
+        "kind": "source",
+        "text": "Basis: Additional support for age 80+ × (Applicant category = 'senior_citizen') × (Age (years) ≥ 80) with Additional support for age 80+ = 6000, Applicant category = Senior citizen, Age (years) = 68"
+      },
+      {
+        "kind": "item",
+        "text": "Annual supplement for a widow supporting minor children: ₹0.00"
+      },
+      {
+        "kind": "source",
+        "text": "Basis: Widow minor-child annual supplement × (Applicant category = 'widow') × (Minor children count ≥ 1) with Widow minor-child annual supplement = 6000, Applicant category = Senior citizen, Minor children count = 0"
+      },
+      {
+        "kind": "total",
+        "text": "Total: ₹24,000.00"
+      },
+      {
+        "kind": "source",
+        "text": "Rules version: 2026.1-draft"
+      }
+    ],
+    "hi": [
+      {
+        "kind": "status",
+        "text": "स्थिति: स्वीकृत"
+      },
+      {
+        "kind": "next",
+        "text": "अगला कदम: आपका आवेदन स्वीकृत हो गया है। आगे की जानकारी कार्यालय देगा।"
+      },
+      {
+        "kind": "heading",
+        "text": "अधिकारी का निर्णय"
+      },
+      {
+        "kind": "decision",
+        "text": "स्वीकृत"
+      },
+      {
+        "kind": "date",
+        "text": "निर्णय की तिथि: 1 Jan 2026"
+      },
+      {
+        "kind": "heading",
+        "text": "यह राशि क्यों"
+      },
+      {
+        "kind": "intro",
+        "text": "अधिकारी द्वारा स्वीकृत राशि, हर मद के आधार के साथ:"
+      },
+      {
+        "kind": "item",
+        "text": "आधार वार्षिक सामाजिक सुरक्षा पेंशन: ₹24,000.00"
+      },
+      {
+        "kind": "source",
+        "text": "आधार: (Senior citizen base annual pension × (Applicant category = 'senior_citizen')) + (Widow base annual pension × (Applicant category = 'widow')) + (Disability base annual pension × (Applicant category = 'person_with_disability')) + (Single woman base annual pension × (Applicant category = 'single_woman')) with Senior citizen base annual pension = 24000, Applicant category = Senior citizen, Widow base annual pension = 24000, Disability base annual pension = 24000, Single woman base annual pension = 24000"
+      },
+      {
+        "kind": "item",
+        "text": "अधिक आयु के वरिष्ठ नागरिकों के लिए अतिरिक्त वार्षिक सहायता: ₹0.00"
+      },
+      {
+        "kind": "source",
+        "text": "आधार: Additional support for age 80+ × (Applicant category = 'senior_citizen') × (Age (years) ≥ 80) with Additional support for age 80+ = 6000, Applicant category = Senior citizen, Age (years) = 68"
+      },
+      {
+        "kind": "item",
+        "text": "नाबालिग बच्चों का पालन-पोषण करने वाली विधवा के लिए वार्षिक सहायता: ₹0.00"
+      },
+      {
+        "kind": "source",
+        "text": "आधार: Widow minor-child annual supplement × (Applicant category = 'widow') × (Minor children count ≥ 1) with Widow minor-child annual supplement = 6000, Applicant category = Senior citizen, Minor children count = 0"
+      },
+      {
+        "kind": "total",
+        "text": "कुल: ₹24,000.00"
+      },
+      {
+        "kind": "source",
+        "text": "नियम संस्करण: 2026.1-draft"
+      }
+    ],
+    "mr": [
+      {
+        "kind": "status",
+        "text": "स्थिती: मंजूर"
+      },
+      {
+        "kind": "next",
+        "text": "पुढील पायरी: तुमचा अर्ज मंजूर झाला आहे. पुढील माहिती कार्यालयाकडून मिळेल."
+      },
+      {
+        "kind": "heading",
+        "text": "अधिकाऱ्यांचा निर्णय"
+      },
+      {
+        "kind": "decision",
+        "text": "मंजूर"
+      },
+      {
+        "kind": "date",
+        "text": "निर्णयाची तारीख: 1 Jan 2026"
+      },
+      {
+        "kind": "heading",
+        "text": "ही रक्कम का"
+      },
+      {
+        "kind": "intro",
+        "text": "अधिकाऱ्यांनी मंजूर केलेली रक्कम, प्रत्येक बाबीच्या आधारासह:"
+      },
+      {
+        "kind": "item",
+        "text": "मूळ वार्षिक सामाजिक सुरक्षा निवृत्तीवेतन: ₹24,000.00"
+      },
+      {
+        "kind": "source",
+        "text": "आधार: (Senior citizen base annual pension × (Applicant category = 'senior_citizen')) + (Widow base annual pension × (Applicant category = 'widow')) + (Disability base annual pension × (Applicant category = 'person_with_disability')) + (Single woman base annual pension × (Applicant category = 'single_woman')) with Senior citizen base annual pension = 24000, Applicant category = Senior citizen, Widow base annual pension = 24000, Disability base annual pension = 24000, Single woman base annual pension = 24000"
+      },
+      {
+        "kind": "item",
+        "text": "अधिक वयाच्या ज्येष्ठ नागरिकांसाठी अतिरिक्त वार्षिक मदत: ₹0.00"
+      },
+      {
+        "kind": "source",
+        "text": "आधार: Additional support for age 80+ × (Applicant category = 'senior_citizen') × (Age (years) ≥ 80) with Additional support for age 80+ = 6000, Applicant category = Senior citizen, Age (years) = 68"
+      },
+      {
+        "kind": "item",
+        "text": "अल्पवयीन मुलांचा सांभाळ करणाऱ्या विधवेसाठी वार्षिक मदत: ₹0.00"
+      },
+      {
+        "kind": "source",
+        "text": "आधार: Widow minor-child annual supplement × (Applicant category = 'widow') × (Minor children count ≥ 1) with Widow minor-child annual supplement = 6000, Applicant category = Senior citizen, Minor children count = 0"
+      },
+      {
+        "kind": "total",
+        "text": "एकूण: ₹24,000.00"
+      },
+      {
+        "kind": "source",
+        "text": "नियम आवृत्ती: 2026.1-draft"
+      }
+    ],
+    "kok": [
+      {
+        "kind": "status",
+        "text": "स्थिती: मान्य"
+      },
+      {
+        "kind": "next",
+        "text": "फुडली पावंडी: तुमचो अर्ज मान्य जाला. फुडली म्हायती कार्यालय दितलें."
+      },
+      {
+        "kind": "heading",
+        "text": "अधिकाऱ्याचो निर्णय"
+      },
+      {
+        "kind": "decision",
+        "text": "मान्य"
+      },
+      {
+        "kind": "date",
+        "text": "निर्णयाची तारीख: 1 Jan 2026"
+      },
+      {
+        "kind": "heading",
+        "text": "ही रक्कम कित्याक"
+      },
+      {
+        "kind": "intro",
+        "text": "अधिकाऱ्यान मान्य केल्ली रक्कम, दर एका वस्तूच्या आधारा सयत:"
+      },
+      {
+        "kind": "item",
+        "text": "मूळ वर्सुकी सामाजिक सुरक्षा पेन्शन: ₹24,000.00"
+      },
+      {
+        "kind": "source",
+        "text": "आधार: (Senior citizen base annual pension × (Applicant category = 'senior_citizen')) + (Widow base annual pension × (Applicant category = 'widow')) + (Disability base annual pension × (Applicant category = 'person_with_disability')) + (Single woman base annual pension × (Applicant category = 'single_woman')) with Senior citizen base annual pension = 24000, Applicant category = Senior citizen, Widow base annual pension = 24000, Disability base annual pension = 24000, Single woman base annual pension = 24000"
+      },
+      {
+        "kind": "item",
+        "text": "चड वयाच्या ज्येष्ठ नागरिकांखातीर आनीक वर्सुकी मदत: ₹0.00"
+      },
+      {
+        "kind": "source",
+        "text": "आधार: Additional support for age 80+ × (Applicant category = 'senior_citizen') × (Age (years) ≥ 80) with Additional support for age 80+ = 6000, Applicant category = Senior citizen, Age (years) = 68"
+      },
+      {
+        "kind": "item",
+        "text": "अल्पवयीन भुरग्यांचो सांभाळ करपी विधवेखातीर वर्सुकी मदत: ₹0.00"
+      },
+      {
+        "kind": "source",
+        "text": "आधार: Widow minor-child annual supplement × (Applicant category = 'widow') × (Minor children count ≥ 1) with Widow minor-child annual supplement = 6000, Applicant category = Senior citizen, Minor children count = 0"
+      },
+      {
+        "kind": "total",
+        "text": "एकूण: ₹24,000.00"
+      },
+      {
+        "kind": "source",
+        "text": "नेम आवृत्ती: 2026.1-draft"
+      }
+    ]
+  }
+}
