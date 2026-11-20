@@ -104,6 +104,7 @@ TOOL_SPECS = [
     ToolSpec(name="submit_to_officer", description="Put the assessed case in the officer queue for a decision."),
 ]
 AGENT_TOOL_NAMES = tuple(t.name for t in TOOL_SPECS)
+REFUSAL = "Tool not available to the agent. Only an officer can approve, reject or send back a case."
 COMPENSATION_TOOL = "compute_compensation"
 # The answer when a scheme calculates no amount (no compensation section): not an error, nothing to compute.
 NOT_APPLICABLE = "This scheme calculates no amount; there is no compensation step."
@@ -112,7 +113,6 @@ NOT_APPLICABLE = "This scheme calculates no amount; there is no compensation ste
 def tool_specs_for(scheme: Scheme) -> list[ToolSpec]:
     """The tools offered for a case: all of them, less compute_compensation when the scheme has no compensation."""
     return [t for t in TOOL_SPECS if scheme.compensation is not None or t.name != COMPENSATION_TOOL]
-REFUSAL = "Tool not available to the agent. Only an officer can approve, reject or send back a case."
 
 
 class _Context(BaseModel, arbitrary_types_allowed=True):

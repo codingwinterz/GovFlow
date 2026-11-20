@@ -40,8 +40,7 @@ def test_labels_are_optional_and_empty_for_the_existing_schemes():
 def test_a_scheme_may_relabel_any_of_the_three_outcomes():
     scheme = parse_scheme(_with({"eligible": "Ready for notice", "needs_review": "Needs review"}))
     assert scheme.recommendation_labels == {"eligible": "Ready for notice", "needs_review": "Needs review"}
-    assert scheme.recommendation_label("eligible") == "Ready for notice"
-    assert scheme.recommendation_label("not_eligible") is None     # falls back to the app-wide label
+    assert "not_eligible" not in scheme.recommendation_labels    # the screen falls back to the app-wide label
 
 
 def test_unknown_outcome_is_rejected():

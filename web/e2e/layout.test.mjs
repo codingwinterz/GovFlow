@@ -1019,3 +1019,43 @@ test("case page at 390px: the eligibility and calculation tables scroll inside t
   for (const t of m.slice(0, 2)) assert.ok(t.overflow === "auto" && t.inner > t.outer, `${t.sel} squeezed instead of scrolling: ${JSON.stringify(t)}`);
   assert.equal(m[2].scroll, m[2].vw);
 });
+
+// A scheme with no compensation section (revenue mutation): its own recommendation words, source-cited timelines,
+// and no amounts card, summary total or award letter link. Synthetic payload.
+for (const width of [1280, 390]) {
+  test(`mutation case page at ${width}px: Ready for notice, timelines with sources, no amount anywhere, no sideways scroll`, async () => {
+    const detail = { ...CASE, case_id: "RM-01", scheme: "revenue_mutation", status: "approved",
+      labels: { title: "Revenue mutation (Form I and XIV)" }, recommendation: "eligible",
+      recommendation_labels: { eligible: "Ready for notice", needs_review: "Needs review", not_eligible: "Not ready for notice" },
+      has_compensation: false, compensation: { items: [], total: null }, confirm_fields: [],
+      timelines: [
+        { id: "scrutiny", label: "Scrutiny of the application", period: "7 working days", days: 7, working_days: true,
+          source_type: "ministerial_statement", source: "Revenue Minister, as reported in the press (goemkarponn.com)",
+          verify: true, verify_note: "against a notification or circular", drives_sla: false },
+        { id: "disposal_no_objections", label: "Disposal, no objections", period: "30 days", days: 30, working_days: false,
+          source_type: "ministerial_statement", source: "Revenue Minister, as reported in the press (goemkarponn.com)",
+          verify: true, verify_note: "against a notification or circular", drives_sla: true },
+        { id: "objections_decided", label: "Objections decided by the Mamlatdar", period: "Within three months",
+          days: null, working_days: false, source_type: "official_document",
+          source: "Goa Land Revenue (Record of Rights and Register of Cultivators) Rules, 1969, rule 11(2)",
+          verify: false, verify_note: null, drives_sla: false }] };
+    const { page, close } = await open("#/officer/cases/RM-01", (url) => ({ json: url.endsWith("/cases/RM-01") ? detail : [] }),
+      { login: OFFICER_LOGIN, width });
+    await page.locator(".summary-strip").waitFor();
+    const info = await page.evaluate(() => ({ text: document.querySelector("main").innerText,
+      strip: document.querySelector(".summary-strip").innerText,
+      award: [...document.querySelectorAll("a")].some((a) => /award/i.test(a.textContent)),
+      vw: document.documentElement.clientWidth, scroll: document.documentElement.scrollWidth }));
+    await close();
+    assert.match(info.text, /Rules engine recommendation: Ready for notice/);
+    assert.match(info.text, /Timelines/);
+    assert.match(info.text, /Ministerial statement: Revenue Minister, as reported/);
+    assert.match(info.text, /To verify: against a notification or circular/);
+    assert.match(info.text, /Official document: Goa Land Revenue/);
+    assert.match(info.text, /drives the SLA clock/);
+    assert.doesNotMatch(info.text, /₹|Not computed yet|Total compensation/);
+    assert.doesNotMatch(info.strip, /Total|Not computed/);
+    assert.equal(info.award, false, "no award letter link for a scheme with no amount");
+    assert.equal(info.scroll, info.vw, `mutation case page scrolls sideways at ${width}px`);
+  });
+}

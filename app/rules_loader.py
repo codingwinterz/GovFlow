@@ -273,9 +273,6 @@ OUTCOMES = ("eligible", "not_eligible", "needs_review")   # the rules engine's r
 DECISION_WORDING = re.compile(r"\b(approv\w*|reject\w*|sanction\w*|grant(ed)?|refus\w*)\b", re.IGNORECASE)
 
 
-SOURCE_TYPES = ("official_document", "ministerial_statement", "commercial_guide", "lead_only")
-
-
 class Timeline(BaseModel):
     """A step's period as a source states it (e.g. public notice, 15 days). Data shown on the case page only:
     nothing counts these days except the one marked drives_sla, which must equal sla_days."""
@@ -364,10 +361,6 @@ class Scheme(BaseModel):
             if DECISION_WORDING.search(str(label)):
                 raise ValueError(f"recommendation_labels.{outcome} {label!r} states a decision; only an officer decides")
         return self
-
-    def recommendation_label(self, outcome: str) -> Optional[str]:
-        """This scheme's words for an outcome, or None for the app-wide label."""
-        return self.recommendation_labels.get(outcome)
 
     @model_validator(mode="after")
     def _positive_sla(self) -> "Scheme":
