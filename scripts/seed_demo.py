@@ -38,11 +38,12 @@ from app.tools import add_document, amount_field_values, extract_document, recor
 ROOT = Path(__file__).resolve().parent.parent
 DATA = ROOT / "data" / "synthetic"
 NOT_RUN = ("LA-13", "LA-14", "LA-15", "DR-13", "DR-14")     # left as received / extracted
-CITIZEN_DEMO_CASES = ("LA-01", "LA-05", "LA-07", "LA-14", "DR-01", "DR-08", "SW-01")
+CITIZEN_DEMO_CASES = ("LA-01", "LA-05", "LA-07", "LA-14", "DR-01", "DR-08", "SW-01", "RM-01", "RM-03")
 DECISIONS = [("LA-01", "approve", "synthetic demo decision (seed script)"),
              ("LA-05", "send_back", "synthetic demo decision (seed script): identity proof expired, upload a valid one"),
              ("DR-01", "approve", "synthetic demo decision (seed script)"),
-             ("SW-01", "approve", "synthetic demo decision (seed script)")]
+             ("SW-01", "approve", "synthetic demo decision (seed script)"),
+             ("RM-01", "approve", "synthetic demo decision (seed script)")]
 INTAKE_DAYS_AGO = [3, 8, 12, 20, 27, 35, 41, 48, 55, 62, 66, 70, 74, 80, 85]   # synthetic, by case order
 
 

@@ -109,7 +109,7 @@ def _all_user_strings(payload) -> list[str]:
 
 def test_public_precheck_schemes_lists_both_schemes_and_excludes_application():
     schemes = public_precheck_schemes()
-    assert [s["scheme"] for s in schemes] == ["disaster_relief", "land_acquisition", "social_welfare"]
+    assert [s["scheme"] for s in schemes] == ["disaster_relief", "land_acquisition", "revenue_mutation", "social_welfare"]
     for s in schemes:
         doc_ids = [d["id"] for d in s["documents"]]
         assert "application" not in doc_ids
@@ -436,7 +436,7 @@ def test_api_get_precheck_options_needs_no_signin_and_excludes_application(env):
     _, app, _, _ = env
     status, body = call(app, "GET", "/public/precheck")
     assert status == 200
-    assert [s["scheme"] for s in body["schemes"]] == ["disaster_relief", "land_acquisition", "social_welfare"]
+    assert [s["scheme"] for s in body["schemes"]] == ["disaster_relief", "land_acquisition", "revenue_mutation", "social_welfare"]
     for s in body["schemes"]:
         assert "application" not in [d["id"] for d in s["documents"]]
     assert body["disclaimer"] == PRECHECK_DISCLAIMER

@@ -1,0 +1,129 @@
+{
+  "case_id": "RM-04",
+  "scheme": "revenue_mutation",
+  "status": "received",
+  "reference_date": "2026-11-15",
+  "documents": {
+    "application": {
+      "fields": {
+        "name": {
+          "value": "Anjali Dessai",
+          "confidence": 1.0,
+          "source_page": null
+        },
+        "survey_number": {
+          "value": "212/2",
+          "confidence": 1.0,
+          "source_page": null
+        },
+        "trigger_type": {
+          "value": "sale_deed",
+          "confidence": 1.0,
+          "source_page": null
+        }
+      }
+    },
+    "deed": {
+      "fields": {
+        "name": {
+          "value": "Anjali Dessai",
+          "confidence": 0.95,
+          "source_page": 1
+        },
+        "owner_name": {
+          "value": "Prakash Naik",
+          "confidence": 0.95,
+          "source_page": 1
+        },
+        "survey_number": {
+          "value": "212/2",
+          "confidence": 0.95,
+          "source_page": 1
+        },
+        "registration_date": {
+          "value": "2026-09-12",
+          "confidence": 0.95,
+          "source_page": 1
+        },
+        "holders_named": {
+          "value": 1,
+          "confidence": 0.95,
+          "source_page": 1
+        }
+      }
+    },
+    "ownership_record": {
+      "fields": {
+        "owner_name": {
+          "value": "Pradeep Shirodkar",
+          "confidence": 0.95,
+          "source_page": 1
+        },
+        "survey_number": {
+          "value": "212/2",
+          "confidence": 0.95,
+          "source_page": 1
+        },
+        "area": {
+          "value": 1200,
+          "confidence": 0.95,
+          "source_page": 1
+        },
+        "area_unit": {
+          "value": "sqm",
+          "confidence": 0.95,
+          "source_page": 1
+        },
+        "holder_count": {
+          "value": 1,
+          "confidence": 0.95,
+          "source_page": 1
+        },
+        "partitioned": {
+          "value": "no",
+          "confidence": 0.95,
+          "source_page": 1
+        },
+        "tenant_entry": {
+          "value": "",
+          "confidence": 0.95,
+          "source_page": 1
+        },
+        "other_rights_entry": {
+          "value": "",
+          "confidence": 0.95,
+          "source_page": 1
+        },
+        "dispute_entry": {
+          "value": "",
+          "confidence": 0.95,
+          "source_page": 1
+        },
+        "issue_date": {
+          "value": "2026-10-20",
+          "confidence": 0.95,
+          "source_page": 1
+        }
+      }
+    },
+    "identity_proof": {
+      "fields": {
+        "name": {
+          "value": "Anjali Dessai",
+          "confidence": 0.95,
+          "source_page": 1
+        },
+        "id_number": {
+          "value": "9999 4000 0004",
+          "confidence": 0.95,
+          "source_page": 1
+        },
+        "expiry_date": {
+          "value": "2031-06-30",
+          "confidence": 0.95,
+          "source_page": 1
+        }
+      }
+    }
+  }
+}

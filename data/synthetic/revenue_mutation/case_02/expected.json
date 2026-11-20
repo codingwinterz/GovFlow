@@ -1,0 +1,28 @@
+{
+  "case_id": "RM-02",
+  "description": "Co-owners not all named: three holders on Form I & XIV, one named on the deed, not partitioned; a second open mutation (RM-05) names the same survey number",
+  "verification": {
+    "name_match": "pass",
+    "transferor_match": "pass",
+    "survey_match": "pass",
+    "duplicate_mutation": "needs_review",
+    "tenant_or_mundkar_claim": "pass",
+    "recorded_dispute": "pass"
+  },
+  "eligibility": {
+    "overall": "needs_review",
+    "rules": {
+      "documents_complete": "pass",
+      "applicant_identified": "pass",
+      "transferor_is_recorded_owner": "pass",
+      "land_identified": "pass",
+      "co_owner_notice": "needs_review",
+      "rights_recorded_clear": "pass",
+      "no_recorded_dispute": "pass",
+      "no_pending_mutation": "needs_review",
+      "documents_not_expired": "pass"
+    }
+  },
+  "compensation": null,
+  "needs_human_review": true
+}

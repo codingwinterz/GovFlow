@@ -12,7 +12,7 @@ from app.models import (
     CASE_STATUSES, AuditLog, Case, CompensationItemRow, VerificationFlag,
     as_utc as _utc, iso_utc,
 )
-from app.rules_loader import scheme_names
+from app.rules_loader import is_scheme, load_scheme_by_name, scheme_names
 
 CLOSED = ("approved", "rejected", "withdrawn")
 SEVERITIES = ("high", "medium", "low")
@@ -111,6 +111,11 @@ def _flags_summary(session: Session, cases: list[Case], all_schemes: list[str]) 
     }
 
 
+def _schemes_with_amounts(schemes: list[str]) -> list[str]:
+    """Liability is listed only for schemes that calculate an amount (a compensation section in the YAML)."""
+    return [s for s in schemes if not is_scheme(s) or load_scheme_by_name(s).compensation is not None]
+
+
 def analytics(session: Session, stuck_days: float = 7, now: Optional[datetime] = None) -> dict[str, Any]:
     now = now or datetime.now(timezone.utc)
     cases = session.query(Case).all()
@@ -179,7 +184,7 @@ def analytics(session: Session, stuck_days: float = 7, now: Optional[datetime] =
         "decided_cases": len(times),
         "average_processing_seconds": round(sum(times) / len(times), 1) if times else None,
         "average_processing_source": "case created_at to officer_decision audit entry",
-        "liability": _liability(session, cases, all_schemes),
+        "liability": _liability(session, cases, _schemes_with_amounts(all_schemes)),
         "flags": _flags_summary(session, cases, all_schemes),
         "stuck_days": stuck_days,
         "stuck_source": "latest audit entry per case (else case updated_at)",

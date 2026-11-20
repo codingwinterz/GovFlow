@@ -126,3 +126,18 @@ test("documents-needed notice lists exactly the stored items, in each language, 
     assert.equal(noticeLines(needed, "LA-07", DICTS[lang]).filter((l) => l.kind === "item").length, 3);
   }
 });
+
+test("revenue mutation (no compensation): every document has a template in every language", () => {
+  const docs = yamlIds("revenue_mutation", "required_documents");
+  assert.deepEqual(docs, ["application", "deed", "ownership_record", "identity_proof"]);
+  assert.deepEqual(yamlIds("revenue_mutation", "components"), []);
+  for (const lang of LANGS) for (const d of docs) assert.ok(`documents.${d}` in DICTS[lang], `${lang} documents.${d}`);
+});
+
+test("an approved case of a scheme with no amount has no 'Why this amount' section", () => {
+  const view = { case_ref: "RM-01", scheme: "revenue_mutation", status: "approved", next_step: "approved", missing: [],
+    notices: [], documents_needed: null, decision: { decision: "approve", date: "2026-11-20" }, amounts: null };
+  const lines = citizenLines(view, DICTS.en);
+  assert.ok(!lines.some((l) => l.kind === "total" || l.text === DICTS.en["amounts.title"]));
+  assert.deepEqual(lines.map((l) => l.kind), ["status", "next", "heading", "decision", "date"]);
+});

@@ -1,0 +1,290 @@
+scheme: revenue_mutation
+version: "0.1.0-draft"
+# VERIFY: every source below. The process and periods are from docs/FUTURE_MUTATION_SCHEME.md section 1; none is
+# a notification or circular unless its timeline says "official_document". Nothing here is legal advice.
+source: "Goa Land Revenue Code, 1968 (section 96) and the Goa Land Revenue (Record of Rights and Register of Cultivators) Rules, 1969"
+confidence_threshold: 0.85
+# VERIFY: 30 days is the "disposal, no objections" period from the Revenue Minister's statement as reported in the
+# press, not a notification. It is the only period that drives the queue clock (see timelines).
+sla_days: 30
+labels:                            # a scheme with no compensation has a title only: there is no amount
+  title: "Revenue mutation (Form I and XIV)"
+# The system recommends; the officer decides. It calculates no amount and never decides title.
+recommendation_labels:
+  eligible: "Ready for notice"
+  needs_review: "Needs review"
+  not_eligible: "Not ready for notice"
+
+# Periods as the sources state them (docs/FUTURE_MUTATION_SCHEME.md section 1), shown on the case page with their
+# source. Data only: nothing counts these days except sla_days. Working days are not counted anywhere.
+timelines:
+  - id: application_to_talathi
+    label: "Application to the Talathi"
+    period: "No period stated (application under section 96 of the Goa Land Revenue Code)"
+    source_type: official_document
+    source: "Collectorate citizen charter (2016)"
+    verify: true
+    verify_note: "that the 2016 citizen charter is current"
+  - id: form_x_notice
+    label: "Form X notice"
+    period: "15 days"
+    days: 15
+    source_type: official_document
+    source: "Collectorate citizen charter (2016)"
+    verify: true
+    verify_note: "that the 2016 citizen charter is current"
+  - id: scrutiny
+    label: "Scrutiny of the application"
+    period: "7 working days"
+    days: 7
+    working_days: true
+    source_type: ministerial_statement
+    source: "Revenue Minister, as reported in the press (goemkarponn.com)"
+    verify: true
+    verify_note: "against a notification or circular"
+  - id: public_notice
+    label: "Public notice"
+    period: "15 days"
+    days: 15
+    source_type: ministerial_statement
+    source: "Revenue Minister, as reported in the press (goemkarponn.com)"
+    verify: true
+    verify_note: "against a notification or circular"
+  - id: disposal_no_objections
+    label: "Disposal, no objections"
+    period: "30 days"
+    days: 30
+    source_type: ministerial_statement
+    source: "Revenue Minister, as reported in the press (goemkarponn.com)"
+    verify: true
+    verify_note: "against a notification or circular"
+    drives_sla: true
+  - id: disposal_with_objections
+    label: "Disposal, with objections"
+    period: "90 days from the end of the notice period"
+    days: 90
+    source_type: ministerial_statement
+    source: "Revenue Minister, as reported in the press (goemkarponn.com)"
+    verify: true
+    verify_note: "against a notification or circular"
+  - id: objections_decided
+    label: "Objections decided by the Mamlatdar"
+    period: "Within three months, after hearing all parties; notice in Form XII to those who objected"
+    source_type: official_document
+    source: "Goa Land Revenue (Record of Rights and Register of Cultivators) Rules, 1969, rule 11(2), as amended in 2010"
+    verify: false
+  - id: co_owner_notice
+    label: "Notice to all co-owners on an unpartitioned holding"
+    period: "Required before mutation"
+    source_type: lead_only
+    source: "A proviso on Indian Kanoon, document 35551211"
+    verify: true
+    verify_note: "the rule the proviso belongs to is not yet identified"
+  - id: civil_title_disputes
+    label: "Civil title disputes"
+    period: "Not decided by the revenue authority; referred to the civil court"
+    source_type: lead_only
+    source: "Judgment in Prime Builders v. Roque Freddie Meninon Exano Pereira (Goa), case law"
+    verify: true
+    verify_note: "the exact court and date"
+  - id: application_window
+    label: "Application window after the transfer"
+    period: "90 days after the transfer"
+    days: 90
+    source_type: commercial_guide
+    source: "A commercial (non-government) guide"
+    verify: true
+    verify_note: "everything: a commercial guide is not a source; no rule here uses this period"
+
+# `application` is the form typed in by the clerk (confidence 1.0). `deed` is the deed or order behind the mutation
+# (sale deed, succession, partition or court order). VERIFY: whether other documents are needed for each trigger.
+required_documents:
+  - id: application
+    fields:
+      name: text                   # the applicant (transferee)
+      survey_number: text          # survey and sub-division number
+      trigger_type: {one_of: [sale_deed, succession, partition, court_order]}
+  - id: deed
+    # `name` is the transferee. `owner_name` is the person the record moves FROM (the transferor, the deceased
+    # holder, or the party the order is against): named like Form I's owner field so the field check compares them.
+    fields: {name: text, owner_name: text, survey_number: text, registration_date: date, holders_named: number}
+    plausible:
+      holders_named: [0, 50]       # VERIFY: placeholder sanity range for holders named on one deed
+  - id: ownership_record          # Form I & XIV, the current record of rights
+    # holder_count: every holder (occupant) listed for the survey number. partitioned: whether the record shows the
+    # holding as partitioned. tenant_entry, other_rights_entry and dispute_entry are copied as printed.
+    # VERIFY: which Form I & XIV columns hold the tenant, the mundkar / other-rights and the dispute entries.
+    fields: {owner_name: text, survey_number: text, area: number, area_unit: unit, holder_count: number,
+             partitioned: {one_of: ["yes", "no"]}, tenant_entry: text, other_rights_entry: text, dispute_entry: text,
+             issue_date: date}
+    may_be_blank: [tenant_entry, other_rights_entry, dispute_entry]   # an empty column means nothing is recorded
+    derived:
+      area_sqm: {convert: area, unit_field: area_unit, to: sqm}
+    plausible:
+      area_sqm: [10, 500000]       # VERIFY: placeholder sanity range (as land acquisition)
+      holder_count: [1, 50]        # VERIFY: placeholder sanity range for holders on one survey number
+    validity:
+      date_field: issue_date
+      max_age_days: 180            # VERIFY: how recent the extract must be (land acquisition's placeholder)
+  - id: identity_proof
+    fields: {name: text, id_number: text, expiry_date: date}
+    validity:
+      expiry_field: expiry_date
+
+verification_checks:
+  - id: name_match                 # the applicant: application, identity proof and the deed's transferee
+    fields: [name]
+    across: [application, identity_proof, deed]
+    tolerance: fuzzy_0.9
+    severity: high
+    citizen_remedy: name_mismatch
+  # The deed's transferor against the owner on Form I & XIV. A naming workaround (both fields are owner_name), not a
+  # general cross-field comparison: see docs/FUTURE_MUTATION_SCHEME.md section 2.
+  - id: transferor_match
+    fields: [owner_name]
+    across: [deed, ownership_record]
+    tolerance: fuzzy_0.9
+    severity: high
+  - id: survey_match
+    fields: [survey_number]
+    across: [application, deed, ownership_record]
+    tolerance: exact
+    severity: high
+  # Only open mutations compete: approved, rejected and withdrawn cases are left out. Within this scheme only.
+  - id: duplicate_mutation
+    builtin: duplicate_claim
+    key: application.survey_number
+    ignore_statuses: [approved, rejected, withdrawn]
+    severity: high
+    citizen_notice: claim_verification
+    messages:
+      key_unavailable: "Cannot check other mutations: {key_expr} unavailable"
+      no_competitor: "No other open mutation names survey number {key}."
+      competing: "Open mutation(s) {ids} also name survey number {key}. Decide them together; do not issue two notices."
+  - id: tenant_or_mundkar_claim
+    builtin: recorded_entry
+    entries: [ownership_record.tenant_entry, ownership_record.other_rights_entry]
+    # The same empty forms as land acquisition. VERIFY: that they cover how Goa's records write an empty column.
+    empty_values: [nil, "n.a.", "n/a", none, "निल", "शून्य", "निरंक", "नाही", "नहीं", "लागू नाही", "लागू नहीं",
+                   "काही नाही", "कोई नहीं", "कोणी नाही", "कांय ना"]
+    severity: high
+    basis: "The Goa, Daman and Diu Agricultural Tenancy Act, 1964; The Goa, Daman and Diu Mundkars (Protection from Eviction) Act, 1975"
+    approval_needs_resolution: true
+    citizen_notice: rights_verification
+    messages:
+      none: "No tenant or mundkar entry on the record of rights."
+      entry: "{ref} reads {value!r}"
+      unreadable: "{ref} could not be read reliably ({reason})"
+  # A recorded dispute is never decided here: the officer refers it. VERIFY: the lead in timelines.civil_title_disputes.
+  - id: recorded_dispute
+    builtin: recorded_entry
+    entries: [ownership_record.dispute_entry]
+    empty_values: [nil, "n.a.", "n/a", none, "निल", "शून्य", "निरंक", "नाही", "नहीं", "लागू नाही", "लागू नहीं",
+                   "काही नाही", "कोई नहीं", "कोणी नाही", "कांय ना"]
+    severity: high
+    basis: "Civil title disputes are for the civil court, not the revenue authority (lead only; VERIFY)"
+    approval_needs_resolution: true
+    citizen_notice: claim_verification
+    messages:
+      none: "No dispute recorded on the record of rights."
+      entry: "Dispute recorded: {ref} reads {value!r}. Refer; this system does not decide title."
+      unreadable: "{ref} could not be read reliably ({reason}). Refer if a dispute may be recorded; this system does not decide title."
+
+# Clauses are placeholders until confirmed. VERIFY: every <GLRC clause: ...>.
+eligibility_rules:
+  - id: documents_complete
+    clause: "<GLRC clause: documents for a mutation application>"
+    when: "all_documents_present"
+    fail_reason: "One or more required documents are missing."
+  - id: applicant_identified
+    clause: "<GLRC clause: applicant identity>"
+    depends_on: [name_match]
+    when: "identity_proof.present"
+    fail_reason: "Identity proof missing or the applicant's name does not match the deed."
+  - id: transferor_is_recorded_owner
+    clause: "<GLRC clause: section 96, the transferor holds the recorded right>"
+    depends_on: [transferor_match]
+    when: "ownership_record.present"
+    fail_reason: "The person the deed or order transfers from is not the owner recorded on Form I and XIV."
+  - id: land_identified
+    clause: "<GLRC clause: survey number of the holding>"
+    depends_on: [survey_match]
+    fail_reason: "The survey number differs between the application, the deed and Form I and XIV."
+  # Every holder on Form I & XIV is named on the deed, unless the holding is partitioned. Otherwise a notice to all
+  # co-owners is required before mutation: that is for the officer to act on, never "not eligible".
+  - id: co_owner_notice
+    clause: "<GLRC clause: notice to co-owners of an unpartitioned holding (lead only)>"
+    when: "deed.holders_named >= ownership_record.holder_count or lower(ownership_record.partitioned) == 'yes'"
+    on_false: needs_review
+    fail_reason: "Notice to all co-owners required: not every holder on Form I and XIV is named on the deed, and the holding is not partitioned."
+  - id: rights_recorded_clear
+    clause: "<GLRC clause: tenancy and mundkar rights on the record>"
+    depends_on: [tenant_or_mundkar_claim]
+    fail_reason: "A tenant or mundkar entry is recorded."
+  - id: no_recorded_dispute
+    clause: "<GLRC clause: disputed entries (refer; title is not decided here)>"
+    depends_on: [recorded_dispute]
+    fail_reason: "A dispute is recorded: refer; this system does not decide title."
+  - id: no_pending_mutation
+    clause: "<GLRC clause: one mutation at a time for a holding>"
+    depends_on: [duplicate_mutation]
+    fail_reason: "Another open mutation names the same survey number."
+  - id: documents_not_expired
+    clause: "<GLRC clause: document validity>"
+    when: "all_documents_valid"
+    fail_reason: "One or more documents are expired or too old."
+
+# Self-check before applying: the co-owner question only (cross-document checks need the real documents).
+self_check:
+  questions:
+    - field: ownership_record.holder_count
+      prompt: "How many people are listed as holders on the Form I and XIV for this survey number?"
+    - field: deed.holders_named
+      prompt: "How many of those holders are named on the sale deed or order?"
+    - field: ownership_record.partitioned
+      prompt: "Has the holding been partitioned?"
+      choices: ["yes", "no"]
+  rules: [co_owner_notice]
+
+# No compensation section: this scheme calculates no amount.
+
+terms:
+  application: Application form
+  deed: Deed or order
+  ownership_record: Ownership record (Form I & XIV)
+  identity_proof: Identity proof
+  name: Name
+  deed.name: Transferee name
+  owner_name: Owner name
+  deed.owner_name: Transferor name
+  ownership_record.owner_name: Owner on Form I & XIV
+  survey_number: Survey number
+  trigger_type: Reason for the mutation
+  registration_date: Registration date
+  holders_named: Holders named on the deed
+  holder_count: Holders listed on Form I & XIV
+  partitioned: Holding partitioned
+  area: Area
+  area_unit: Area unit
+  area_sqm: Area (sq m)
+  tenant_entry: Tenant entry
+  other_rights_entry: Mundkar or other-rights entry
+  dispute_entry: Dispute entry
+  issue_date: Issue date
+  id_number: ID number
+  expiry_date: Expiry date
+  name_match: Applicant name check across documents
+  transferor_match: Transferor matches the owner on Form I & XIV
+  survey_match: Survey number check across documents
+  duplicate_mutation: Another open mutation on this survey number
+  tenant_or_mundkar_claim: Tenant or mundkar entry on the record of rights
+  recorded_dispute: Dispute recorded on the record of rights
+  documents_complete: All documents submitted
+  applicant_identified: Applicant identified
+  transferor_is_recorded_owner: Transferor is the recorded owner
+  land_identified: Land identified
+  co_owner_notice: Notice to all co-owners
+  rights_recorded_clear: No tenant or mundkar entry
+  no_recorded_dispute: No recorded dispute
+  no_pending_mutation: No other open mutation
+  documents_not_expired: Documents current
