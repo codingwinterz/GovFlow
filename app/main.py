@@ -248,6 +248,7 @@ def _detail(session: Session, case: Case) -> dict[str, Any]:
         "rule_results": [{"rule_id": r.rule_id, "status": r.status, "reason": r.reason, "clause": r.clause,
                           "rules_version": r.rules_version} for r in rules],
         "recommendation": overall_from([r.status for r in rules]) if rules else None,
+        "recommendation_labels": scheme.recommendation_labels,
         "compensation": {"items": [{"component": i.component, "amount": i.amount, "formula_note": i.formula_note}
                                    for i in items],
                          "total": round(sum(i.amount for i in items), 2) if items else None},

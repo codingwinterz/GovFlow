@@ -263,6 +263,9 @@ class Compensation(BaseModel):
 
 
 LABELS = ("title", "amounts", "total")   # display wording; each scheme writes its own
+OUTCOMES = ("eligible", "not_eligible", "needs_review")   # the rules engine's recommendations (rules_engine.Overall)
+# A recommendation label must never read as a decision: only an officer approves or rejects (CLAUDE.md rule 2).
+DECISION_WORDING = re.compile(r"\b(approv\w*|reject\w*|sanction\w*|grant(ed)?|refus\w*)\b", re.IGNORECASE)
 
 
 class SelfCheckQuestion(BaseModel):
@@ -289,6 +292,25 @@ class Scheme(BaseModel):
     compensation: Optional[Compensation] = None
     self_check: Optional[SelfCheck] = None
     terms: dict[str, str] = {}       # human label per identifier shown on screen (see known_terms)
+    # Optional words for the engine's outcomes on this scheme's screens, e.g. {eligible: "Ready for notice"}.
+    # The outcomes themselves never change; an outcome left out keeps the app-wide label.
+    recommendation_labels: dict[str, str] = {}
+
+    @model_validator(mode="after")
+    def _recommendation_labels(self) -> "Scheme":
+        unknown = sorted(set(self.recommendation_labels) - set(OUTCOMES))
+        if unknown:
+            raise ValueError(f"recommendation_labels has unknown outcomes {unknown}; use {list(OUTCOMES)}")
+        for outcome, label in self.recommendation_labels.items():
+            if not str(label).strip() or "_" in str(label):
+                raise ValueError(f"recommendation_labels.{outcome} must be human wording (non-empty, no underscores)")
+            if DECISION_WORDING.search(str(label)):
+                raise ValueError(f"recommendation_labels.{outcome} {label!r} states a decision; only an officer decides")
+        return self
+
+    def recommendation_label(self, outcome: str) -> Optional[str]:
+        """This scheme's words for an outcome, or None for the app-wide label."""
+        return self.recommendation_labels.get(outcome)
 
     @model_validator(mode="after")
     def _positive_sla(self) -> "Scheme":

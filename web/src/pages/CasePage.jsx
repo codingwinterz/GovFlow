@@ -8,6 +8,7 @@ import {
 import { href } from "../lib/router.js";
 import {
   appLabel, clauseText, explanationBlocks, flagLabel, readable, readableFormula, termLabel, withoutClausePlaceholders,
+  recommendationLabel,
 } from "../lib/display.js";
 import { DICTS } from "../i18n/index.js";
 import { flagCounts, slaClock, summaryTotal } from "../lib/summary.js";
@@ -86,7 +87,7 @@ function Rules({ detail }) {
     <section className="card">
       <h2>Eligibility <span className="badge rec">recommendation only</span></h2>
       {detail.recommendation
-        ? <p>Rules engine recommendation: <strong>{appLabel("recommendation", detail.recommendation)}</strong> <span className="muted">(rules version {detail.rules_version}). Only an officer decides.</span></p>
+        ? <p>Rules engine recommendation: <strong>{recommendationLabel(detail.recommendation, detail.recommendation_labels)}</strong> <span className="muted">(rules version {detail.rules_version}). Only an officer decides.</span></p>
         : <p className="muted">Not assessed yet.</p>}
       {detail.rule_results.length > 0 && (
         <div className="table-scroll"><table className="rules-table">
