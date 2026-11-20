@@ -50,8 +50,9 @@ cd web && npm run dev                                   # terminal 2, open http:
 ### 2. Flags and human review (0:25, ~30 s)
 - **Login:** role `officer`, user `O-1` (*switch user* in the header).
 - **Click:** Queue (it opens on all cases; no filter needed) → note flagged cases are listed first →
-  open **LA-11** (low-quality scan). The strip at the top of a case gives its status, total, flags by severity
-  and the SLA clock (days left, overdue, or paused) at a glance.
+  open **LA-11** (low-quality scan). The top of a case gives a one-line summary, the strip (status, total, flags by
+  severity, SLA clock), *Needs your attention* (the verification flags) and three steps: Review flags, Check amount,
+  Decide. Everything else is one click away in collapsed rows; open *Documents and what was read* to show the fields.
 - **Say:** "Fields at or below the confidence threshold are highlighted and routed to a human; the name mismatch
   is flagged with both values. Every value shows its document, field, page and method."
 - **Duplicate claim:** open **LA-12**. Two high-severity flags: *Overlapping claims on this survey number* (LA-13's
@@ -68,7 +69,8 @@ cd web && npm run dev                                   # terminal 2, open http:
 
 ### 3. Eligibility and compensation (0:55, ~25 s)
 - **Login:** officer `O-1`.
-- **Click:** Queue → **LA-09** (area given in square feet).
+- **Click:** Queue → **LA-09** (area given in square feet) → open *Checks* (the eligibility rules) and *How the amount
+  was worked out* (the compensation steps); the agent explanation is under *Why the system recommends this*.
 - **Say:** "Each rule shows pass or fail with its rules version. The clause column shows a dash for now: the
   clause references are still being confirmed, and we show nothing rather than a placeholder. Compensation is itemised:
   land value, assets, solatium, interest, each with the formula and the inputs used, here converted from
@@ -81,7 +83,7 @@ cd web && npm run dev                                   # terminal 2, open http:
 
 ### 4. Officer approval, award letter, audit (1:20, ~25 s)
 - **Login:** officer `O-1`.
-- **Click:** on LA-09, Decision panel → *Approve* → Record decision → *Award letter* → *Print / Save as PDF*
+- **Click:** on LA-09, the decision bar at the bottom of the screen → *Approve* → tick each value → Record decision → *Award letter* → *Print / Save as PDF*
   (show the print preview) → back → *Audit trail* → *Verify log integrity*.
 - **Say:** "Only the officer role can decide. The agent has no approve or reject tool at all. The award
   letter carries the itemised amounts, rule citations, officer id and rules version, with identifiers
@@ -105,7 +107,7 @@ cd web && npm run dev                                   # terminal 2, open http:
 - **Login:** none. **Click:** *Track an application* in the header.
 - **Enter:** reference `LA-01` and the code the seed printed for it → Check status.
 - **Say:** "A citizen sees only status, next step, what is missing and the decision, with no internal flags.
-  *Why this amount* cites the same formula as the officer view."
+  *Why this amount* cites the same formula as the officer view." (Each item's basis opens under *Why?*.)
 - **Click:** Language → *हिंदी*.
 - **Say:** "All wording comes from fixed templates; numbers are inserted by code, never by an LLM. Hindi,
   Marathi and Konkani are marked as awaiting native-speaker review, as the footer says."
@@ -117,7 +119,7 @@ cd web && npm run dev                                   # terminal 2, open http:
   eligible*.
 - **Say:** "The scheme's own rules run as a dry run. Nothing is stored. It always says: this is a guide,
   not a decision. Only an officer decides."
-- **Document pre-check (same page):** under *Check a document before you apply*, choose *Land acquisition
+- **Document pre-check (same page):** click *Check a document*, then under *Check a document before you apply*, choose *Land acquisition
   compensation*, *Identity proof*, select `identity_proof.txt` → *Check document*.
 - **Say:** "A citizen can also pre-check one document before coming in. It runs in memory and stores nothing on disk,
   in the database or in logs—only a minimal timing and readability category in the audit trail. It shows the name or

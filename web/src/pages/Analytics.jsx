@@ -4,6 +4,8 @@ import { formatDate, formatDuration, formatRupees } from "../lib/format.js";
 import { href } from "../lib/router.js";
 import { appLabel, flagLabel, readable, schemeTitle } from "../lib/display.js";
 import { barPercent, sharedScale } from "../lib/chart.js";
+import { attentionCases, headlineTiles } from "../lib/glance.js";
+import { More } from "../Disclosure.jsx";
 
 const STAGES = [
   "received", "extracted", "verified", "assessed", "in_officer_review",
@@ -56,6 +58,63 @@ function FlagTable({ caption, head, counts, label }) {
   );
 }
 
+const TILE_NOTE = {
+  awaiting: "Ready for an officer to decide.",
+  overdue: "Open cases past their scheme's target.",
+  days_open: "Waiting for the citizen is not counted.",
+  pending: "Cases still in the pipeline.",
+};
+
+// Each headline value is the API field as sent; formatting only.
+function tileValue(tile) {
+  if (tile.value === null || tile.value === undefined) return "—";
+  if (tile.key === "pending") return formatRupees(tile.value);
+  if (tile.key === "days_open") return `${tile.value} d`;
+  return tile.value;
+}
+
+// Open cases the API marks overdue, or with a high-severity flag, each linking to the case. Read from the queue
+// endpoint (officers and clerks); an administrator sees a plain note instead.
+const FIRST = 8;     // the attention list shows this many; the rest are one click away, never dropped
+
+function AttentionItem({ c, schemes }) {
+  return (
+    <li>
+      <a href={href("case", c.case_id)}>{c.case_id}</a>
+      <span className="muted small">{schemeTitle(schemes, c.scheme)}</span>
+      {c.overdue && <span className="badge warn">overdue</span>}
+      {c.high && <span className="sev sev-high">{appLabel("severity", "high")}</span>}
+    </li>
+  );
+}
+
+function Attention({ schemes }) {
+  const cases = useApi("/cases");
+  const list = attentionCases(cases.data);
+  return (
+    <section className="card attention-card">
+      <h2>Attention needed</h2>
+      {cases.error?.status === 403 ? <p className="muted">The case list is for officers and clerks.</p> : (
+        <>
+          <Loading state={cases} />
+          {cases.data && (list.length === 0 ? <p className="muted">Nothing is overdue or flagged high.</p> : (
+            <>
+              <ul className="attention-list">{list.slice(0, FIRST).map((c) => <AttentionItem key={c.case_id} c={c} schemes={schemes} />)}</ul>
+              {list.length > FIRST && (
+                <details className="why attention-more">
+                  <summary>Show all {list.length}</summary>
+                  <ul className="attention-list">{list.slice(FIRST).map((c) => <AttentionItem key={c.case_id} c={c} schemes={schemes} />)}</ul>
+                </details>
+              )}
+            </>
+          ))}
+        </>
+      )}
+      <p className="muted small">Source: the case queue (overdue as the API marks it; flags of high severity).</p>
+    </section>
+  );
+}
+
 export default function Analytics() {
   const [days, setDays] = useState(7);
   const a = useApi(`/analytics?stuck_days=${days}`);
@@ -79,6 +138,29 @@ export default function Analytics() {
         </div>
       )}
       {d && (
+        <>
+          <div className="headline-tiles">
+            {headlineTiles(d).map((tile) => (
+              <section key={tile.key} className={`card tile${tile.key === "overdue" ? " overdue-tile" : ""}`} data-source={tile.source}>
+                <h2>{tile.label}</h2>
+                <p className={`big${tile.key === "pending" ? " money" : ""}`}>{tileValue(tile)}</p>
+                <p className="muted small">{TILE_NOTE[tile.key]}</p>
+                {tile.key === "overdue" && (
+                  <details className="how-counted">
+                    <summary>How this is counted</summary>
+                    <p className="muted small">Waiting for the citizen does not count. A flag only: nothing changes
+                      automatically. Source: {readable(d.overdue_source)}.</p>
+                  </details>
+                )}
+              </section>
+            ))}
+          </div>
+          <div className="grid top-row">
+            <Counts title="Cases by stage" counts={d.by_status} scale={scale} label={status}
+              source={`${d.total_cases} cases in the database`} />
+            <Attention schemes={schemes.data} />
+          </div>
+          <More title="More detail" term="every table and chart" className="more-detail">
         <div className="grid">
           <div className="tiles wide">
           <section className="card tile">
@@ -91,15 +173,10 @@ export default function Analytics() {
             <p className="big">{d.by_status?.in_officer_review ?? 0}</p>
             <p className="muted small">Ready for an officer to decide.</p>
           </section>
-          <section className="card tile overdue-tile">
+          <section className="card tile">
             <h2>Overdue against SLA</h2>
             <p className="big">{d.overdue_count}</p>
             <p className="muted small">Open cases past their scheme's target.</p>
-            <details className="how-counted">
-              <summary>How this is counted</summary>
-              <p className="muted small">Waiting for the citizen does not count. A flag only: nothing changes
-                automatically. Source: {readable(d.overdue_source)}.</p>
-            </details>
           </section>
           {d.average_days_open !== undefined && (
             <section className="card tile">
@@ -160,8 +237,6 @@ export default function Analytics() {
             </section>
           )}
           <h2 className="group-title wide">Charts</h2>
-          <Counts title="Cases by status" counts={d.by_status} scale={scale} label={status}
-            source={`${d.total_cases} cases in the database`} />
           <Counts title="Cases per scheme" counts={d.per_scheme} scale={scale} label={scheme}
             source="the scheme each case belongs to" />
           {d.overdue_count > 0 && (
@@ -240,6 +315,8 @@ export default function Analytics() {
             <p className="muted small">Source: {readable(d.stuck_source)}. Closed cases are excluded.</p>
           </section>
         </div>
+          </More>
+        </>
       )}
     </section>
   );

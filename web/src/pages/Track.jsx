@@ -32,6 +32,10 @@ export default function Track({ dict }) {
   return (
     <section className="card track">
       <h1 className="no-print">{t(dict, "track.title")}</h1>
+      <ol className="progress no-print" aria-label={t(dict, "track.title")}>
+        <li className={view ? "done" : undefined} aria-current={view ? undefined : "step"}>{t(dict, "track.step_details")}</li>
+        <li aria-current={view ? "step" : undefined}>{t(dict, "track.step_status")}</li>
+      </ol>
       <form onSubmit={submit} className="no-print">
         <label>{t(dict, "track.case_ref")} <input value={ref} onChange={(e) => setRef(e.target.value)} autoComplete="off" required maxLength={64} /></label>
         <label>{t(dict, "track.code")} <input value={code} onChange={(e) => setCode(e.target.value)} inputMode="numeric" autoComplete="off"
@@ -44,7 +48,9 @@ export default function Track({ dict }) {
         <div className="citizen-view no-print">
           {citizenLines(view, dict).map((line, i) =>
             line.kind === "heading" ? <h2 key={i}>{line.text}</h2>
-              : <p key={i} className={`line ${line.kind}`}>{line.text}</p>)}
+              : line.kind === "source"     // the basis of each amount, word for word, behind "Why?"
+                ? <details key={i} className="why"><summary>{t(dict, "track.why")}</summary><p className={`line ${line.kind}`}>{line.text}</p></details>
+                : <p key={i} className={`line ${line.kind}`}>{line.text}</p>)}
         </div>
       )}
       {view?.documents_needed && (

@@ -71,7 +71,7 @@ export default function Simulator() {
         <div className="card">
           <h2>{termLabel(terms, result.name)}: {result.original_value} → {result.new_value}</h2>
           <p className="muted">{result.changed_count} of {result.case_count} cases change · rules version {result.rules_version} · source: POST /simulate</p>
-          <table>
+          <div className="table-scroll"><table>
             <thead><tr><th>Case</th><th>Before</th><th>After</th><th className="num">Total before</th><th className="num">Total after</th><th className="num">Change</th></tr></thead>
             <tbody>
               {result.cases.map((c) => (
@@ -83,7 +83,7 @@ export default function Simulator() {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         </div>
       )}
     </section>

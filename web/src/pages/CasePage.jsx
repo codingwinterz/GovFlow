@@ -13,6 +13,8 @@ import {
 import { DICTS } from "../i18n/index.js";
 import { flagCounts, showsAmounts, slaClock, summaryTotal } from "../lib/summary.js";
 import { timelineNote, timelineRows } from "../lib/timelines.js";
+import { caseHeadline } from "../lib/glance.js";
+import { More } from "../Disclosure.jsx";
 
 function RetryBanner({ caseId, docs, onDone, terms }) {
   const docName = (doc) => termLabel(terms, doc.doc_type);
@@ -177,17 +179,20 @@ function DecisionPanel({ caseId, confirmFields = [], resolutionsNeeded = [], ter
       setError(err.message);
     }
   };
+  // A bar that stays on screen (sticky to the bottom of the window): the choice and the button always in reach; the
+  // checks for the chosen decision open inside the bar.
   return (
-    <section className="card decision">
-      <h2>Officer decision</h2>
-      <p className="muted">The agent's results above are recommendations. This decision is yours and is recorded in the audit trail.</p>
-      <form onSubmit={submit}>
-        <div className="choices">
+    <section className="card decision decision-bar" aria-labelledby="decision-heading">
+      <form onSubmit={submit} className={decision ? "open" : ""}>
+        <h2 id="decision-heading">Officer decision</h2>
+        <div className="choices" role="radiogroup" aria-labelledby="decision-heading">
           {[["approve", "Approve"], ["reject", "Reject"], ["send_back", "Send back"]].map(([value, label]) => (
             <label key={value}><input type="radio" name="decision" value={value} checked={decision === value}
               onChange={() => setDecision(value)} /> {label}</label>
           ))}
         </div>
+        <p className="muted small decision-note">The agent's results above are recommendations. This decision is yours and is recorded in the audit trail.</p>
+        {decision && <div className="decision-more">
         {decision === "approve" && confirmFields.length > 0 && (
           <fieldset className="confirm">
             <legend>Check these values against the documents</legend>
@@ -218,7 +223,8 @@ function DecisionPanel({ caseId, confirmFields = [], resolutionsNeeded = [], ter
         <label>Comment {decision && decision !== "approve" && <span className="muted">(required)</span>}
           <textarea value={comment} onChange={(e) => setComment(e.target.value)} rows={3} />
         </label>
-        {error && <p className="error">{error}</p>}
+        </div>}
+        {error && <p className="error" role="alert">{error}</p>}
         <button type="submit">Record decision</button>
       </form>
     </section>
@@ -320,6 +326,7 @@ export default function CasePage({ id, login }) {
   const [running, setRunning] = useState(false);
   const [runError, setRunError] = useState("");
   const d = detail.data;
+  const deciding = Boolean(d) && login.role === "officer" && d.status === "in_officer_review";
   const runAgent = async () => {
     setRunning(true);
     setRunError("");
@@ -342,8 +349,9 @@ export default function CasePage({ id, login }) {
             <h1>{d.case_id} <span className={`status s-${d.status}`}>{appLabel("status", d.status)}</span></h1>
             <p className="muted">{d.labels.title} · rules version {d.rules_version} · reference date {d.reference_date}
               {d.officer_id && <> · officer {d.officer_id}</>}</p>
+            <p className="headline">{caseHeadline(d)}</p>
             <div className="actions">
-              <button onClick={runAgent} disabled={running}>{running ? "Running agent…" : "Run agent"}</button>
+              <button className="secondary" onClick={runAgent} disabled={running}>{running ? "Running agent…" : "Run agent"}</button>
               {login.role === "officer" && <a href={href("audit", d.case_id)}>Audit trail</a>}
               {login.role === "officer" && d.status === "approved" && showsAmounts(d) && <a href={href("award", d.case_id)}>Award letter</a>}
             </div>
@@ -352,8 +360,8 @@ export default function CasePage({ id, login }) {
           <SummaryStrip key={d.case_id} detail={d} />
           <RetryBanner caseId={d.case_id} docs={unavailableDocuments(d)} onDone={detail.reload} terms={d.terms} />
           {d.flags.length > 0 && (
-            <section className="card">
-              <h2>Verification flags</h2>
+            <section className="attention" aria-labelledby="attention-heading">
+              <h2 id="attention-heading">Needs your attention <span className="term">verification flags</span></h2>
               <ul className="flags">{d.flags.map((f, i) => (
                 <li key={i} className={`flag-item flag-${f.severity}`}>
                   <span className={`sev sev-${f.severity}`}>{appLabel("severity", f.severity)}</span>{" "}
@@ -361,19 +369,54 @@ export default function CasePage({ id, login }) {
               ))}</ul>
             </section>
           )}
-          <Explanation explanation={d.explanation} terms={d.terms} />
-          <Rules detail={d} />
-          <Timelines timelines={d.timelines} />
-          {showsAmounts(d) && <Amounts compensation={d.compensation} version={d.rules_version} labels={d.labels} terms={d.terms} />}
-          <Documents documents={d.documents} terms={d.terms} />
-          <section className="card">
-            <h2>Officer-entered inputs</h2>
-            <table><tbody>{Object.entries(d.inputs).map(([k, v]) => (
-              <tr key={k}><td>{termLabel(d.terms, k)}</td><td>{maskIdentifiers(v)}</td><td className="small muted">source: case inputs (officer/clerk)</td></tr>
-            ))}</tbody></table>
-          </section>
-          {login.role === "officer" && d.status === "in_officer_review" && <RequestDocuments caseId={d.case_id} onDone={detail.reload} />}
-          {login.role === "officer" && d.status === "in_officer_review" && <DecisionPanel caseId={d.case_id} confirmFields={d.confirm_fields} resolutionsNeeded={d.resolutions_needed} terms={d.terms} onDone={detail.reload} />}
+          {deciding && (
+            <ol className="guide" aria-label="Three steps to decide this case">
+              <li><strong>Review flags</strong>{d.flags.length > 0 ? " listed above." : ": none on this case."}</li>
+              {showsAmounts(d)
+                ? <li><strong>Check amount</strong> in the summary; open "How the amount was worked out" for each step.</li>
+                : <li><strong>Check details</strong>: open "Checks" and "Documents" below.</li>}
+              <li><strong>Decide</strong> in the bar at the bottom of the screen.</li>
+            </ol>
+          )}
+          <div className="details-list">
+            {d.explanation && (
+              <More title="Why the system recommends this" term="agent explanation"
+                hint={d.explanation.used_fallback ? "written without the LLM" : "written by the agent"}>
+                <Explanation explanation={d.explanation} terms={d.terms} />
+              </More>
+            )}
+            <More title="Checks" term="eligibility rules"
+              hint={d.recommendation ? recommendationLabel(d.recommendation, d.recommendation_labels) : "not assessed yet"}>
+              <Rules detail={d} />
+            </More>
+            {timelineRows(d.timelines).length > 0 && (
+              <More title="Time limits" term="timelines"><Timelines timelines={d.timelines} /></More>
+            )}
+            {showsAmounts(d) && (
+              <More title="How the amount was worked out" term={`${d.labels.amounts} steps`}
+                hint={summaryTotal(d) === null ? "not computed yet" : formatRupees(summaryTotal(d))}>
+                <Amounts compensation={d.compensation} version={d.rules_version} labels={d.labels} terms={d.terms} />
+              </More>
+            )}
+            <More title="Documents and what was read" term="documents and extracted fields"
+              hint={`${d.documents.length} ${d.documents.length === 1 ? "document" : "documents"}`}>
+              <Documents documents={d.documents} terms={d.terms} />
+            </More>
+            <More title="Values entered by staff" term="officer-entered inputs">
+              <section className="card">
+                <h2>Officer-entered inputs</h2>
+                <table><tbody>{Object.entries(d.inputs).map(([k, v]) => (
+                  <tr key={k}><td>{termLabel(d.terms, k)}</td><td>{maskIdentifiers(v)}</td><td className="small muted">source: case inputs (officer/clerk)</td></tr>
+                ))}</tbody></table>
+              </section>
+            </More>
+            {deciding && (
+              <More title="Ask the citizen for documents" term="request documents">
+                <RequestDocuments caseId={d.case_id} onDone={detail.reload} />
+              </More>
+            )}
+          </div>
+          {deciding && <DecisionPanel caseId={d.case_id} confirmFields={d.confirm_fields} resolutionsNeeded={d.resolutions_needed} terms={d.terms} onDone={detail.reload} />}
         </>
       )}
     </section>

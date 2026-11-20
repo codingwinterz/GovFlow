@@ -4,6 +4,7 @@ import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { createServer } from "vite";
 import { chromium } from "playwright-core";
+import { readFileSync } from "node:fs";
 
 const PAGES = ["#/citizen", "#/citizen/check", "#/citizen/track"];
 let server, browser, base;
@@ -86,6 +87,8 @@ for (const width of [1280, 390]) {
     await context.route("**/api/**", (r) => r.fulfill({ json: r.request().url().includes("/analytics") ? ANALYTICS : [] }));
     const page = await context.newPage();
     await page.goto(new URL("#/officer/analytics", base).href);
+    await page.waitForSelector("details.more-detail");
+    await openAll(page);
     await page.waitForSelector("table.bars");
     const charts = await page.evaluate(() => [...document.querySelectorAll("table.bars")].map((t) => {
       const track = t.querySelector(".bar-track").getBoundingClientRect();
@@ -130,6 +133,8 @@ for (const width of [1280, 390]) {
     await context.route("**/api/**", (r) => r.fulfill({ json: r.request().url().includes("/analytics") ? ANALYTICS : [] }));
     const page = await context.newPage();
     await page.goto(new URL("#/officer/analytics", base).href);
+    await page.waitForSelector("details.more-detail");
+    await openAll(page);
     await page.waitForSelector(".table-scroll table");
     const info = await page.evaluate(() => {
       const card = (heading) => [...document.querySelectorAll("section.card")]
@@ -192,6 +197,14 @@ async function open(hash, answer, { width = 390, login = null } = {}) {
 }
 
 const text = (page, sel) => page.locator(sel).first().innerText();
+// Simplify round: secondary sections are collapsed (details.more). Tests that read their content open them first.
+const openAll = (page) => page.$$eval("details.more", (ds) => ds.forEach((d) => { d.open = true; }));
+// The self-check page shows one part at a time; the document check is one click away.
+async function openPrecheck(answer, opts) {
+  const o = await open("#/citizen/check", answer, opts);
+  await o.page.getByRole("button", { name: "Check a document" }).click();
+  return o;
+}
 
 test("self-check while loading says so (not 'no scheme'), announced as a status", async () => {
   const { page, close } = await open("#/citizen/check", () => "hang");
@@ -559,7 +572,7 @@ function precheckApi({ options = () => ({ json: PRECHECK_OPTIONS }), run = () =>
 }
 
 test("document pre-check at 390px: no sideways scroll, 24 px targets, English note, nothing-saved disclosure, and no application option", async () => {
-  const { page, close } = await open("#/citizen/check", precheckApi());
+  const { page, close } = await openPrecheck(precheckApi());
   await page.locator("section.precheck select").first().waitFor();
   const m = await page.evaluate(() => {
     const box = (el) => el.getBoundingClientRect();
@@ -580,7 +593,7 @@ test("document pre-check at 390px: no sideways scroll, 24 px targets, English no
 });
 
 test("document pre-check announces results via aria-live and shows what we read for name and area", async () => {
-  const { page, close } = await open("#/citizen/check", precheckApi());
+  const { page, close } = await openPrecheck(precheckApi());
   await page.locator("section.precheck input[type=file]").setInputFiles({
     name: "ownership.txt",
     mimeType: "text/plain",
@@ -601,7 +614,7 @@ test("document pre-check announces results via aria-live and shows what we read 
 
 test("document pre-check errors offer Retry for options and for checking a document", async () => {
   let failOptions = true, failRun = true;
-  const { page, close } = await open("#/citizen/check", precheckApi({
+  const { page, close } = await openPrecheck(precheckApi({
     options: () => (failOptions ? { status: 500, json: {} } : { json: PRECHECK_OPTIONS }),
     run: () => (failRun ? { status: 500, json: {} } : { json: PRECHECK_REPLY }),
   }));
@@ -624,7 +637,7 @@ test("document pre-check errors offer Retry for options and for checking a docum
 
 test("pre-check status pill wraps inside the card at 390px and queue Case column stays sticky while scrolling", async () => {
   const yesReply = { ...PRECHECK_REPLY, readable: "yes", issues: [] };
-  const { page, close } = await open("#/citizen/check", precheckApi({ run: () => ({ json: yesReply }) }), { width: 390 });
+  const { page, close } = await openPrecheck(precheckApi({ run: () => ({ json: yesReply }) }), { width: 390 });
   await page.locator("section.precheck input[type=file]").setInputFiles({
     name: "ownership.txt", mimeType: "text/plain", buffer: Buffer.from("Name: Ramesh Naik\n"),
   });
@@ -646,7 +659,7 @@ test("pre-check status pill wraps inside the card at 390px and queue Case column
   await qPage.waitForSelector(".table-scroll table");
   const qBounds = await qPage.evaluate(() => {
     const box = document.querySelector(".table-scroll");
-    const cell = box.querySelector("tbody tr td:nth-child(2)");
+    const cell = box.querySelector("tbody tr td.col-case");
     box.scrollLeft = box.scrollWidth;
     const bRect = box.getBoundingClientRect();
     const cRect = cell.getBoundingClientRect();
@@ -709,6 +722,8 @@ test("case page: a placeholder clause never shows, in the rule table or in the s
     explanation: { text: "- valid_ownership: pass [<clause ref>] ok", warnings: [], used_fallback: true, at: "2026-11-15T06:00:00Z" } };
   const { page, close } = await open("#/officer/cases/LA-01", (url) => ({ json: url.endsWith("/cases/LA-01") ? detail : [] }),
     { login: OFFICER_LOGIN, width: 1280 });
+  await page.locator(".case-head").waitFor();
+  await openAll(page);
   await page.locator(".explanation").waitFor();
   const body = await page.locator("main").innerText();
   await close();
@@ -746,6 +761,8 @@ test("case page: every rupee amount reads in Indian grouping, the stored explana
       at: "2026-11-15T06:00:00Z" } };
   const { page, close } = await open("#/officer/cases/LA-01", (url) => ({ json: url.endsWith("/cases/LA-01") ? detail : [] }),
     { login: OFFICER_LOGIN, width: 1280 });
+  await page.locator(".case-head").waitFor();
+  await openAll(page);
   await page.locator(".explanation").waitFor();
   const body = await page.locator("main").innerText();
   await close();
@@ -764,9 +781,12 @@ const SCHEMES = [
 const ANALYTICS_LONG = { ...ANALYTICS, by_status: { ...ANALYTICS.by_status, needs_info: 3, withdrawn: 1 },
   per_scheme: { ...ANALYTICS.per_scheme, social_welfare: 6 } };
 
-async function openAnalytics(width, payload = ANALYTICS_LONG) {
-  return open("#/officer/analytics", (url) => ({ json: url.includes("/analytics") ? payload : url.includes("/schemes") ? SCHEMES : [] }),
+async function openAnalytics(width, payload = ANALYTICS_LONG, { expand = true } = {}) {
+  const o = await open("#/officer/analytics", (url) => ({ json: url.includes("/analytics") ? payload : url.includes("/schemes") ? SCHEMES : [] }),
     { login: { ...OFFICER_LOGIN, role: "admin", user: "demo-admin" }, width });
+  await o.page.locator(".headline-tiles").waitFor();
+  if (expand) await openAll(o.page);          // "More detail" holds the stage table, the flags and the other charts
+  return o;
 }
 
 for (const width of [1280, 390]) {
@@ -915,18 +935,21 @@ test("the queue opens on all cases, every filter cleared; the filters still narr
 // --- UI polish round (ui-polish branch) ------------------------------------------------------------------------------
 
 for (const width of [1280, 390]) {
-  test(`analytics at ${width}px: headline tiles come first, then the stage table, then the charts; amounts whole`, async () => {
+  // Simplify round: four headline numbers first, then the one chart (cases by stage), then everything else under
+  // "More detail" (the stage table among it). Amounts stay whole, in the headline and in the detail tiles.
+  test(`analytics at ${width}px: headline tiles come first, then the stage chart, then More detail with the stage table; amounts whole`, async () => {
     const { page, close } = await openAnalytics(width);
-    await page.locator(".tiles .tile").first().waitFor();
+    await page.locator(".headline-tiles .tile").first().waitFor();
+    await openAll(page);
     const m = await page.evaluate(() => {
       const top = (sel) => document.querySelector(sel).getBoundingClientRect().top;
       const money = [...document.querySelectorAll(".tile .money")].map((e) => ({ text: e.innerText, fits: e.scrollWidth <= e.clientWidth + 1 }));
-      return { tiles: top(".tiles"), stage: top(".stage-table"), bars: top(".bars"), money,
+      return { tiles: top(".headline-tiles"), bars: top(".bars"), more: top("details.more-detail"), stage: top(".stage-table"), money,
         vw: document.documentElement.clientWidth, scroll: document.documentElement.scrollWidth };
     });
     await close();
-    assert.ok(m.tiles < m.stage && m.stage < m.bars, `order: ${JSON.stringify(m)}`);
-    assert.deepEqual(m.money.map((x) => x.text), ["₹42,50,000.00", "₹1,25,00,000.00"]);
+    assert.ok(m.tiles < m.bars && m.bars < m.more && m.more < m.stage, `order: ${JSON.stringify(m)}`);
+    assert.deepEqual(m.money.map((x) => x.text), ["₹1,25,00,000.00", "₹42,50,000.00", "₹1,25,00,000.00"]);
     assert.ok(m.money.every((x) => x.fits), `an amount is clipped: ${JSON.stringify(m.money)}`);
     assert.equal(m.scroll, m.vw);
   });
@@ -1010,6 +1033,8 @@ test("case page at 390px: the eligibility and calculation tables scroll inside t
     reason: "Needs human review: a long reason that would otherwise wrap one word per line in a squeezed column", rules_version: "0.1.0" }] };
   const { page, close } = await open("#/officer/cases/LA-01", (url) => ({ json: url.endsWith("/cases/LA-01") ? detail : [] }),
     { login: OFFICER_LOGIN, width: 390 });
+  await page.locator(".case-head").waitFor();
+  await openAll(page);
   await page.locator(".rules-table").waitFor();
   const m = await page.evaluate(() => [".rules-table", ".steps-table"].map((sel) => {
     const t = document.querySelector(sel); const w = t.closest(".table-scroll");
@@ -1042,6 +1067,7 @@ for (const width of [1280, 390]) {
     const { page, close } = await open("#/officer/cases/RM-01", (url) => ({ json: url.endsWith("/cases/RM-01") ? detail : [] }),
       { login: OFFICER_LOGIN, width });
     await page.locator(".summary-strip").waitFor();
+    await openAll(page);
     const info = await page.evaluate(() => ({ text: document.querySelector("main").innerText,
       strip: document.querySelector(".summary-strip").innerText,
       award: [...document.querySelectorAll("a")].some((a) => /award/i.test(a.textContent)),
@@ -1059,3 +1085,222 @@ for (const width of [1280, 390]) {
     assert.equal(info.scroll, info.vw, `mutation case page scrolls sideways at ${width}px`);
   });
 }
+
+// --- Simplify round (branch simplify): progressive disclosure, the decision bar, plain headline numbers -------------
+
+// A case with something in every collapsed section, so each one has original content to show. Synthetic payload.
+const FULL_CASE = { ...CASE,
+  flags: [{ kind: "name_match", severity: "high", detail: "Lowest similarity 0.62" }],
+  rule_results: [{ rule_id: "valid_ownership", status: "needs_review", clause: "Section 3(r)", reason: "Name to be confirmed", rules_version: "0.1.0" }],
+  explanation: { text: "Summary generated without the LLM. This is a recommendation.", warnings: [], used_fallback: true, at: "2026-11-15T06:00:00Z" },
+  documents: [{ id: 7, doc_type: "ownership_record", current: true, extraction_status: "ok",
+    fields: [{ field: "owner_name", value: "Lata Shirodkar", confidence: 0.97, needs_review: false, document_type: "ownership_record",
+      document_id: 7, source_page: 1, method: "ocr" }] }],
+  inputs: { market_value_per_sqm: 3000 } };
+const caseAnswer = (detail) => (url) => ({ json: new URL(url).pathname.endsWith(`/cases/${detail.case_id}`) ? detail : [] });
+
+// Each collapsed row: its plain title, and words from the original section that must appear once it is open.
+const SECTIONS = [
+  ["Why the system recommends this", /Agent explanation[\s\S]*Summary generated without the LLM/],
+  ["Checks", /Rules engine recommendation: Eligible[\s\S]*Section 3\(r\)[\s\S]*Name to be confirmed/],
+  ["How the amount was worked out", /as returned by the API \(rules version 0\.1\.0\); not computed in the browser[\s\S]*₹75,00,000\.00/],
+  ["Documents and what was read", /Documents and extracted fields[\s\S]*Lata Shirodkar/],
+  ["Values entered by staff", /Officer-entered inputs[\s\S]*source: case inputs \(officer\/clerk\)/],
+  ["Ask the citizen for documents", /Asks the citizen only for what they can fix[\s\S]*Preview notice/],
+];
+
+test("case page: secondary sections start collapsed and each opens from the keyboard with its original content", async () => {
+  const { page, close } = await open("#/officer/cases/LA-01", caseAnswer(FULL_CASE), { login: OFFICER_LOGIN, width: 1280 });
+  await page.locator(".case-head").waitFor();
+  const titles = await page.locator("details.more > summary .more-title").allInnerTexts();
+  assert.deepEqual(titles, SECTIONS.map(([t]) => t));
+  assert.deepEqual(await page.locator("details.more").evaluateAll((ds) => ds.map((d) => d.open)), SECTIONS.map(() => false));
+  for (const [i, [title, original]] of SECTIONS.entries()) {
+    const details = page.locator("details.more").nth(i);
+    assert.equal(await details.locator(".more-body").evaluate((e) => e.checkVisibility()), false, `${title} shows content while collapsed`);
+    await details.locator("summary").focus();
+    await page.keyboard.press(i % 2 ? "Space" : "Enter");                // both keys open a native disclosure
+    assert.equal(await details.evaluate((d) => d.open), true, `${title} did not open from the keyboard`);
+    assert.match(await details.innerText(), original, `${title}: original content missing`);
+  }
+  await close();
+});
+
+test("case page: the top shows status, a one-line summary, the total, the flags with severity and the three steps", async () => {
+  const { page, close } = await open("#/officer/cases/LA-01", caseAnswer(FULL_CASE), { login: OFFICER_LOGIN, width: 1280 });
+  await page.locator(".case-head").waitFor();
+  const m = await page.evaluate(() => ({ headline: document.querySelector(".headline").innerText,
+    strip: document.querySelector(".summary-strip").innerText, attention: document.querySelector(".attention").innerText,
+    guide: [...document.querySelectorAll("ol.guide li strong")].map((s) => s.innerText) }));
+  await close();
+  assert.equal(m.headline, "Ready for your decision. The checks recommend: Eligible. 1 item needs your attention.");
+  assert.match(m.strip, /₹75,00,000\.00/);
+  assert.match(m.attention, /Needs your attention[\s\S]*verification flags/);
+  assert.match(m.attention, /High[\s\S]*Lowest similarity 0\.62/);
+  assert.deepEqual(m.guide, ["Review flags", "Check amount", "Decide"]);
+});
+
+for (const width of [1280, 390]) {
+  test(`case page at ${width}px: the decision bar stays on screen at the top, middle and end of the page`, async () => {
+    const tall = { ...FULL_CASE, flags: Array.from({ length: 14 }, (_, i) => ({ kind: "name_match", severity: i % 2 ? "medium" : "high",
+      detail: `Synthetic flag ${i + 1} with a reason long enough to take a full line on a phone screen` })) };
+    const { page, close } = await open("#/officer/cases/LA-01", caseAnswer(tall), { login: OFFICER_LOGIN, width });
+    await page.locator("section.decision-bar").waitFor();
+    await openAll(page);                                          // the longest the page can get
+    const inView = () => page.evaluate(() => {
+      const vh = window.innerHeight;
+      const seen = (el) => { const r = el.getBoundingClientRect(); return r.top >= 0 && r.bottom <= vh + 0.5 && r.height > 0; };
+      return { approve: seen(document.querySelector("section.decision-bar input[value=approve]").closest("label")),
+        record: seen([...document.querySelectorAll("section.decision-bar button")].find((b) => b.textContent === "Record decision")),
+        height: document.documentElement.scrollHeight };
+    });
+    const top = await inView();
+    assert.ok(top.height > 1800, `page not tall enough to test: ${top.height}`);
+    for (const y of [0, top.height / 2, top.height]) {
+      await page.evaluate((v) => window.scrollTo(0, v), y);
+      const at = await inView();
+      assert.ok(at.approve && at.record, `decision controls off screen at scroll ${y}: ${JSON.stringify(at)}`);
+    }
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await page.getByLabel("Approve").check();                      // the value checks open inside the bar
+    const bar = await page.evaluate(() => { const r = document.querySelector("section.decision-bar").getBoundingClientRect();
+      return { top: r.top, bottom: r.bottom, vh: window.innerHeight }; });
+    assert.ok(bar.top >= 0 && bar.bottom <= bar.vh + 0.5, `the open bar leaves the screen: ${JSON.stringify(bar)}`);
+    assert.equal(await page.locator("section.decision-bar .confirm-item").count(), 2);
+    await close();
+  });
+}
+
+for (const width of [1280, 390]) {
+  test(`no sideways scroll at ${width}px with every collapsed section open (case page, analytics, queue, citizen pages)`, async () => {
+    for (const [hash, answer, login] of [["#/officer/cases/LA-01", caseAnswer(FULL_CASE), OFFICER_LOGIN],
+      ["#/officer/analytics", tokenAnswer, OFFICER_LOGIN], ["#/officer", tokenAnswer, OFFICER_LOGIN],
+      ["#/citizen", () => ({ json: [] }), null], ["#/citizen/check", precheckApi(), null], ["#/citizen/track", () => ({ json: [] }), null]]) {
+      const { page, close } = await open(hash, answer, { login, width });
+      await page.locator("main h1").first().waitFor();
+      await page.waitForTimeout(200);
+      await openAll(page);
+      const m = await page.evaluate(() => ({ vw: document.documentElement.clientWidth, scroll: document.documentElement.scrollWidth }));
+      await close();
+      assert.equal(m.scroll, m.vw, `${hash} scrolls sideways at ${width}px`);
+    }
+  });
+}
+
+test("analytics: four headline numbers read straight from the API fields, nothing added up in the browser", async () => {
+  // combined_total and committed_total differ from pending_total, so a sum or the wrong field would show.
+  const payload = { ...ANALYTICS_LONG, by_status: { ...ANALYTICS_LONG.by_status, in_officer_review: 17 }, overdue_count: 9,
+    average_days_open: 23.4, liability: { ...ANALYTICS.liability, pending_total: 5550000, committed_total: 1110000, combined_total: 6660000 } };
+  const { page, close } = await openAnalytics(1280, payload, { expand: false });
+  const tiles = await page.locator(".headline-tiles .tile").evaluateAll((ts) => ts.map((t) => ({
+    label: t.querySelector("h2").innerText, value: t.querySelector(".big").innerText, source: t.dataset.source })));
+  const detailOpen = await page.locator("details.more-detail").evaluate((d) => d.open);
+  await close();
+  assert.deepEqual(tiles, [
+    { label: "Cases awaiting a decision", value: "17", source: "by_status.in_officer_review" },
+    { label: "Overdue", value: "9", source: "overdue_count" },
+    { label: "Average days open", value: "23.4 d", source: "average_days_open" },
+    { label: "Total pending liability", value: "₹55,50,000.00", source: "liability.pending_total" },
+  ]);
+  assert.equal(detailOpen, false, "More detail should start collapsed");
+});
+
+test("analytics: one chart (cases by stage), the attention list linking to cases, the rest behind More detail (Space opens it)", async () => {
+  const rows = [WIDE_ROW(3), { ...WIDE_ROW(4), overdue: false, flags: [{ kind: "low_confidence", severity: "medium" }] },
+    { ...WIDE_ROW(5), overdue: false, flags: [{ kind: "name_match", severity: "high" }] }, { ...WIDE_ROW(6), status: "approved" }];
+  const { page, close } = await open("#/officer/analytics", (url) => {
+    const u = new URL(url);
+    if (u.pathname.endsWith("/analytics")) return { json: ANALYTICS_LONG };
+    if (u.pathname.endsWith("/schemes")) return { json: SCHEMES };
+    if (u.pathname.endsWith("/cases")) return { json: rows };
+    return { json: [] };
+  }, { login: OFFICER_LOGIN, width: 1280 });
+  await page.locator(".attention-list li").first().waitFor();
+  // Chrome lays out closed <details> content (content-visibility), so visibility is asked, not measured.
+  const visibleCharts = await page.locator("table.bars").evaluateAll((ts) => ts.filter((t) => t.checkVisibility()).length);
+  const chartTitle = await page.locator(".grid > section.card h2").first().innerText();
+  const items = await page.locator(".attention-list li").evaluateAll((lis) => lis.map((li) => ({
+    href: li.querySelector("a").getAttribute("href"), text: li.innerText.replace(/\s+/g, " ") })));
+  const summary = page.locator("details.more-detail > summary");
+  await summary.focus();
+  await page.keyboard.press("Space");
+  const detail = await page.locator("details.more-detail").innerText();
+  await close();
+  assert.equal(visibleCharts, 1);
+  assert.equal(chartTitle, "Cases by stage");
+  assert.deepEqual(items.map((i) => i.href), ["#/officer/cases/LA-03", "#/officer/cases/LA-05"]);
+  assert.match(items[0].text, /overdue[\s\S]*High/);
+  for (const heading of ["Cases by scheme and stage", "Cases per scheme", "Committed and pending liability", "Verification flags", "Stuck cases",
+    "Average days open (excluding waiting)", "Average processing time"]) assert.ok(detail.includes(heading), `More detail lacks ${heading}`);
+});
+
+test("queue: five columns by default, one-click Needs attention and Overdue views, the full table behind All columns", async () => {
+  const rows = [WIDE_ROW(1), { ...WIDE_ROW(2), flags: [], flags_count: 0, confidence_flag: false, overdue: false },
+    { ...WIDE_ROW(3), flags: [], flags_count: 0, confidence_flag: false, overdue: true }];
+  const { page, close } = await open("#/officer", (url) => ({ json: new URL(url).pathname.endsWith("/cases") ? rows : [] }),
+    { login: OFFICER_LOGIN, width: 1280 });
+  await page.locator(".queue-table tbody tr").first().waitFor();
+  const heads = () => page.locator(".queue-table thead th").evaluateAll((ths) => ths.map((th) => th.childNodes[0].textContent.trim()));
+  const ids = () => page.locator(".queue-table tbody td.col-case").allInnerTexts();
+  assert.deepEqual(await heads(), ["Case", "Scheme", "Status", "Why it needs attention", "Days open"]);
+  assert.deepEqual(await ids(), ["LA-01", "LA-02", "LA-03"]);
+  assert.match(await page.locator(".queue-table tbody tr").first().innerText(), /High/);   // severity by word, not colour alone
+  await page.getByRole("button", { name: /^Needs attention/ }).click();
+  assert.deepEqual(await ids(), ["LA-01"]);
+  await page.getByRole("button", { name: /^Overdue/ }).click();
+  assert.deepEqual(await ids(), ["LA-01", "LA-03"]);
+  await page.getByRole("button", { name: /^All cases/ }).click();
+  await page.getByLabel("All columns").check();
+  assert.deepEqual(await heads(), ["#", "Case", "Scheme", "Status", "Why it needs attention", "Days open", "Submitted"]);
+  await close();
+});
+
+test("citizen home: two large choices with one sentence each and a three-step How it works, in every language", async () => {
+  for (const lang of ["en", "hi", "mr", "kok"]) {
+    const context = await browser.newContext({ viewport: { width: 390, height: 900 } });
+    await context.addInitScript((l) => localStorage.setItem("govflow-lang", l), lang);
+    const page = await context.newPage();
+    await page.goto(new URL("#/citizen", base).href);
+    await page.locator("a.choice").first().waitFor();
+    const m = await page.evaluate(() => ({
+      choices: [...document.querySelectorAll("a.choice")].map((a) => ({ href: a.getAttribute("href"), p: a.querySelector("p").innerText })),
+      steps: document.querySelectorAll(".how ol li").length, lang: document.querySelector(".lang select").value }));
+    await context.close();
+    assert.equal(m.lang, lang);
+    assert.deepEqual(m.choices.map((c) => c.href), ["#/citizen/check", "#/citizen/track"]);
+    for (const c of m.choices) assert.equal(c.p.split(/[.।?]\s*/).filter(Boolean).length, 1, `${lang}: more than one sentence: ${c.p}`);
+    assert.equal(m.steps, 3);
+  }
+});
+
+test("citizen pages: a short progress line, one action at a time, the amount's basis behind Why?", async () => {
+  const view = JSON.parse(readFileSync(new URL("../../tests/snapshots/LA-01.json", import.meta.url), "utf8")).citizen_view;
+  const { page, close } = await open("#/citizen/track", (url) => ({ json: new URL(url).pathname.endsWith("/public/status") ? view : [] }));
+  const steps = () => page.locator("ol.progress li").evaluateAll((lis) => lis.map((li) => li.getAttribute("aria-current")));
+  await page.locator("ol.progress").waitFor();
+  assert.deepEqual(await steps(), ["step", null]);
+  await page.getByLabel("Application reference").fill("LA-01");
+  await page.getByLabel("Verification code").fill("123456");
+  await page.getByRole("button", { name: "Check status" }).click();
+  await page.locator(".citizen-view .line.status").waitFor();
+  assert.deepEqual(await steps(), [null, "step"]);
+  const why = page.locator(".citizen-view details.why");
+  assert.ok(await why.count() > 0, "no Why? disclosure");
+  assert.equal(await why.first().evaluate((d) => d.open), false);
+  await why.first().locator("summary").focus();
+  await page.keyboard.press("Enter");
+  assert.match(await why.first().innerText(), /Basis: /);
+  await close();
+
+  const pre = await open("#/citizen/check", precheckApi());
+  await pre.page.locator("main h1").waitFor();
+  const shown = () => pre.page.evaluate(() => ({
+    questions: document.querySelector("main section.card:not(.precheck)").getBoundingClientRect().height > 0,
+    precheck: document.querySelector("section.precheck").getBoundingClientRect().height > 0 }));
+  assert.deepEqual(await shown(), { questions: true, precheck: false });
+  await pre.page.getByRole("button", { name: "Check a document" }).click();
+  assert.deepEqual(await shown(), { questions: false, precheck: true });
+  await pre.page.locator("section.precheck select").first().waitFor();
+  assert.equal(await pre.page.locator("section.precheck ol.progress li[aria-current=step]").innerText(), "Choose the document");
+  await pre.close();
+});

@@ -53,6 +53,7 @@ export default function Precheck({ activeScheme, reloadKey = 0, pageError = fals
   const currentScheme = options.schemes.find((s) => s.scheme === schemeId) || options.schemes[0] || null;
   const documents = currentScheme ? currentScheme.documents : [];
   const currentDoc = documents.find((d) => d.id === docType)?.id || documents[0]?.id || "";
+  const stage = check.state === "ready" || check.state === "error" ? 2 : file ? 1 : 0;   // the progress line
 
   const runPrecheck = async () => {
     const fileProblem = validatePrecheckFile(file);
@@ -88,6 +89,11 @@ export default function Precheck({ activeScheme, reloadKey = 0, pageError = fals
   return (
     <section className="card precheck" aria-labelledby="precheck-heading" lang="en">
       <h2 id="precheck-heading">Check a document before you apply</h2>
+      <ol className="progress" aria-label="Steps">
+        {["Choose the document", "Add the file", "See the result"].map((label, i) => (
+          <li key={label} className={i < stage ? "done" : undefined} aria-current={i === stage ? "step" : undefined}>{label}</li>
+        ))}
+      </ol>
       <p className="muted small">{options.languageNote}</p>
       <p className="banner info precheck-privacy"><strong>{options.nothingSavedNote}</strong></p>
       <p className="banner warn"><strong>{options.disclaimer}</strong></p>
@@ -150,7 +156,7 @@ export default function Precheck({ activeScheme, reloadKey = 0, pageError = fals
       <div role="status" aria-live="polite" className="precheck-live">
         {options.state === "ready" && options.schemes.length > 0 && check.state === "idle" && (
           <p className="muted small">
-            Choose a scheme, a document type, and a file to check whether its required details can be read clearly.
+            Choose the document type and a file. We check that its details can be read clearly.
           </p>
         )}
         {check.state === "loading" && (

@@ -97,5 +97,18 @@
   "track.invalid_ref": "Enter the application reference exactly as it is printed on your receipt.",
   "track.invalid_code": "The verification code has six digits.",
   "self.loading": "Loading the questions…",
-  "self.retry": "Try again"
+  "self.retry": "Try again",
+  "home.check_short": "See what you need, and test a document before you apply.",
+  "home.track_short": "See the status of an application you have made.",
+  "home.how_title": "How it works",
+  "home.how_1": "Check what you need, and test a document.",
+  "home.how_2": "Apply at the office with your documents.",
+  "home.how_3": "Track your application with its reference and code.",
+  "self.tab_questions": "Answer questions",
+  "self.tab_document": "Check a document",
+  "self.step_answer": "Answer the questions",
+  "self.step_result": "See what to bring",
+  "track.step_details": "Enter your details",
+  "track.step_status": "See your status",
+  "track.why": "Why?"
 }

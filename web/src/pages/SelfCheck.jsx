@@ -25,6 +25,7 @@ export default function SelfCheck({ dict }) {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [reloadKey, setReloadKey] = useState(0);
+  const [part, setPart] = useState("questions");
   const say = (keyOrText) => (keyOrText in dict ? t(dict, keyOrText) : keyOrText);
 
   const load = () => {
@@ -49,13 +50,23 @@ export default function SelfCheck({ dict }) {
     }
   };
 
+  // One action per screen: the questions, or the document check. Both stay mounted, so switching keeps what was entered.
   return (
     <>
-      <section className="card">
-        <div className="self-head">
-          <h1>{t(dict, "nav.self_check")}</h1>
-          <Sahayak scheme={scheme?.scheme} result={result} />
-        </div>
+      <div className="self-head">
+        <h1>{t(dict, "nav.self_check")}</h1>
+        <Sahayak scheme={scheme?.scheme} result={result} />
+      </div>
+      <div className="switch" role="group" aria-label={t(dict, "nav.self_check")}>
+        {[["questions", "self.tab_questions"], ["document", "self.tab_document"]].map(([value, key]) => (
+          <button key={value} type="button" aria-pressed={part === value} onClick={() => setPart(value)}>{t(dict, key)}</button>
+        ))}
+      </div>
+      <section className="card" hidden={part !== "questions"}>
+        <ol className="progress">
+          <li className={result ? "done" : undefined} aria-current={result ? undefined : "step"}>{t(dict, "self.step_answer")}</li>
+          <li aria-current={result ? "step" : undefined}>{t(dict, "self.step_result")}</li>
+        </ol>
         {scheme && <p className="banner warn"><strong>{scheme.guide_label}</strong></p>}
         {loading && <p className="muted" role="status">{t(dict, "self.loading")}</p>}
         {!loading && schemes.length === 0 && !error && <p className="muted">{t(dict, "self.none")}</p>}
@@ -101,7 +112,9 @@ export default function SelfCheck({ dict }) {
           </div>
         )}
       </section>
-      <Precheck activeScheme={scheme?.scheme} reloadKey={reloadKey} pageError={error === "self.load_error"} />
+      <div hidden={part !== "document"}>
+        <Precheck activeScheme={scheme?.scheme} reloadKey={reloadKey} pageError={error === "self.load_error"} />
+      </div>
     </>
   );
 }

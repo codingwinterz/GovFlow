@@ -121,11 +121,22 @@ function findImage(scheme, docType) {
   throw new Error(`no synthetic image for ${scheme}/${docType}`);
 }
 
+// After the simplification the self-check page shows one part at a time: open the document check (a counted click).
+// Before it, the document check was further down the same page, so there is nothing to click.
+async function openDocumentCheck(page, t) {
+  await page.locator("section.precheck").waitFor({ state: "attached" });   // the self-check page has rendered
+  const sw = page.getByRole("button", { name: EN["self.tab_document"] ?? "Check a document" });
+  if (await sw.count()) {
+    if (t) await t.click(sw, "Check a document"); else await sw.click();
+  }
+}
+
 async function task4(page) {           // citizen pre-check of one document
   const t = new Task(page, "Citizen checks a document before applying");
   await go(page, "#/"); await t.height();
   await t.click(page.getByRole("link", { name: /Citizen services/ }), "Citizen services", { navigates: true });
-  await t.click(page.locator(`a[href="#/citizen/check"]`).filter({ hasText: EN["home.self_check_desc"] }), "Check before you apply", { navigates: true });
+  await t.click(page.locator(`main a[href="#/citizen/check"]`), "Check before you apply", { navigates: true });
+  await openDocumentCheck(page, t);
   const docSelect = page.getByLabel("Document type");
   await docSelect.waitFor();
   const docType = await docSelect.inputValue();
@@ -141,7 +152,7 @@ async function task5(page, code) {     // citizen tracking
   const t = new Task(page, "Citizen tracks application LA-01");
   await go(page, "#/"); await t.height();
   await t.click(page.getByRole("link", { name: /Citizen services/ }), "Citizen services", { navigates: true });
-  await t.click(page.locator(`a[href="#/citizen/track"]`).filter({ hasText: EN["home.track_desc"] }), "Track", { navigates: true });
+  await t.click(page.locator(`main a[href="#/citizen/track"]`), "Track", { navigates: true });
   await t.type(page.getByLabel(EN["track.case_ref"]), "LA-01", "reference");
   await t.type(page.getByLabel(EN["track.code"]), code, "verification code");
   await t.click(page.getByRole("button", { name: EN["track.submit"] }), EN["track.submit"]);
@@ -177,6 +188,7 @@ async function screenshots(code) {
       const ctx = await context(vp, false);
       const page = await ctx.newPage();
       await go(page, "#/citizen/check");
+      await openDocumentCheck(page, null);
       const scheme = await page.getByLabel("Scheme for document check").inputValue();
       const docType = await page.getByLabel("Document type").inputValue();
       await page.locator("input[type=file]").setInputFiles(findImage(scheme, docType));
@@ -208,7 +220,9 @@ const report = { label: LABEL, viewport: WIDE, tasks: [], page_heights: {} };
 try {
   if (ONLY !== "tasks" && SHOTS) report.page_heights = await screenshots(code);
   if (ONLY !== "shots") {
-    for (const fn of [task1, task2, task3, task4, (p) => task5(p, code)]) {
+    const pick = (arg("pick", "1,2,3,4,5")).split(",").map(Number);       // e.g. --pick 4 to rerun one task
+    const all = [task1, task2, task3, task4, (p) => task5(p, code)];
+    for (const fn of all.filter((_, i) => pick.includes(i + 1))) {
       const ctx = await context(WIDE, true);
       const page = await ctx.newPage();
       report.tasks.push(await fn(page));
