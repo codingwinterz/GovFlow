@@ -239,7 +239,7 @@ def deterministic_summary(session: Session, case_id: str, reason: str) -> str:
     if status.blockers:
         lines.append("Blockers:")
         lines += [f"- {b}" for b in status.blockers]
-    return "\n".join(lines)
+    return mask_identifiers("\n".join(lines))   # the same masked form as the document view (rule 7)
 
 
 def run_pipeline(session: Session, case_id: str, extraction: Optional[ExtractionProvider] = None,
