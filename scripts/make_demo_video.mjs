@@ -1,6 +1,9 @@
 // Scripted screen recording of the real GovFlow app (the whole pipeline), with captions, cards and narration.
 //   node scripts/make_demo_video.mjs
-// Output (gitignored): docs/video/raw.webm, docs/video/govflow_demo_captioned.mp4, frames, timeline.json.
+// Output (gitignored): docs/video/raw.mp4, docs/video/govflow_demo_captioned.mp4, frames, timeline.json.
+// Capture: Playwright recordVideo at 30 fps (needs `npx playwright-core install ffmpeg` once, in web/), re-encoded to
+// constant 30 fps H.264. The cursor glides in 20+ eased steps, every scroll is eased over 600 ms, and waits over 3 s are
+// a 4x time-lapse of the real frames. Smoothness is measured at the end with scripts/measure_video.mjs (mpdecimate).
 // Committed: this script and docs/video/narration.txt (written by this script with the final timestamps).
 //
 // Safety: everything runs against a throwaway database in docs/video/run/ (seeded with --reset there, then copied),
@@ -27,18 +30,64 @@ const { createServer } = await import(pathToFileURL(join(WEB, "node_modules", "v
 
 const CAP_WORDS = 12;            // every caption at most 12 words
 const FAST_OVER = 3.0;           // a wait longer than this (seconds) is time-lapsed ...
-const FAST_TO = 1.0;             // ... to this many seconds, labelled "Sped up"
-const CAP_TOTAL = 195.0;         // hard cap: 3 min 15 s
+const FAST_SPEED = 4;            // ... at 4x (every 4th real frame), labelled "Sped up"
+const CAP_TOTAL = 192.0;         // hard cap: 3 min 12 s
 const PLAN_CAP = CAP_TOTAL - 0.6; // planning margin: every piece rounds to whole frames at 30 fps
 const TITLE_S = 4.0, CLOSING_S = 10.0;
 const APP_H = 972;                // the app's height in the 1080-line frame; the band below holds the captions
 const BAND = "0x0b1b2e";
-// Target length of each recorded beat (the title and closing cards are added around them).
-const TARGET = { 1: 8, 2: 30, 3: 13, 4: 30, 5: 30, 6: 35, 7: 20, 8: 15 };
+const HOLD = 0.65;                // scales every hold (show, pause, settle after an action) so the 4x time-lapses fit the cap
+const SCROLL_MS = 600;            // every scroll is eased over this long; no instant jumps
+const RENDER_LAG = 0.1;           // seconds from sending input to it showing in the recording (measuring only)
+// Captions placed by their screen, not by when the script set them. A number n: the caption shows from the end of the
+// n-th screen change after its mark (it was set before the action that brings its screen up). An object: { before }
+// counts back from the mark instead, { until } ends the caption at that change after the mark, { min } is the
+// threshold (screenChanges). The counts were read off the 2026-11-21 recording's frames (a sign-in page or a loading
+// blank counts as a change); a missing change stops the build rather than guess.
+const CAPTION_SCREEN = {
+  "Tracking with a reference and code from this throwaway demo.": 2,      // the pre-check top, then the tracking form
+  "Approved: the amount, and the basis of each item.": 1,                 // "Why this amount" opens
+  // Set after the Hindi hold (the page goes back to English straight after): from the switch to Hindi until the switch
+  // back. A language swap redraws only text on a white page, so it is found with the lower text threshold.
+  "The same page in Hindi, from fixed templates.": { before: 1, until: 1, min: 0.8 },
+  "Waiting for documents: the page says exactly what is needed.": 1,      // LA-05's result
+  "Explanation written by the model; every figure comes from tools.": 1,  // the explanation row opens
+  // From LA-06 loading until LA-18 loads again (the 8th change: two previews, the language list, a scroll in between).
+  "LA-06 has an expired document: notice previewed in English, Hindi.": { after: 1, until: 8 },
+  "Approval: confirm every money field and record the resolution.": 2,    // scroll down, then the approval form
+  "A clerk opens a case: no decision controls. Only officers decide.": 3, // sign-in, LA-18 as clerk, then LA-12
+  "Admin: headline numbers read straight from the system.": 3,            // sign-in, a loading blank, then analytics
+  "More detail: every scheme by stage, and the liability table.": 1,      // the detail section opens
+  "Rule simulator: change one parameter, see which cases change.": 2,     // scroll to top, then the simulator
+};
+// Whole-screen changes in the app area of raw.mp4: frames whose mean absolute difference from the previous frame (on a
+// 96x48 grey thumbnail) is over min levels (1.5 by default), joined into one change when less than 0.25 s apart. A
+// cursor glide stays under 1; a page load, an opened section or a scroll is over 1.5; a text-only redraw is about 1.
+function screenChanges(gray, min = 1.5) {
+  const N = 96 * 48, buf = gray, frames = buf.length / N, changes = [];
+  for (let i = 1; i < frames; i++) {
+    let s = 0;
+    for (let j = 0; j < N; j++) s += Math.abs(buf[i * N + j] - buf[(i - 1) * N + j]);
+    if (s / N <= min) continue;
+    const t = i / 30, last = changes.at(-1);
+    if (last && t - last.b <= 0.25) last.b = t; else changes.push({ a: t, b: t });
+  }
+  return changes;
+}
+function grayFrames() {
+  const W = 96, H = 48;
+  const r = spawnSync("ffmpeg", ["-hide_banner", "-loglevel", "error", "-i", join(OUT, "raw.mp4"), "-vf",
+    `crop=1920:${APP_H}:0:0,scale=${W}:${H},format=gray`, "-f", "rawvideo", "-"], { maxBuffer: 1 << 30 });
+  if (r.status !== 0) throw new Error(`screen changes: ${String(r.stderr).slice(-400)}`);
+  return r.stdout;
+}
+// Target length of each recorded beat (the title and closing cards are added around them); a short beat is padded.
+const TARGET = { 1: 7, 2: 28, 3: 13, 4: 32, 5: 27, 6: 36, 7: 20, 8: 14.4 };
 
 // --- small helpers --------------------------------------------------------------------------------------------------
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const ease = (t) => (1 - Math.cos(Math.PI * t)) / 2;   // ease-in-out sine: gentle ends, never sub-pixel for long
 const log = (...a) => console.log("[video]", ...a);
 const redact = (s) => String(s).replace(/AIza[0-9A-Za-z_\-]{20,}/g, "[redacted]").replace(/\b\d{6}\b/g, "[code]");
 function py(args, opts = {}) {
@@ -61,14 +110,14 @@ const citizenCode = (ref, secret) =>
 // --- narration (one spoken line per beat; the captions are in record()) ---------------------------------------------
 
 const NARRATION = {
-  1: "GovFlow is one AI agent for government case processing. Today, files are retyped by hand, checked from memory, and citizens cannot see where their application stands.",
+  1: "GovFlow is one AI agent for government case processing. Today, files are retyped by hand, checked from memory, and citizens cannot track their application.",
   2: "A citizen can check a document before applying. Here is a synthetic ownership record, a clear scan. Each required field is either found or marked as unreadable, and nothing is saved: the file is checked in memory and thrown away. Now a blurred phone photo of the same record. It is only partly readable, and the page says in plain words what to do next.",
-  3: "A citizen tracks an application with a reference and a code. This approved case shows the amount and the basis of each item. The page reads in Hindi too. A waiting case lists what is missing.",
+  3: "A citizen tracks an application with a reference and code. This approved case shows the amount and its basis. The page reads in Hindi too. A waiting case lists what is missing.",
   4: "A clerk opens a new land case and uploads its documents. They are synthetic: one ownership record image and four short printed records. The language model reads each document and returns every field with a confidence score. Waiting time is sped up on screen, and marked. The model only reads; it decides nothing. Then the agent runs the checks, the eligibility rules and the amount.",
-  5: "Now the officer opens the new case. One plain sentence says where it stands, then the total and what needs attention. The checks are fixed rules written in the scheme file, not the model, and each shows its result and rules version. Each field shows how sure the reading was. The amount is worked out step by step: area, value and multiplier, then solatium, then the additional amount.",
+  5: "The officer opens the new case. One plain sentence says where it stands, then the total and what needs attention. The checks are fixed rules in the scheme file, not the model, and each shows its result and version. Each field shows how sure the reading was. The amount is worked out in steps: area, value and multiplier, then solatium and the additional amount.",
   6: "On LA-18, a tenant entry on the record of rights is flagged, citing the Goa tenancy and mundkar Acts. The model writes the explanation, but every figure in it comes from the tools. On LA-06, where a document has expired, the officer previews a notice to the citizen in English and Hindi. Back on LA-18, the officer confirms each money field, records the resolution, and approves. A clerk sees no decision controls. Only an officer decides.",
-  7: "An administrator sees four headline numbers, read straight from the system, then one chart, and more detail only when asked. The case list itself is for officers and clerks. The rule simulator changes one parameter on the synthetic test cases and shows which would change. It never edits the rules.",
-  8: "Every action goes into an audit log chained by hash, and the log checks out intact. Duplicate claims and open mutations go to review, never to rejection. Four schemes run on one engine, each defined in a rules file.",
+  7: "An administrator sees four headline numbers, read from the system, then one chart, and more detail only when asked. The case list is for officers and clerks. The rule simulator changes one parameter on the synthetic cases and shows which would change. It never edits the rules.",
+  8: "Every action goes into a hash-chained audit log, and it checks out intact. Duplicate claims and open mutations go to review, never rejection. Four schemes, one engine, each defined in a rules file.",
   9: "These results come from our own tests on synthetic data. Legal values stay placeholders until the offices confirm. A scripted walkthrough of the live prototype.",
 };
 
@@ -142,16 +191,44 @@ const CURSOR = () => {
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", make); else make();
 };
 
+// Eased page scroll over SCROLL_MS, driven by requestAnimationFrame so every captured frame moves a little.
+// Runs in the page as el.evaluate(SMOOTH_SCROLL, { ms, top }): with top, scroll to the top; otherwise bring the element
+// into view (centred; a tall element is aligned near the top). Resolves true if it scrolled.
+const SMOOTH_SCROLL = (target, { ms, top }) => new Promise((resolve) => {
+  let goal = 0;
+  if (!top) {
+    const r = target.getBoundingClientRect();
+    if (r.top >= 60 && r.bottom <= innerHeight - 60) { resolve(false); return; }   // already on screen
+    goal = scrollY + (r.height > innerHeight - 160 ? r.top - 80 : r.top + r.height / 2 - innerHeight / 2);
+  }
+  goal = Math.max(0, Math.min(goal, document.documentElement.scrollHeight - innerHeight));
+  const from = scrollY, dist = goal - from;
+  if (Math.abs(dist) < 2) { resolve(false); return; }
+  const e = (t) => (1 - Math.cos(Math.PI * t)) / 2;
+  const t0 = performance.now();
+  const step = (now) => {
+    const k = Math.min(1, (now - t0) / ms);
+    scrollTo(0, from + dist * e(k));
+    if (k < 1) requestAnimationFrame(step); else resolve(true);
+  };
+  requestAnimationFrame(step);
+});
+
 class Director {
-  constructor(page, t0) { this.page = page; this.t0 = t0; this.marks = []; this.waits = []; this.warnings = []; this.beat = 0; }
-  now() { return (Date.now() - this.t0) / 1000; }
+  constructor(page) {
+    this.page = page; this.t0 = performance.now(); this.marks = []; this.waits = []; this.warnings = []; this.beat = 0;
+    this.pos = { x: 640, y: 600 };
+    this.motion = [];                                         // scripted cursor glides and scrolls, for measuring
+
+  }
+  now() { return (performance.now() - this.t0) / 1000; }       // monotonic clock
   startBeat(n) { this.beat = n; this.marks.push({ type: "beat", beat: n, t: this.now() }); log(`beat ${n} at ${this.now().toFixed(1)} s`); }
   cap(text) {
     const words = text.trim().split(/\s+/).length;
     if (words > CAP_WORDS) throw new Error(`caption over ${CAP_WORDS} words: ${text}`);
     this.marks.push({ type: "cap", beat: this.beat, t: this.now(), text });
   }
-  async pause(ms = 1000) { await sleep(ms); }
+  async pause(ms = 1000) { await sleep(ms * HOLD); }
   async slow(label, fn) {                                   // a wait on the app; time-lapsed if long
     const a = this.now();
     const r = await fn();
@@ -160,33 +237,59 @@ class Director {
     log(`  wait ${label}: ${(b - a).toFixed(1)} s${b - a > FAST_OVER ? " (sped up)" : ""}`);
     return r;
   }
-  async point(locator) {
+  // The cursor glides: at least 20 eased steps, paced on the monotonic clock (220-500 ms by distance).
+  async moveTo(x, y) {
+    const a = this.pos, dist = Math.hypot(x - a.x, y - a.y);
+    if (dist < 1) return;
+    const ms = Math.min(500, Math.max(220, 180 + dist * 0.3));
+    const steps = Math.max(20, Math.round(ms / 15));
+    const t0 = performance.now(), from = this.now();
+    for (let i = 1; i <= steps; i++) {
+      const k = ease(i / steps);
+      await this.page.mouse.move(a.x + (x - a.x) * k, a.y + (y - a.y) * k);
+      const due = t0 + (ms * i) / steps - performance.now();
+      if (due > 0) await sleep(due);
+    }
+    this.pos = { x, y };
+    this.motion.push({ kind: "cursor", a: from, b: this.now() });
+  }
+  async scrollTo(el) {                                       // logged as motion only when the page actually scrolled
+    const from = this.now();
+    const moved = await el.evaluate(SMOOTH_SCROLL, { ms: SCROLL_MS, top: false });
+    if (moved) this.motion.push({ kind: "scroll", a: from, b: this.now() });
+    return moved;
+  }
+  // Bring the element into view (eased scroll), then glide the cursor onto it. Returns the element and the point
+  // (relative to the element) the cursor rests on, so a click lands exactly there and the cursor never jumps.
+  // inset: how far in from the left edge to rest (a typed field uses 20 px: a date input's day segment).
+  async point(locator, { cursor = true, inset = 60 } = {}) {
     const el = locator.first();
     await el.waitFor({ state: "visible", timeout: 60000 });
-    const moved = await el.evaluate((n) => {
-      const r = n.getBoundingClientRect();
-      if (r.top >= 60 && r.bottom <= innerHeight - 60) return false;     // already on screen: no scroll
-      n.scrollIntoView({ block: "center", behavior: "smooth" });
-      return true;
-    });
-    if (moved) await sleep(380);
+    if (await this.scrollTo(el)) await sleep(60);
+    if (!cursor) return { el };
     const box = await el.boundingBox();
-    await this.page.mouse.move(box.x + Math.min(box.width / 2, 60), box.y + box.height / 2, { steps: 10 });
-    await sleep(140);
-    return el;
+    const at = { x: Math.min(box.width / 2, inset), y: box.height / 2 };
+    await this.moveTo(box.x + at.x, box.y + at.y);
+    await sleep(100);
+    return { el, at };
   }
-  async click(locator, after = 700) { const el = await this.point(locator); await el.click(); await sleep(after); }
+  async click(locator, after = 700) { const { el, at } = await this.point(locator); await el.click({ position: at }); await sleep(after * HOLD); }
   async type(locator, text, after = 300) {
-    const el = await this.point(locator);
-    await el.click();
+    const { el, at } = await this.point(locator, { inset: 20 });
+    await el.click({ position: at });
     await el.fill("");
     await el.pressSequentially(String(text), { delay: 18 });
-    await sleep(after);
+    await sleep(after * HOLD);
   }
-  async select(locator, value, after = 500) { const el = await this.point(locator); await el.selectOption(value); await sleep(after); }
-  async upload(locator, file, after = 300) { const el = await this.point(locator); await el.setInputFiles(file); await sleep(after); }
-  async show(locator, ms = 1100) { await this.point(locator); await sleep(ms); }
-  async scrollTop(ms = 600) { await this.page.evaluate(() => scrollTo({ top: 0, behavior: "smooth" })); await sleep(ms); }
+  async select(locator, value, after = 500) { const { el } = await this.point(locator); await el.selectOption(value); await sleep(after * HOLD); }
+  async upload(locator, file, after = 300) { const { el } = await this.point(locator); await el.setInputFiles(file); await sleep(after * HOLD); }
+  async show(locator, ms = 1100) { await this.point(locator, { cursor: false }); await sleep(ms * HOLD); }
+  async scrollTop(ms = 600) {
+    const from = this.now();
+    if (await this.page.locator("body").evaluate(SMOOTH_SCROLL, { ms: SCROLL_MS, top: true }))
+      this.motion.push({ kind: "scroll", a: from, b: this.now() });
+    await sleep(Math.max(0, ms - SCROLL_MS));
+  }
   async hash(h, waitFor) {
     await this.page.evaluate((x) => { location.hash = x; }, h);
     if (waitFor) await this.page.locator(waitFor).first().waitFor({ timeout: 60000 });
@@ -215,7 +318,11 @@ async function record(secrets) {
   const browser = await chromium.launch({ channel: "chrome" });
   // 1280 x 648 CSS pixels at 1.5x: frames are 1920 x 972 with large, sharp text; the 108 px band below holds the
   // captions, so a caption never covers the app (the case page's decision bar sits at the bottom of the window).
-  const context = await browser.newContext({ viewport: { width: 1280, height: APP_H / 1.5 }, deviceScaleFactor: 1.5 });
+  // Playwright's recordVideo at 30 fps (its own ffmpeg, `npx playwright-core install ffmpeg`), 1920 x 972: the app's
+  // area of the 1080-line frame; the caption band is added when it is re-encoded.
+  const videoDir = join(RUN, "video");
+  const context = await browser.newContext({ viewport: { width: 1280, height: APP_H / 1.5 }, deviceScaleFactor: 1.5,
+    recordVideo: { dir: videoDir, size: { width: 1920, height: APP_H }, fps: 30 } });
   await context.addInitScript(CURSOR);
   const vite = await createServer({ configFile: false, root: WEB, logLevel: "silent",
     server: { port: 0, host: "127.0.0.1", proxy: { "/api": { target: `http://127.0.0.1:${API_PORT}`, changeOrigin: true,
@@ -223,26 +330,21 @@ async function record(secrets) {
   await vite.listen();
   const base = vite.resolvedUrls.local[0];
   const page = await context.newPage();
-  // Frames come from Chrome's own screencast (one per screen change, with its timestamp); the system ffmpeg turns
-  // them into raw.webm. No browser download, no recorder binary.
-  const shots = join(RUN, "shots");
-  mkdirSync(shots, { recursive: true });
-  const frameLog = [];
-  const cdp = await context.newCDPSession(page);
-  cdp.on("Page.screencastFrame", (f) => {
-    const file = `f${String(frameLog.length + 1).padStart(6, "0")}.jpg`;
-    writeFileSync(join(shots, file), Buffer.from(f.data, "base64"));
-    frameLog.push({ file, ts: f.metadata.timestamp });
-    cdp.send("Page.screencastFrameAck", { sessionId: f.sessionId }).catch(() => {});
-  });
-  const d = new Director(page, Date.now());
-  await cdp.send("Page.startScreencast", { format: "jpeg", quality: 92, maxWidth: 1920, maxHeight: APP_H, everyNthFrame: 1 });
+  const video = page.video();
+  const d = new Director(page);
+  // Sync flash: red, then blue at a known director time; the first blue frame in the video ties the two clocks.
+  await page.setContent('<body style="margin:0;height:100vh;background:#ff0000"></body>');
+  await sleep(700);
+  const syncAt = d.now();
+  let endSyncAt = null;
+  await page.evaluate(() => { document.body.style.background = "#0000ff"; });
+  await sleep(500);
   const img = (f) => join(ROOT, "data/synthetic/land_acquisition/case_09/images", f);
   try {
     // 1. Landing ----------------------------------------------------------------------------------------------------
     await page.goto(new URL("#/", base).href);
     await page.locator(".big-brand").waitFor();
-    await page.mouse.move(640, 600);
+    await page.mouse.move(d.pos.x, d.pos.y);
     d.startBeat(1);
     d.cap("Today: files retyped, checked from memory, status invisible to citizens.");
     await d.pause(4500);
@@ -446,32 +548,55 @@ async function record(secrets) {
     await d.clean("trust");
     d.marks.push({ type: "end", t: d.now() });
     await sleep(500);
-    await cdp.send("Page.stopScreencast").catch(() => {});
+    // Closing sync flash (after the end mark, so never in the video): with the opening one it fixes clock drift.
+    await page.evaluate(() => {
+      const o = document.createElement("div");
+      o.id = "sync-flash";
+      o.style.cssText = "position:fixed;inset:0;z-index:2147483647;background:#ff0000";
+      document.body.appendChild(o);
+    });
+    await sleep(700);
+    endSyncAt = d.now();
+    await page.evaluate(() => { document.getElementById("sync-flash").style.background = "#0000ff"; });
+    await sleep(600);
   } catch (err) {
     await page.screenshot({ path: join(OUT, "failure.png") }).catch(() => {});
     log(`failed in beat ${d.beat}; screenshot docs/video/failure.png`);
     throw err;
   } finally {
-    await context.close();
+    await context.close();                                   // finishes the video file
+    await video.saveAs(join(RUN, "recording.webm")).catch((e) => log(`video not saved: ${e.message}`));
     await browser.close();
     await vite.close();
   }
-  // Each frame lasts until the next one; times are relative to the director's clock (t = 0 at the first mark).
-  const t0 = d.t0 / 1000;
-  const end = d.marks.find((m) => m.type === "end")?.t ?? (frameLog.at(-1).ts - t0);
-  const lines = ["ffconcat version 1.0"];
-  frameLog.forEach((f, i) => {
-    const from = i === 0 ? 0 : f.ts - t0;
-    const to = i + 1 < frameLog.length ? frameLog[i + 1].ts - t0 : end + 0.5;
-    lines.push(`file '${f.file}'`, `duration ${Math.max(0.001, to - from).toFixed(4)}`);
-  });
-  lines.push(`file '${frameLog.at(-1).file}'`);
-  writeFileSync(join(shots, "frames.txt"), lines.join("\n"));
-  ff(["-f", "concat", "-safe", "0", "-i", "run/shots/frames.txt",
-    "-vf", `fps=30,scale=1920:${APP_H}:flags=lanczos,pad=1920:1080:0:0:color=${BAND},format=yuv420p`,
-    "-c:v", "libvpx-vp9", "-deadline", "realtime", "-cpu-used", "8", "-row-mt", "1", "-crf", "18", "-b:v", "0", "raw.webm"]);
-  log(`raw.webm: ${frameLog.length} screen frames, ${end.toFixed(1)} s`);
-  return { marks: d.marks, waits: d.waits, warnings: d.warnings };
+  // Re-encode to constant 30 fps H.264 with the caption band below the app, then move every mark onto video time.
+  ff(["-i", "run/recording.webm", "-vf", `fps=30,pad=1920:1080:0:0:color=${BAND},format=yuv420p`, "-an",
+    "-c:v", "libx264", "-preset", "veryfast", "-crf", "18", "-pix_fmt", "yuv420p", "-r", "30", "-movflags", "+faststart", "raw.mp4"]);
+  // Two flashes give a line: video = v0 + (t - syncAt) * rate, so any drift between the clocks is spread evenly.
+  const v0 = syncFrame("raw.mp4", 0);
+  const tail = Math.floor((probeSeconds(join(OUT, "raw.mp4")) - 8) * 30) / 30;
+  const v1 = syncFrame("raw.mp4", tail);
+  const rate = (v1 - v0) / (endSyncAt - syncAt);
+  const shift = (t) => +(v0 + (t - syncAt) * rate).toFixed(3);
+  const marks = d.marks.map((m) => ({ ...m, t: shift(m.t) }));
+  const waits = d.waits.map((w) => ({ ...w, a: shift(w.a), b: shift(w.b) }));
+  const motion = d.motion.map((w) => ({ ...w, a: shift(w.a), b: shift(w.b) }));
+  const sync = { start_offset: +(v0 - syncAt).toFixed(3), end_offset: +(v1 - endSyncAt).toFixed(3), rate: +rate.toFixed(6) };
+  log(`raw.mp4: ${probeSeconds(join(OUT, "raw.mp4")).toFixed(1)} s; sync ${JSON.stringify(sync)}`);
+  return { marks, waits, motion, warnings: d.warnings, sync };
+}
+
+// Time (s) of the first mostly-blue frame of a sync flash at or after `from`, from 8 x 8 thumbnails of 10 s.
+function syncFrame(file, from) {
+  const r = spawnSync("ffmpeg", ["-hide_banner", "-loglevel", "error", "-ss", from.toFixed(4), "-t", "10", "-i", file,
+    "-vf", "crop=1920:972:0:0,scale=8:8,format=rgb24", "-f", "rawvideo", "-"], { cwd: OUT, maxBuffer: 1 << 26 });
+  const buf = r.stdout, size = 8 * 8 * 3;
+  for (let i = 0; (i + 1) * size <= buf.length; i++) {
+    let R = 0, B = 0;
+    for (let p = i * size; p < (i + 1) * size; p += 3) { R += buf[p]; B += buf[p + 2]; }
+    if (B / 64 > 180 && R / 64 < 80) return from + i / 30;
+  }
+  throw new Error(`sync flash not found in the recording after ${from.toFixed(1)} s`);
 }
 
 // --- composing --------------------------------------------------------------------------------------------------
@@ -488,7 +613,8 @@ function card(name, seconds, lines) {
   return `parts/${name}.mp4`;
 }
 
-function compose({ marks, waits }) {
+function compose(rec) {
+  const { marks, waits } = rec;
   const dir = join(OUT, "parts");
   rmSync(dir, { recursive: true, force: true });
   mkdirSync(dir);
@@ -502,7 +628,7 @@ function compose({ marks, waits }) {
     let t = b.t;
     for (const w of fast) {
       if (w.a > t) pieces.push({ a: t, b: w.a, speed: 1 });
-      pieces.push({ a: w.a, b: w.b, speed: (w.b - w.a) / FAST_TO, fast: true });
+      pieces.push({ a: w.a, b: w.b, speed: FAST_SPEED, fast: true });
       t = w.b;
     }
     if (to > t) pieces.push({ a: t, b: to, speed: 1 });
@@ -518,7 +644,9 @@ function compose({ marks, waits }) {
   }
   if (total > PLAN_CAP + 0.01) {
     const over = plan.filter((p) => p.natural > TARGET[p.beat]).map((p) => `beat ${p.beat} ${p.natural.toFixed(1)}s > ${TARGET[p.beat]}s`);
-    throw new Error(`video would be ${total.toFixed(1)} s (cap ${CAP_TOTAL}); shorten pauses in: ${over.join(", ")}`);
+    const real = waits.reduce((s, w) => s + w.b - w.a, 0);
+    throw new Error(`video would be ${total.toFixed(1)} s (cap ${CAP_TOTAL}); time-lapse ${(real / FAST_SPEED).toFixed(1)} s ` +
+      `from ${real.toFixed(1)} s of waits (re-run if the model was slow); shorten pauses in: ${over.join(", ")}`);
   }
   const files = [card("title", TITLE_S, [
     { text: "GovFlow", size: 120, y: 360, bold: true },
@@ -538,9 +666,9 @@ function compose({ marks, waits }) {
       const name = `parts/b${p.beat}-${i}.mp4`;
       // -ss and -t before -i: read exactly this stretch of the recording (after -i, -t would cap the sped-up output
       // instead, and ffmpeg would keep reading far past the stretch).
-      ff(["-ss", piece.a.toFixed(3), "-t", (piece.b - piece.a).toFixed(3), "-i", "raw.webm", "-vf", vf.join(","), ...ENC, name]);
+      ff(["-ss", piece.a.toFixed(3), "-t", (piece.b - piece.a).toFixed(3), "-i", "raw.mp4", "-vf", vf.join(","), ...ENC, name]);
       files.push(name);
-      map.push({ a: piece.a, b: piece.b, speed: piece.speed, at });
+      map.push({ beat: p.beat, a: piece.a, b: piece.b, speed: piece.speed, at });
       if (piece.fast) fastWindows.push({ from: at, to: at + len });
       at += len + (last ? p.pad : 0);
     });
@@ -559,11 +687,28 @@ function compose({ marks, waits }) {
 
   // Captions on the final timeline: each shows until the next caption of its beat, or the beat's end.
   const toFinal = (t) => { const m = map.find((x) => t >= x.a - 0.001 && t <= x.b + 0.001); return m ? m.at + (t - m.a) / m.speed : null; };
-  const caps = marks.filter((m) => m.type === "cap").map((c) => ({ ...c, at: toFinal(c.t) })).filter((c) => c.at !== null);
+  // A caption maps through its own beat's pieces: a beat's first caption sits exactly on the previous beat's last
+  // raw instant, and mapping it there put it before that beat's end padding, over the previous caption.
+  const toFinalIn = (t, beat) => {
+    const m = map.find((x) => x.beat === beat && t >= x.a - 0.001 && t <= x.b + 0.001);
+    return m ? m.at + (t - m.a) / m.speed : null;
+  };
+  const gray = grayFrames(), byMin = {};
+  const changesOver = (min) => (byMin[min] ??= screenChanges(gray, min));
+  const caps = marks.filter((m) => m.type === "cap").map((c) => {
+    const rule = CAPTION_SCREEN[c.text];
+    if (!rule) return { ...c, at: toFinalIn(c.t, c.beat) };
+    const { after = 0, before = 0, until = 0, min = 1.5 } = typeof rule === "number" ? { after: rule } : rule;
+    const changes = changesOver(min);
+    const from = after ? changes.filter((x) => x.b > c.t)[after - 1] : changes.filter((x) => x.a < c.t).at(-before);
+    const end = until ? changes.filter((x) => x.a > c.t)[until - 1] : null;
+    if (!from || (until && !end)) throw new Error(`screen change not found for caption: ${c.text}`);
+    return { ...c, at: toFinalIn(after ? from.b : from.a, c.beat), end: end ? toFinalIn(end.a, c.beat) : null };
+  }).filter((c) => c.at !== null);
   const windows = caps.map((c, i) => {
     const seg = segments.find((s) => s.beat === c.beat && !s.card);
     const next = caps[i + 1] && caps[i + 1].beat === c.beat ? caps[i + 1].at : seg.to;
-    return { beat: c.beat, text: c.text, from: c.at, to: Math.min(next, seg.to) };
+    return { beat: c.beat, text: c.text, from: c.at, to: Math.min(next, seg.to, c.end ?? Infinity) };
   });
   const filters = windows.map((w, i) => {
     writeFileSync(join(dir, `cap-${i}.txt`), w.text);
@@ -572,9 +717,15 @@ function compose({ marks, waits }) {
   writeFileSync(join(dir, "fast.txt"), "Sped up");
   for (const f of fastWindows) filters.push(`drawtext=fontfile='${FONT_B}':textfile='parts/fast.txt':fontsize=32:fontcolor=white:box=1:boxcolor=0xb3261e:boxborderw=12:x=36:y=${APP_H}+(${1080 - APP_H}-text_h)/2:enable='between(t,${f.from.toFixed(2)},${f.to.toFixed(2)})'`);
   writeFileSync(join(dir, "captions.txt"), filters.join(",\n"));
-  ff(["-i", "body.mp4", "-/vf", "parts/captions.txt", "-an", "-c:v", "libx264", "-preset", "medium", "-crf", "20",
-    "-pix_fmt", "yuv420p", "-movflags", "+faststart", "govflow_demo_captioned.mp4"]);
-  return { segments, windows, fastWindows, plan };
+  ff(["-i", "body.mp4", "-/vf", "parts/captions.txt", ...ENC, "-movflags", "+faststart", "govflow_demo_captioned.mp4"]);
+  // Scripted motion (cursor glides, scrolls) on the final timeline, for measuring smoothness where things move. The
+  // director logs when input is sent; it reaches the captured screen RENDER_LAG later (measured on the 2026-11-21
+  // recording: in-motion distinct frames peak with the windows 0.10-0.13 s late), so the windows are moved by that much.
+  const motion = (rec.motion || []).map((w) => ({ kind: w.kind, from: toFinal(w.a + RENDER_LAG), to: toFinal(w.b + RENDER_LAG) }))
+    .filter((w) => w.from !== null && w.to !== null && w.to > w.from);
+  const motionAsSent = (rec.motion || []).map((w) => ({ kind: w.kind, from: toFinal(w.a), to: toFinal(w.b) }))
+    .filter((w) => w.from !== null && w.to !== null && w.to > w.from);
+  return { segments, windows, fastWindows, plan, motion, motionAsSent };
 }
 
 const stamp = (s) => `${Math.floor(s / 60)}:${(s % 60).toFixed(1).padStart(4, "0")}`;
@@ -586,7 +737,7 @@ function writeNarration(segments) {
     const segs = segments.filter((s) => s.beat === n);
     const from = Math.min(...segs.map((s) => s.from)), to = Math.max(...segs.map((s) => s.to));
     const words = NARRATION[n].split(/\s+/).length;
-    lines.push(`[${stamp(from)} - ${stamp(to)}] Beat ${n} (${words} words, ${(words / ((to - from) / 60)).toFixed(0)} words a minute)`,
+    lines.push(`[${stamp(from)} - ${stamp(to)}] Beat ${n} (${words} words, ${(words / ((to - from) / 60)).toFixed(1)} words a minute)`,
       NARRATION[n], "");
   }
   writeFileSync(join(OUT, "narration.txt"), lines.join("\n"));
@@ -603,7 +754,7 @@ function frames(segments, file) {
 
 // --- main ---------------------------------------------------------------------------------------------------------
 
-// --compose-only rebuilds the captioned video from the last recording (raw.webm + run/record.json), no app, no model.
+// --compose-only rebuilds the captioned video from the last recording (raw.mp4 + run/record.json), no app, no model.
 let rec;
 if (process.argv.includes("--compose-only")) {
   rec = JSON.parse(readFileSync(join(RUN, "record.json"), "utf8"));
@@ -626,7 +777,21 @@ const composed = compose(rec);
 writeNarration(composed.segments);
 const duration = probeSeconds(join(OUT, "govflow_demo_captioned.mp4"));
 const shots = frames(composed.segments, "govflow_demo_captioned.mp4");
-writeFileSync(join(OUT, "timeline.json"), JSON.stringify({ duration, warnings: rec.warnings, waits: rec.waits,
+// Smoothness of the app area between the cards (captions and cards excluded), with ffmpeg mpdecimate; also inside the
+// scripted motion windows alone (cursor glides and scrolls).
+const measureWith = (windows, name) => {
+  writeFileSync(join(RUN, name), JSON.stringify(windows));
+  const r = spawnSync(process.execPath, [join(ROOT, "scripts", "measure_video.mjs"), "govflow_demo_captioned.mp4",
+    "--from", String(TITLE_S), "--to", (duration - CLOSING_S).toFixed(2), "--crop", `1920:${APP_H}:0:0`,
+    "--windows", join(RUN, name)], { cwd: OUT, encoding: "utf8" });
+  return JSON.parse(r.stdout);
+};
+const smooth = measureWith(composed.motion, "motion.json");
+const asSent = measureWith(composed.motionAsSent, "motion_as_sent.json");
+smooth.in_motion_as_sent = { distinct_fps: asSent.distinct_fps_in_motion, gaps_over_0_1: asSent.gaps_over_0_1_in_motion };
+log(`smoothness: ${JSON.stringify(smooth)}`);
+writeFileSync(join(OUT, "timeline.json"), JSON.stringify({ duration, smooth, warnings: rec.warnings, waits: rec.waits,
+  motion: composed.motion,
   segments: composed.segments, captions: composed.windows, fast: composed.fastWindows,
   beats: composed.plan.map((p) => ({ beat: p.beat, natural: p.natural, pad: p.pad })), frames: shots }, null, 2));
 log(`final duration ${duration.toFixed(2)} s; warnings: ${rec.warnings.length}; time-lapsed waits: ${rec.waits.length}`);
