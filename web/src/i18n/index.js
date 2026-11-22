@@ -1,4 +1,4 @@
-// The citizen-side dictionaries. English is the source; the others need native-speaker review.
+// The citizen-side dictionaries. English is the source; hi, mr and kok were reviewed by native speakers (2026-11-22).
 import en from "./en.json";
 import hi from "./hi.json";
 import mr from "./mr.json";

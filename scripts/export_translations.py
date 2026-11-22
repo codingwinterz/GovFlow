@@ -2,7 +2,7 @@
 
 One row per key in web/src/i18n/en.json (the source), with the Hindi, Marathi and Konkani text beside it and empty
 reviewer, corrected text and comment columns. Status is each file's `_meta.review` marker
-("needs native-speaker review"). The translation files are only read, never written.
+(hi, mr, kok: "reviewed by native speakers, no changes"). The translation files are only read, never written.
 
 Usage: python -m scripts.export_translations [--out docs/translation_review.csv]
 """

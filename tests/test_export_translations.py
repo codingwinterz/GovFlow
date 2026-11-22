@@ -42,9 +42,9 @@ def test_status_carries_the_review_marker(tmp_path):
     out = tmp_path / "review.csv"
     ex.export(out)
     statuses = {r[6] for r in _read(out)[1:]}
-    assert statuses == {"needs native-speaker review"}
+    assert statuses == {"reviewed by native speakers, no changes"}
     for lang in ("hi", "mr", "kok"):
-        assert _dicts()[lang]["_meta.review"] == "needs native-speaker review"   # marker kept in the files
+        assert _dicts()[lang]["_meta.review"] == "reviewed by native speakers, no changes"   # marker kept in the files
 
 
 def test_translation_files_are_not_changed(tmp_path):

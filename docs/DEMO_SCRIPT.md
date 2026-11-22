@@ -110,7 +110,7 @@ cd web && npm run dev                                   # terminal 2, open http:
   *Why this amount* cites the same formula as the officer view." (Each item's basis opens under *Why?*.)
 - **Click:** Language → *हिंदी*.
 - **Say:** "All wording comes from fixed templates; numbers are inserted by code, never by an LLM. Hindi,
-  Marathi and Konkani are marked as awaiting native-speaker review, as the footer says."
+  Marathi and Konkani were reviewed line by line by native speakers."
 - **Optional:** `LA-05` with its printed code shows *More information needed* with the expired identity proof listed.
 
 ### 7. Self-check and document pre-check before applying (2:30, ~20 s)

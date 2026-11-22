@@ -75,8 +75,8 @@ None of these may be used for a real decision until checked against official sou
   incomplete. The rule only flags and labels the total as the holding's: it does not compute any owner's share.
 
 ## Language
-- **Hindi, Marathi and Konkani translations were written without native-speaker review** and are marked
-  "needs native-speaker review" in each file and on the page. They are not verified.
+- **Hindi, Marathi and Konkani were reviewed line by line by native speakers** (22 Nov 2026) and no wording was
+  changed. Departments should still confirm official terms before real use.
 - The citizen pages (home, self-check, tracking) are translated; the officer dashboard and the rule simulator
   are English only.
 - **Translated self-check questions: planned.** On Hindi, Marathi and Konkani pages the self-check's question
@@ -151,8 +151,8 @@ None of these may be used for a real decision until checked against official sou
   - The deterministic summary (agent explanation without the LLM) and the case blockers still say the engine's own
     words ("Eligibility recommendation: eligible / needs_review"), not "Ready for notice": `app/agent.py` could change
     for item (c) only. The case page's eligibility card uses the scheme's words.
-  - Self-check prompts are English (as for every scheme); only `documents.deed` was added to hi / mr / kok, as a
-    draft for native-speaker review.
+  - Self-check prompts are English (as for every scheme); only `documents.deed` was added to hi / mr / kok (since
+    reviewed by native speakers, no changes).
 - **Sahayak** (the self-check page's helper) answers only from `rules/sahayak_knowledge.yaml`: seven entries,
   keyword retrieval (no synonyms or spelling tolerance, so an unusual wording may find nothing and get the fixed
   "I can't help with that here" reply). Entries marked VERIFY carry a "Verify with …" tag naming who to check with (the Collectorate, the issuing

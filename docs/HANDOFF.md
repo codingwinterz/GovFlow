@@ -315,7 +315,8 @@ Written 17 Nov 2026 at commit `d73da8c` (the last code commit before this file);
 
 ### Open items
 
-- Hindi, Marathi and Konkani need **native-speaker review**; self-check question prompts stay English on those pages
+- Hindi, Marathi and Konkani were **reviewed by native speakers** (22 Nov 2026, no changes; departments should
+  still confirm official terms); self-check question prompts stay English on those pages
   (translated prompts planned). Voice assistant: planned. Multilingual helper: planned.
 - Cross-check over-flags on hard images: decide whether to keep it on for hard documents.
 - Deficiency notices name fields in English (YAML labels) even in the other languages.

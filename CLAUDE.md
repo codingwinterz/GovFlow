@@ -178,7 +178,7 @@ Fuller detail is in `docs/KNOWN_LIMITATIONS.md`.
   needed* (overdue or high severity, from `/cases`; admins see a note), the rest under *More detail*. Queue: five
   columns, *Needs attention* / *Overdue* views, *All columns*. Citizen: home with two choices and *How it works*,
   progress lines, self-check shows questions or the document check one at a time, amount basis behind *Why?*.
-  13 new citizen keys in en/hi/mr/kok (hi/mr/kok drafts for native review).
+  13 new citizen keys in en/hi/mr/kok (reviewed by native speakers 2026-11-22, no changes).
 
 ### Tests (all green at commit time)
 - Python: 1,310 passed (`pytest -q`, run in 3 low-memory batches: `[a-f]` 602 + `[g-r]` 315 + `[s-z]` 393).
@@ -228,8 +228,8 @@ Fuller detail is in `docs/KNOWN_LIMITATIONS.md`.
 ### Open items
 - Revenue mutation gaps: the deterministic summary still says the engine's words (eligible / needs_review), not
   "Ready for notice" (`app/agent.py` was allowed for item (c) only); no Form X notice or mutation order screen; no
-  notice / objection statuses; working days not counted; self-check prompts English only; `documents.deed` drafted
-  in hi / mr / kok for native-speaker review.
+  notice / objection statuses; working days not counted; self-check prompts English only; `documents.deed` in
+  hi / mr / kok (reviewed by native speakers, no changes).
 - **Feature freeze from 2026-11-17.** No new features; only fixes, docs and demo preparation. One exception
   granted 2026-11-17: the tenant / mundkar rule and the deficiency notice.
 - Voice assistant: planned, not built. Multilingual helper: planned (Sahayak is English only).
@@ -251,8 +251,10 @@ Fuller detail is in `docs/KNOWN_LIMITATIONS.md`.
   caught by other checks). Decide whether to keep it on for hard documents.
 - Cost of the at-or-below rule: Tesseract gives exactly 0.85 to four correct land dates on degraded images, now
   withheld (affects the Tesseract-only baseline, not Gemini + Tesseract).
-- Hindi, Marathi and Konkani: reviewed and tested by the developer (2026-11-22). The "not yet reviewed" note was
-  removed from the citizen footer, the officer's notice-language picker and the hi/mr/kok deficiency notices.
+- Hindi, Marathi and Konkani: reviewed line by line by native speakers (2026-11-22), no wording changed; each file's
+  `_meta.review` and `docs/translation_review.csv` say so. The "not yet reviewed" note was removed from the citizen
+  footer, the officer's notice-language picker and the hi/mr/kok deficiency notices. Departments should still
+  confirm official terms before real use.
 - Benchmark run of 19 Nov: the Gemini preflight timed out, so `docs/BENCHMARK.md` is a fallback-provider
   (Tesseract-only) run; re-run `python -m scripts.benchmark_processing` when Gemini answers.
 - Goa rural multiplier: notified value unknown (default 1.0 above).

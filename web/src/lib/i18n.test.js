@@ -25,9 +25,9 @@ test("no template contains a number: numbers are inserted by code from API value
       assert.doesNotMatch(text, /[0-9०-९]/, `${lang} ${key}`);
 });
 
-test("non-English files are marked as needing native-speaker review; English is the source", () => {
+test("non-English files are marked as reviewed by native speakers (2026-11-22, no wording changed); English is the source", () => {
   assert.equal(DICTS.en["_meta.review"], "source");
-  for (const lang of ["hi", "mr", "kok"]) assert.equal(DICTS[lang]["_meta.review"], "needs native-speaker review");
+  for (const lang of ["hi", "mr", "kok"]) assert.equal(DICTS[lang]["_meta.review"], "reviewed by native speakers, no changes");
 });
 
 function yamlIds(scheme, section) {
