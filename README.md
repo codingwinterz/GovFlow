@@ -1,20 +1,26 @@
 # GovFlow
 
 An AI agent platform for government case processing: one agent, many schemes. Built for the Go AI Hackathon
-(Goa). Schemes: land acquisition compensation and disaster relief (housing damage).
+(Goa). Four schemes, each one YAML file in `rules/`: land acquisition compensation, disaster relief (housing
+damage), social welfare pension and revenue mutation.
 
 Deterministic tools decide eligibility and amounts from a YAML rules file per scheme. The LLM only reads
-documents, calls tools and explains. Only an officer approves or rejects. All data is synthetic.
+documents, calls tools and explains. Only an officer approves or rejects. All data is synthetic (47 invented cases
+in `data/synthetic/`, images labelled SYNTHETIC); never put real citizen data in it.
 
 ## Set up
 
+Needs Python 3.11+ and Node 20.19+ (Vite 8). Tesseract OCR is optional (second reader and offline fallback).
+
 ```
+git clone <this repo> && cd GovFlow
 python -m venv .venv
 .venv/Scripts/pip install -r requirements.txt       # Windows; on macOS/Linux use .venv/bin/
 cd web && npm install && cd ..
 ```
 
-Optional: put `GEMINI_API_KEY=...` in `.env` (gitignored) for live extraction and the agent. Without it every
+Optional: put `GEMINI_API_KEY=...` (a key from Google AI Studio) in `.env` (gitignored) for live extraction and the
+agent. Without it every
 LLM step falls back to the deterministic tools and says so.
 
 ## Run the demo
@@ -24,6 +30,11 @@ LLM step falls back to the deterministic tools and says so.
 .venv/Scripts/python -m uvicorn app.main:app          # API on port 8000
 cd web && npm run dev                                 # dashboard on http://127.0.0.1:5173
 ```
+
+Open http://127.0.0.1:5173 and pick *Citizen services* or *Staff*. Staff sign-in is demo only, no password: choose
+a role and any user id, for example officer `O-1` (decides cases), clerk `C-1` (intake) or admin `A-1`
+(analytics, simulator). Citizen tracking uses a reference and the 6-digit code the seed printed. `--reset` deletes
+and rebuilds `govflow.db`.
 
 ### Settings in `.env`
 
@@ -48,6 +59,9 @@ cd web && npm test                       # frontend logic
 cd web && npm run test:layout            # browser checks (needs Google Chrome)
 cd web && npm run test:all               # both
 ```
+
+On a low-memory machine run the Python tests in three batches: `tests/test_[a-f]*.py`, `tests/test_[g-r]*.py`,
+`tests/test_[s-z]*.py`.
 
 ## Not for production as is
 
