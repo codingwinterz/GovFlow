@@ -214,6 +214,29 @@ def test_cross_check_disagreement_marks_field_could_not_read():
     assert by_label["Issue date"].status == "found"
 
 
+def test_name_of_holder_label_agrees_with_the_cross_check():
+    # A clean Form I & XIV (synthetic) labelled "Name of holder:": the second reader must read the name, not
+    # "of holder: Rohan Naik", so the two readers agree and the name is found.
+    # Line order as real Tesseract reads the two-column card: every label first, then every value.
+    text = ("Name of holder:\nSurvey number:\nArea:\nArea unit:\nIssue date:\nVillage / Taluka:\n"
+            "Rohan Naik\n142/3\n850\nsqm\n05/10/2026\nDemoville / Sampletaluka\n")
+    primary = ScriptedProvider([
+        {"name": "name", "value": "Rohan Naik", "confidence": 0.99},
+        {"name": "survey_number", "value": "142/3", "confidence": 0.99},
+        {"name": "area", "value": "850", "confidence": 0.99},
+        {"name": "area_unit", "value": "sq m", "confidence": 0.99},
+        {"name": "issue_date", "value": "05/10/2026", "confidence": 0.99},
+    ])
+    res = precheck_document(
+        LA, "ownership_record", Page(number=1, text=text), reference_date=REF_DATE,
+        provider=primary, ocr=ScriptedOcr(), cross_check=TesseractBaselineProvider(ScriptedOcr()),
+    )
+    by_label = {f.label: f for f in res.fields}
+    assert by_label["Name"].status == "found"
+    assert by_label["Name"].what_we_read == "Rohan Naik"
+    assert res.readable == "yes"
+
+
 def test_damaged_name_with_digits_or_symbols_is_flagged_as_could_not_read():
     provider = ScriptedProvider([
         {"name": "name", "value": "L?ta Sh1rodkar", "confidence": 0.95},

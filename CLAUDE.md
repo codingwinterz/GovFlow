@@ -62,7 +62,9 @@ Fuller detail is in `docs/KNOWN_LIMITATIONS.md`.
   paused" and always shows how many there are, with a link to that filter.
 - Cross-check: when Tesseract is installed it reads each document again; a field the two readers read differently
   after normalisation goes to review as "readers disagree", whatever the confidence (skipped if Tesseract finds
-  nothing for the field). Punctuation at either end of a reading is ignored when comparing.
+  nothing for the field). Punctuation at either end of a reading is ignored when comparing. Its label parser reads
+  "Name of holder:" / "Name of the occupant:" and reads nothing from a label line with no value (two-column
+  cards), never the label words as the name (2026-11-22).
 - Review rule: a reading at or below `confidence_threshold` (0.85) goes to review (`app/confidence.py`, used at
   every accept/withhold point).
 - Dates are day first: the prompt says DD/MM/YYYY and asks for the date as printed; `field_types` parses
@@ -178,7 +180,7 @@ Fuller detail is in `docs/KNOWN_LIMITATIONS.md`.
   13 new citizen keys in en/hi/mr/kok (hi/mr/kok drafts for native review).
 
 ### Tests (all green at commit time)
-- Python: 1,304 passed (`pytest -q`, run in 3 low-memory batches: `[a-f]` 602 + `[g-r]` 314 + `[s-z]` 388).
+- Python: 1,310 passed (`pytest -q`, run in 3 low-memory batches: `[a-f]` 602 + `[g-r]` 315 + `[s-z]` 393).
 - Frontend: 106 logic (`npm test`) + 92 browser (`npm run test:layout`); `npm run test:all` runs both. Build clean.
 
 

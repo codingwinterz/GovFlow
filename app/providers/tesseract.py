@@ -81,7 +81,10 @@ class TesseractOcr:
 
 _SEP = r"\s*[:.;]?\s*"
 _LABELS = [
-    ("name", re.compile(rf"^(?:name|occupant){_SEP}(.+)$", re.I)),
+    # "Name of holder:" / "Name of the occupant:" (Form I & XIV). On a two-column card Tesseract gives the label line
+    # alone: read nothing then (the cross-check is skipped), never the label words "of holder:" as the name.
+    ("name", re.compile(rf"^(?:name(?:\s+of\s+(?:the\s+)?(?:holder|occupant|owner))?|occupant){_SEP}(?!of\b)([^\s:.;].*)$",
+                        re.I)),
     ("survey_number", re.compile(rf"^survey\s*no\.?{_SEP}(.+)$", re.I)),
     ("area", re.compile(rf"^(?:total\s+)?area{_SEP}([\d.,]+)\s*(.*)$", re.I)),
     ("issue_date", re.compile(rf"^issued{_SEP}(.+)$", re.I)),

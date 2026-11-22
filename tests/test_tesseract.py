@@ -47,6 +47,8 @@ def test_text_page_passes_through_unchanged():
 @pytest.mark.parametrize("line, field, value", [
     ("Occupant: Lata Shirodkar", "name", "Lata Shirodkar"),
     ("Name : PRAKASH KAMATH", "name", "PRAKASH KAMATH"),
+    ("Name of holder: Rohan Naik", "name", "Rohan Naik"),        # Form I & XIV label (synthetic)
+    ("Name of the occupant: Rohan Naik", "name", "Rohan Naik"),
     ("Survey No.: 154/2", "survey_number", "154/2"),
     ("Valid upto: 31/03/2031", "expiry_date", "2031-03-31"),
     ("Issued: 01/10/2026", "issue_date", "2026-10-01"),
@@ -60,6 +62,12 @@ def test_parses_labelled_lines(line, field, value):
 def test_parses_area_and_unit_from_one_line():
     fields = {f.name: f.value for f in parse_labelled_lines([("Total area: 3000 sq. m.", 0.8)], ["area", "area_unit"])}
     assert fields == {"area": 3000.0, "area_unit": "sq. m."}
+
+
+@pytest.mark.parametrize("line", ["Name of holder:", "Name of the occupant:", "Name:"])
+def test_a_label_without_its_value_reads_nothing(line):
+    # Two-column cards: Tesseract gives the label line alone; the label words are not the name.
+    assert parse_labelled_lines([(line, 0.95)], ["name"]) == []
 
 
 def test_unparseable_date_is_omitted_not_guessed():
