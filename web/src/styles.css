@@ -330,6 +330,8 @@ div.explanation li { margin: var(--s1) 0; }
 .citizen form button[type="submit"] { padding: var(--s3) var(--s5); }
 /* The four-language switcher stays in the bar on every screen width */
 .citizen .topbar .lang { white-space: nowrap; }
+.citizen .staff-link { display: inline-flex; align-items: center; min-height: var(--target); white-space: nowrap;
+  font-weight: 600; }
 @media (max-width: 600px) { .citizen .topbar-tools { margin-left: 0; width: 100%; justify-content: space-between; } }
 .citizen-view .line.status { font-weight: 600; }
 .citizen-view .line.next { background: var(--info-bg); border: 1px solid var(--info-border); color: var(--info-text);

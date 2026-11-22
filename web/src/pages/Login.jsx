@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { signIn } from "../api.js";
+import { href } from "../lib/router.js";
 
 export default function Login({ onLogin }) {
   const [role, setRole] = useState("officer");
@@ -33,6 +34,7 @@ export default function Login({ onLogin }) {
         {error && <p className="error" role="alert">{error}</p>}
         <button type="submit">Continue</button>
       </form>
+      <p className="muted">Not staff? <a href={href("citizen-home")}>Citizen services</a></p>
     </section>
   );
 }

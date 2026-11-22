@@ -56,3 +56,9 @@ test("the landing page offers exactly the two entry points", () => {
   assert.match(source, /href\("citizen-home"\)/);
   assert.match(source, /href\("queue"\)/);
 });
+
+// Switching sides: the citizen header links to the staff side, the staff sign-in links back to citizen services.
+test("the citizen header links to staff sign-in; the staff sign-in links back to citizen services", () => {
+  assert.match(read("shells/CitizenShell.jsx"), /href\("queue"\)\}>\{t\(dict, "nav\.staff_sign_in"\)\}/);
+  assert.match(read("pages/Login.jsx"), /href\("citizen-home"\)[\s\S]*Citizen services/);
+});

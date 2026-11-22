@@ -35,6 +35,8 @@ export default function CitizenShell({ route }) {
             ))}
           </nav>
           <div className="topbar-tools">
+          {/* #/officer: the staff sign-in, or a signed-in clerk or officer's queue (the officer shell decides) */}
+          <a className="staff-link" href={href("queue")}>{t(dict, "nav.staff_sign_in")}</a>
           <label className="lang">{t(dict, "language.label")}
             <select value={lang} onChange={(e) => choose(e.target.value)}>
               {Object.entries(DICTS).map(([k, d]) => <option key={k} value={k}>{d["_meta.language"]}</option>)}

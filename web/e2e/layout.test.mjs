@@ -1304,3 +1304,40 @@ test("citizen pages: a short progress line, one action at a time, the amount's b
   assert.equal(await pre.page.locator("section.precheck ol.progress li[aria-current=step]").innerText(), "Choose the document");
   await pre.close();
 });
+
+// --- switching sides: citizen header -> staff sign-in, staff sign-in -> citizen home ---------------------------------
+
+for (const width of [1280, 390]) {
+  test(`citizen header at ${width}px: a "Staff sign-in" link inside the header, no sideways scroll; it opens the staff sign-in`, async () => {
+    const o = await open("#/citizen", () => ({ json: [] }), { width });
+    const link = o.page.locator("header.topbar").getByRole("link", { name: "Staff sign-in" });
+    await link.waitFor();
+    const info = await o.page.evaluate(() => {
+      const a = [...document.querySelectorAll("header.topbar a")].find((x) => x.textContent.trim() === "Staff sign-in");
+      const r = a.getBoundingClientRect(), h = document.querySelector(".topbar-inner").getBoundingClientRect();
+      return { vw: document.documentElement.clientWidth, sw: document.documentElement.scrollWidth,
+        inside: r.left >= h.left - 0.5 && r.right <= h.right + 0.5, w: r.width, hgt: r.height };
+    });
+    assert.ok(info.inside, `link outside the header: ${JSON.stringify(info)}`);
+    assert.equal(info.sw, info.vw, "page scrolls sideways");
+    assert.ok(info.w >= 24 && info.hgt >= 24, `target under 24 px: ${JSON.stringify(info)}`);
+    await link.click();
+    await o.page.getByRole("heading", { name: "Demo sign-in" }).waitFor();
+    await o.close();
+  });
+}
+
+test('signed-in staff: the citizen header\'s "Staff sign-in" goes to their start page, not the sign-in', async () => {
+  const o = await open("#/citizen", () => ({ json: [] }), { width: 1280, login: OFFICER_LOGIN });
+  assert.equal(await o.page.locator("header.topbar").getByRole("link", { name: "Staff sign-in" }).getAttribute("href"), "#/officer");
+  await o.close();
+});
+
+test('staff sign-in page: a "Citizen services" link back to the citizen home', async () => {
+  const o = await open("#/officer", () => ({ json: [] }), { width: 390 });
+  await o.page.getByRole("heading", { name: "Demo sign-in" }).waitFor();
+  await o.page.locator("main").getByRole("link", { name: "Citizen services" }).click();
+  await o.page.waitForSelector(".shell.citizen");
+  assert.equal(new URL(o.page.url()).hash, "#/citizen");
+  await o.close();
+});

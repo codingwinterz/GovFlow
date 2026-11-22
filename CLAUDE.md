@@ -132,7 +132,8 @@ Fuller detail is in `docs/KNOWN_LIMITATIONS.md`.
 - Citizen tracking (`POST /public/status`): reference plus a 6-digit HMAC code (`GOVFLOW_CITIZEN_SECRET`, no
   built-in secret: 503 without it), the same 404 for any wrong pair, rate-limited per client and per reference.
   The demo seed writes both secrets to `.env` on first run.
-- Web: landing page, citizen shell (home, self-check, track; en/hi/mr/kok; light theme by default) and officer shell
+- Web: landing page, citizen shell (home, self-check, track; en/hi/mr/kok; light theme by default; a "Staff sign-in"
+  link in its header to `#/officer`, and "Citizen services" on the staff sign-in back, 2026-11-22) and officer shell
   (queue, case, intake, analytics with one shared scale, simulator, audit, award letter); plain loading / error /
   empty states with Retry; 24 px touch targets; no sideways scroll at 390 px. Case, audit and award pages mount
   fresh per case id (never the previous case while loading); the case page opens with a summary strip (status, stored
@@ -147,7 +148,7 @@ Fuller detail is in `docs/KNOWN_LIMITATIONS.md`.
   100%, widows and single women below 60 Rs 2,500 a month); invented 80+ and minor-child supplements removed.
   `scripts/benchmark_processing.py` writes `docs/BENCHMARK.md` (per scheme and stage: median, mean, p90; Gemini
   only after a one-call preflight, else labelled fallback provider). `scripts/export_translations.py` writes
-  `docs/translation_review.csv` (112 keys, en/hi/mr/kok, for native-speaker review).
+  `docs/translation_review.csv` (113 keys, en/hi/mr/kok, for native-speaker review).
 - Demo database re-seeded 2026-11-20 (`--reset`, 47 cases) for the mutation screenshots.
 - Branch `mutation` (merged into main 2026-11-20): revenue mutation, a fourth scheme from YAML only
   (`rules/revenue_mutation.yaml`, 5 synthetic cases RM-01..05, seeded with RM-01 approved), after four engine
@@ -181,7 +182,7 @@ Fuller detail is in `docs/KNOWN_LIMITATIONS.md`.
 
 ### Tests (all green at commit time)
 - Python: 1,310 passed (`pytest -q`, run in 3 low-memory batches: `[a-f]` 602 + `[g-r]` 315 + `[s-z]` 393).
-- Frontend: 106 logic (`npm test`) + 92 browser (`npm run test:layout`); `npm run test:all` runs both. Build clean.
+- Frontend: 107 logic (`npm test`) + 96 browser (`npm run test:layout`); `npm run test:all` runs both. Build clean.
 
 
 
