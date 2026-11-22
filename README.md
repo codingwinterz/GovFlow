@@ -28,10 +28,10 @@ LLM step falls back to the deterministic tools and says so.
 ```
 .venv/Scripts/python -m scripts.seed_demo --reset     # builds govflow.db and prints citizen codes
 .venv/Scripts/python -m uvicorn app.main:app          # API on port 8000
-cd web && npm run dev                                 # dashboard on http://127.0.0.1:5173
+cd web && npm run dev                                 # dashboard on http://localhost:5173
 ```
 
-Open http://127.0.0.1:5173 and pick *Citizen services* or *Staff*. Staff sign-in is demo only, no password: choose
+Open http://localhost:5173 and pick *Citizen services* or *Staff*. Staff sign-in is demo only, no password: choose
 a role and any user id, for example officer `O-1` (decides cases), clerk `C-1` (intake) or admin `A-1`
 (analytics, simulator). Citizen tracking uses a reference and the 6-digit code the seed printed. `--reset` deletes
 and rebuilds `govflow.db`.
