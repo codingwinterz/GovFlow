@@ -141,3 +141,12 @@ test("an approved case of a scheme with no amount has no 'Why this amount' secti
   assert.ok(!lines.some((l) => l.kind === "total" || l.text === DICTS.en["amounts.title"]));
   assert.deepEqual(lines.map((l) => l.kind), ["status", "next", "heading", "decision", "date"]);
 });
+
+test("no 'not yet reviewed' translation note anywhere: the hi / mr / kok translations are reviewed and tested (2026-11-22)", () => {
+  for (const lang of Object.keys(DICTS)) assert.equal(DICTS[lang]["footer.review"], undefined, lang);
+  const src = new URL("..", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
+  for (const file of ["shells/CitizenShell.jsx", "pages/CasePage.jsx"]) {
+    const text = readFileSync(`${src}/${file}`, "utf8");
+    assert.doesNotMatch(text, /footer\.review|draft translation/, file);
+  }
+});

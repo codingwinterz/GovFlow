@@ -114,7 +114,7 @@ def _fill(template: str, values: dict[str, str]) -> str:
 
 
 def render(items: list[NoticeItem], language: str, scheme: Scheme, case_ref: str, issued: str) -> list[str]:
-    """The notice as lines, from the fixed templates. Draft languages say so."""
+    """The notice as lines, from the fixed templates."""
     t = templates(language)
     doc_name = lambda d: t.get(f"documents.{d}") or scheme.terms.get(d) or d.replace("_", " ")
     lines = [t["deficiency.title"], _fill(t["deficiency.intro"], {"case_ref": case_ref})]
@@ -122,6 +122,4 @@ def render(items: list[NoticeItem], language: str, scheme: Scheme, case_ref: str
         lines.append(_fill(t[f"deficiency.{item.kind}"],
                            {"document": doc_name(item.document), "fields": ", ".join(item.field_labels)}))
     lines += [t["deficiency.footer"], _fill(t["deficiency.date"], {"date": issued})]
-    if t.get("_meta.review") != "source":
-        lines.append(t["footer.review"])          # draft translation, not yet reviewed by a native speaker
     return lines

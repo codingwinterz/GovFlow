@@ -50,7 +50,6 @@
   "amounts.source": "आधार: {source}",
   "amounts.total": "एकूण: {amount}",
   "amounts.rules": "नियम आवृत्ती: {version}",
-  "footer.review": "हिंदी, मराठी आणि कोंकणी भाषांतरांचे अद्याप मूळ भाषकांकडून पुनरावलोकन झालेले नाही.",
   "documents.application": "अर्ज",
   "documents.ownership_record": "मालकी अभिलेख",
   "documents.identity_proof": "ओळख पुरावा",

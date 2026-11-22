@@ -50,7 +50,6 @@
   "amounts.source": "Basis: {source}",
   "amounts.total": "Total: {amount}",
   "amounts.rules": "Rules version: {version}",
-  "footer.review": "The Hindi, Marathi and Konkani translations have not yet been reviewed by native speakers.",
   "documents.application": "Application form",
   "documents.ownership_record": "Ownership record",
   "documents.identity_proof": "Identity proof",

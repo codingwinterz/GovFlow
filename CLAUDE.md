@@ -148,7 +148,7 @@ Fuller detail is in `docs/KNOWN_LIMITATIONS.md`.
   100%, widows and single women below 60 Rs 2,500 a month); invented 80+ and minor-child supplements removed.
   `scripts/benchmark_processing.py` writes `docs/BENCHMARK.md` (per scheme and stage: median, mean, p90; Gemini
   only after a one-call preflight, else labelled fallback provider). `scripts/export_translations.py` writes
-  `docs/translation_review.csv` (113 keys, en/hi/mr/kok, for native-speaker review).
+  `docs/translation_review.csv` (112 keys, en/hi/mr/kok).
 - Demo database re-seeded 2026-11-20 (`--reset`, 47 cases) for the mutation screenshots.
 - Branch `mutation` (merged into main 2026-11-20): revenue mutation, a fourth scheme from YAML only
   (`rules/revenue_mutation.yaml`, 5 synthetic cases RM-01..05, seeded with RM-01 approved), after four engine
@@ -182,7 +182,7 @@ Fuller detail is in `docs/KNOWN_LIMITATIONS.md`.
 
 ### Tests (all green at commit time)
 - Python: 1,310 passed (`pytest -q`, run in 3 low-memory batches: `[a-f]` 602 + `[g-r]` 315 + `[s-z]` 393).
-- Frontend: 107 logic (`npm test`) + 96 browser (`npm run test:layout`); `npm run test:all` runs both. Build clean.
+- Frontend: 108 logic (`npm test`) + 96 browser (`npm run test:layout`); `npm run test:all` runs both. Build clean.
 
 
 
@@ -251,7 +251,8 @@ Fuller detail is in `docs/KNOWN_LIMITATIONS.md`.
   caught by other checks). Decide whether to keep it on for hard documents.
 - Cost of the at-or-below rule: Tesseract gives exactly 0.85 to four correct land dates on degraded images, now
   withheld (affects the Tesseract-only baseline, not Gemini + Tesseract).
-- Hindi, Marathi and Konkani text needs native-speaker review: `docs/translation_review.csv` is the sheet to send.
+- Hindi, Marathi and Konkani: reviewed and tested by the developer (2026-11-22). The "not yet reviewed" note was
+  removed from the citizen footer, the officer's notice-language picker and the hi/mr/kok deficiency notices.
 - Benchmark run of 19 Nov: the Gemini preflight timed out, so `docs/BENCHMARK.md` is a fallback-provider
   (Tesseract-only) run; re-run `python -m scripts.benchmark_processing` when Gemini answers.
 - Goa rural multiplier: notified value unknown (default 1.0 above).

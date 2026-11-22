@@ -50,7 +50,6 @@ amounts.intro,"The amount approved by the officer, with the basis of each item:"
 amounts.source,Basis: {source},आधार: {source},आधार: {source},आधार: {source},,needs native-speaker review,,
 amounts.total,Total: {amount},कुल: {amount},एकूण: {amount},एकूण: {amount},,needs native-speaker review,,
 amounts.rules,Rules version: {version},नियम संस्करण: {version},नियम आवृत्ती: {version},नेम आवृत्ती: {version},,needs native-speaker review,,
-footer.review,"The Hindi, Marathi and Konkani translations have not yet been reviewed by native speakers.","हिंदी, मराठी और कोंकणी अनुवादों की अभी मूल भाषी व्यक्तियों द्वारा समीक्षा नहीं हुई है।","हिंदी, मराठी आणि कोंकणी भाषांतरांचे अद्याप मूळ भाषकांकडून पुनरावलोकन झालेले नाही.","हिंदी, मराठी आनी कोंकणी अणकाराचें अजून मूळ भास उलोवप्यां कडल्यान पुनरावलोकन जावंक ना.",,needs native-speaker review,,
 documents.application,Application form,आवेदन पत्र,अर्ज,अर्ज,,needs native-speaker review,,
 documents.ownership_record,Ownership record,स्वामित्व अभिलेख,मालकी अभिलेख,मालकी नोंद,,needs native-speaker review,,
 documents.identity_proof,Identity proof,पहचान प्रमाण,ओळख पुरावा,वळखीचो पुरावो,,needs native-speaker review,,

@@ -1,5 +1,5 @@
 """scripts/export_translations.py: one CSV row per user-facing key in en, hi, mr and kok, for native-speaker review.
-It reads the translation files and never writes them. Expected values come from the files as they are (113 keys)."""
+It reads the translation files and never writes them. Expected values come from the files as they are (112 keys)."""
 import csv
 import hashlib
 import json
@@ -32,7 +32,7 @@ def test_every_key_once_with_the_four_texts(tmp_path):
     assert rows[0] == COLUMNS
     d = _dicts()
     assert [r[0] for r in rows[1:]] == list(d["en"])                 # every key, in the English file's order
-    assert len(rows) - 1 == 113
+    assert len(rows) - 1 == 112
     for key, en, hi, mr, kok, reviewer, status, corrected, comment in rows[1:]:
         assert (en, hi, mr, kok) == (d["en"][key], d["hi"][key], d["mr"][key], d["kok"][key])
         assert (reviewer, corrected, comment) == ("", "", "")

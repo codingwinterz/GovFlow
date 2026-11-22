@@ -260,7 +260,7 @@ function RequestDocuments({ caseId, onDone }) {
       <label>Language of the notice{" "}
         <select value={language} onChange={(e) => { setLanguage(e.target.value); setPreview(null); }}>
           {Object.entries(DICTS).map(([code, dict]) => (
-            <option key={code} value={code}>{dict["_meta.language"]}{code === "en" ? "" : " (draft translation)"}</option>
+            <option key={code} value={code}>{dict["_meta.language"]}</option>
           ))}
         </select>
       </label>

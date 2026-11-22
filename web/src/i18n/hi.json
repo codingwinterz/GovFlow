@@ -50,7 +50,6 @@
   "amounts.source": "आधार: {source}",
   "amounts.total": "कुल: {amount}",
   "amounts.rules": "नियम संस्करण: {version}",
-  "footer.review": "हिंदी, मराठी और कोंकणी अनुवादों की अभी मूल भाषी व्यक्तियों द्वारा समीक्षा नहीं हुई है।",
   "documents.application": "आवेदन पत्र",
   "documents.ownership_record": "स्वामित्व अभिलेख",
   "documents.identity_proof": "पहचान प्रमाण",

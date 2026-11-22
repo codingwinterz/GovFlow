@@ -96,9 +96,10 @@ def test_english_notice_text_is_the_fixed_template_filled_with_labels():
 
 
 @pytest.mark.parametrize("lang", ["hi", "mr", "kok"])
-def test_other_languages_use_their_templates_and_say_they_are_drafts(lang):
+def test_other_languages_use_their_templates_with_no_draft_note(lang):
     lines, t = _notice(7, lang), templates(lang)
-    assert lines[0] == t["deficiency.title"] and lines[-1] == t["footer.review"]
+    assert lines[0] == t["deficiency.title"] and lines[-1] == t["deficiency.date"].replace("{date}", "17 Nov 2026")
+    assert "footer.review" not in t
     assert lines[2] == t["deficiency.missing"].replace("{document}", t["documents.mutation_record"])
     assert "Mutation record" not in " ".join(lines)
 

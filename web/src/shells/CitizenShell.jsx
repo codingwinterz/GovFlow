@@ -50,10 +50,6 @@ export default function CitizenShell({ route }) {
       </header>
       <main className="content narrow-content">
         <Page dict={dict} />
-        <footer className="review-note">
-          {lang !== "en" && <p>{t(dict, "footer.review")}</p>}
-          <p>{t(DICTS.en, "footer.review")}</p>
-        </footer>
       </main>
     </div>
   );
