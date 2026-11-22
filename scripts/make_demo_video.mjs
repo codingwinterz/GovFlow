@@ -36,53 +36,117 @@ const PLAN_CAP = CAP_TOTAL - 0.6; // planning margin: every piece rounds to whol
 const TITLE_S = 4.0, CLOSING_S = 10.0;
 const APP_H = 972;                // the app's height in the 1080-line frame; the band below holds the captions
 const BAND = "0x0b1b2e";
-const HOLD = 0.65;                // scales every hold (show, pause, settle after an action) so the 4x time-lapses fit the cap
+const HOLD = 0.9;                 // scales every hold (show, pause, settle after an action) when recording
+const HOLD_TARGET = 0.9;          // holds on screen at this scale (a recording made at another scale is held to it)
 const SCROLL_MS = 600;            // every scroll is eased over this long; no instant jumps
-const RENDER_LAG = 0.1;           // seconds from sending input to it showing in the recording (measuring only)
-// Captions placed by their screen, not by when the script set them. A number n: the caption shows from the end of the
-// n-th screen change after its mark (it was set before the action that brings its screen up). An object: { before }
-// counts back from the mark instead, { until } ends the caption at that change after the mark, { min } is the
-// threshold (screenChanges). The counts were read off the 2026-11-21 recording's frames (a sign-in page or a loading
-// blank counts as a change); a missing change stops the build rather than guess.
-const CAPTION_SCREEN = {
-  "Tracking with a reference and code from this throwaway demo.": 2,      // the pre-check top, then the tracking form
-  "Approved: the amount, and the basis of each item.": 1,                 // "Why this amount" opens
-  // Set after the Hindi hold (the page goes back to English straight after): from the switch to Hindi until the switch
-  // back. A language swap redraws only text on a white page, so it is found with the lower text threshold.
-  "The same page in Hindi, from fixed templates.": { before: 1, until: 1, min: 0.8 },
-  "Waiting for documents: the page says exactly what is needed.": 1,      // LA-05's result
-  "Explanation written by the model; every figure comes from tools.": 1,  // the explanation row opens
-  // From LA-06 loading until LA-18 loads again (the 8th change: two previews, the language list, a scroll in between).
-  "LA-06 has an expired document: notice previewed in English, Hindi.": { after: 1, until: 8 },
-  "Approval: confirm every money field and record the resolution.": 2,    // scroll down, then the approval form
-  "A clerk opens a case: no decision controls. Only officers decide.": 3, // sign-in, LA-18 as clerk, then LA-12
-  "Admin: headline numbers read straight from the system.": 3,            // sign-in, a loading blank, then analytics
-  "More detail: every scheme by stage, and the liability table.": 1,      // the detail section opens
-  "Rule simulator: change one parameter, see which cases change.": 2,     // scroll to top, then the simulator
+const RENDER_LAG = 0.1;           // seconds from sending input to it showing in the recording (measuring, captions)
+const CAP_GAP = 0.15;             // seconds between one caption ending and the next starting: never two at once
+const STILL_MIN = 0.25, STILL_CAP = 3.0; // static stretches from STILL_MIN s are held to HOLD_TARGET, none over STILL_CAP
+const CAP_MIN = 2.5;              // every caption is on screen at least this long (its frame is held if needed)
+const ZOOM = 1.5;                 // CSS zoom on the page body: a 1280 x 648 CSS layout drawn at 1920 x 972
+// The page at 1920 x 972 with deviceScaleFactor 1 and the body zoomed 1.5x: text is drawn at full size and sharp
+// (Playwright's video ignores deviceScaleFactor and recorded the old 1280 x 648 viewport into a corner of the frame).
+// Zoom scales vh units too, so the two rules that use vh are divided back to their unzoomed size. Demo only; the
+// app's own CSS is not changed. The cursor overlay sits on <html>, outside the zoom, so it follows the mouse exactly.
+const PAGE_ZOOM = (zoom) => {
+  const add = () => {
+    if (document.getElementById("demo-zoom")) return;
+    const s = document.createElement("style");
+    s.id = "demo-zoom";
+    s.textContent = `body { zoom: ${zoom}; } .shell { min-height: calc(100vh / ${zoom}); }
+      .decision-bar { max-height: calc(75vh / ${zoom}); }`;
+    document.head.appendChild(s);
+  };
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", add); else add();
 };
-// Whole-screen changes in the app area of raw.mp4: frames whose mean absolute difference from the previous frame (on a
-// 96x48 grey thumbnail) is over min levels (1.5 by default), joined into one change when less than 0.25 s apart. A
-// cursor glide stays under 1; a page load, an opened section or a scroll is over 1.5; a text-only redraw is about 1.
-function screenChanges(gray, min = 1.5) {
-  const N = 96 * 48, buf = gray, frames = buf.length / N, changes = [];
-  for (let i = 1; i < frames; i++) {
-    let s = 0;
-    for (let j = 0; j < N; j++) s += Math.abs(buf[i * N + j] - buf[(i - 1) * N + j]);
-    if (s / N <= min) continue;
-    const t = i / 30, last = changes.at(-1);
-    if (last && t - last.b <= 0.25) last.b = t; else changes.push({ a: t, b: t });
-  }
-  return changes;
-}
+// 96 x 48 grey thumbnails of the app area of raw.mp4, one per frame (30 fps).
 function grayFrames() {
   const W = 96, H = 48;
   const r = spawnSync("ffmpeg", ["-hide_banner", "-loglevel", "error", "-i", join(OUT, "raw.mp4"), "-vf",
     `crop=1920:${APP_H}:0:0,scale=${W}:${H},format=gray`, "-f", "rawvideo", "-"], { maxBuffer: 1 << 30 });
-  if (r.status !== 0) throw new Error(`screen changes: ${String(r.stderr).slice(-400)}`);
+  if (r.status !== 0) throw new Error(`grey frames: ${String(r.stderr).slice(-400)}`);
   return r.stdout;
 }
-// Target length of each recorded beat (the title and closing cards are added around them); a short beat is padded.
-const TARGET = { 1: 7, 2: 28, 3: 13, 4: 32, 5: 27, 6: 36, 7: 20, 8: 14.4 };
+// Blank frames: a page still loading shows the header (or nothing) over an empty background. A frame is blank when,
+// below the top BLANK_TOP thumbnail rows (the header), at least BLANK_SHARE of the pixels are within 3 levels of their
+// median: every real screen has cards, tables or text there. Returned as raw intervals [a, b) to cut.
+const BLANK_TOP = 6, BLANK_SHARE = 0.97;     // 2026-11-21 data: loading frames 0.989-1.0, real screens 0.93 and under
+function blankFrames(gray) {
+  const W = 96, H = 48, N = W * H, frames = gray.length / N, out = [];
+  for (let i = 0; i < frames; i++) {
+    const px = gray.subarray(i * N + BLANK_TOP * W, (i + 1) * N);
+    const sorted = Uint8Array.from(px).sort(), med = sorted[sorted.length >> 1];
+    let near = 0;
+    for (const v of px) if (Math.abs(v - med) <= 3) near++;
+    if (near / px.length < BLANK_SHARE) continue;
+    const t = i / 30, last = out.at(-1);
+    if (last && t - last.b < 0.001) last.b = t + 1 / 30; else out.push({ a: t, b: t + 1 / 30, kind: "blank" });
+  }
+  // Two frames of margin each side: cutting at a frame edge can keep that frame when the piece is re-encoded.
+  return out.map((c) => ({ ...c, a: Math.max(0, c.a - 2 / 30), b: c.b + 2 / 30 }));
+}
+// Static stretches of raw.mp4's app area: intervals between distinct frames (ffmpeg mpdecimate, default thresholds, as
+// scripts/measure_video.mjs measures them) of at least STILL_MIN seconds, as [{ a, b }].
+function staticStretches() {
+  const r = spawnSync("ffmpeg", ["-hide_banner", "-nostats", "-i", join(OUT, "raw.mp4"), "-vf",
+    `crop=1920:${APP_H}:0:0,mpdecimate,showinfo`, "-an", "-f", "null", "-"], { encoding: "utf8", maxBuffer: 1 << 28 });
+  if (r.status !== 0) throw new Error(`stills: ${r.stderr.slice(-400)}`);
+  const ts = [...r.stderr.matchAll(/Parsed_showinfo.*?pts_time:\s*([0-9.]+)/g)].map((m) => Number(m[1]));
+  return ts.slice(1).map((b, i) => ({ a: ts[i], b })).filter((s) => s.b - s.a >= STILL_MIN);
+}
+// Holds on screen at HOLD_TARGET although the recording held at recHold: every static stretch (outside a time-lapse)
+// lasts k = HOLD_TARGET / recHold times as long, by holding its last frame (the frames are identical, so this is the
+// same picture as a longer hold), but never longer than STILL_CAP; a stretch already longer than that is cut to it.
+// Returns holds ({ t, extra }: hold the frame at raw time t for extra seconds) and cuts ([a, b) to leave out).
+function holdPlan(stretches, k) {
+  const holds = [], cuts = [];
+  for (const { a, b } of stretches) {
+    const len = b - a, target = len > STILL_CAP ? STILL_CAP : Math.min(len * k, STILL_CAP);
+    if (target > len + 1 / 60) holds.push({ t: b, extra: target - len });
+    else if (target < len) cuts.push({ a: a + target, b, kind: "still" });
+  }
+  return { holds, cuts };
+}
+// Segments left out of the cut (the recording still has them), each found from the recording's own marks. A blank
+// stretch (page loading) right after a navigation belongs to the segment it ends, so the cut lands on the new page.
+function dropsFrom(rec, blanks) {
+  const { marks, motion } = rec;
+  const cap = (prefix) => {
+    const m = marks.find((x) => x.type === "cap" && x.text.startsWith(prefix));
+    if (!m) throw new Error(`drop: no caption "${prefix}" in the recording`);
+    return m.t;
+  };
+  const uncapBefore = (t) => marks.filter((m) => m.type === "uncap" && m.t <= t).at(-1).t;
+  const uncapAfter = (t) => marks.find((m) => m.type === "uncap" && m.t > t).t;
+  const firstMotion = (kind, after) => motion.find((m) => m.kind === kind && m.a > after).a;
+  const lastMotion = (kind, before) => motion.filter((m) => m.kind === kind && m.a < before).at(-1).a;
+  const pageUp = (t) => (blanks.find((x) => x.a >= t - 0.05 && x.a < t + 2) || { b: t }).b;
+  const beatStart = (n) => marks.find((m) => m.type === "beat" && m.beat === n).t;
+  const end = marks.find((m) => m.type === "end").t;
+  const hindi = cap("The same page in Hindi"), la06 = cap("LA-06 has");
+  return [
+    // Tracking: from the scroll up to the language menu to the first glide after switching back to English.
+    { what: "language switch", a: firstMotion("scroll", cap("Approved:")), b: firstMotion("cursor", uncapAfter(hindi)) },
+    // LA-18 decision: from leaving LA-18 for LA-06 until LA-18 is up again.
+    { what: "LA-06 notice preview", a: uncapBefore(la06), b: pageUp(uncapAfter(la06)) },
+    // Admin: from the scroll to the Simulator link to the next beat.
+    { what: "rule simulator", a: lastMotion("scroll", cap("Rule simulator")), b: beatStart(8) },
+    // Trust: from leaving RM-02 for SW-01 to the end.
+    { what: "SW-01", a: uncapBefore(cap("Four schemes")), b: end },
+  ];
+}
+// A piece minus the cuts: the stretches of it that stay, each at least two frames long.
+function subtract(piece, cuts) {
+  const out = [];
+  let t = piece.a;
+  for (const c of [...cuts].sort((x, y) => x.a - y.a)) {
+    if (c.b <= t || c.a >= piece.b) continue;
+    if (c.a > t) out.push({ ...piece, a: t, b: c.a });
+    t = Math.max(t, c.b);
+  }
+  if (piece.b > t) out.push({ ...piece, a: t, b: piece.b });
+  return out.filter((p) => p.b - p.a >= 2 / 30);
+}
 
 // --- small helpers --------------------------------------------------------------------------------------------------
 
@@ -110,15 +174,15 @@ const citizenCode = (ref, secret) =>
 // --- narration (one spoken line per beat; the captions are in record()) ---------------------------------------------
 
 const NARRATION = {
-  1: "GovFlow is one AI agent for government case processing. Today, files are retyped by hand, checked from memory, and citizens cannot track their application.",
-  2: "A citizen can check a document before applying. Here is a synthetic ownership record, a clear scan. Each required field is either found or marked as unreadable, and nothing is saved: the file is checked in memory and thrown away. Now a blurred phone photo of the same record. It is only partly readable, and the page says in plain words what to do next.",
-  3: "A citizen tracks an application with a reference and code. This approved case shows the amount and its basis. The page reads in Hindi too. A waiting case lists what is missing.",
-  4: "A clerk opens a new land case and uploads its documents. They are synthetic: one ownership record image and four short printed records. The language model reads each document and returns every field with a confidence score. Waiting time is sped up on screen, and marked. The model only reads; it decides nothing. Then the agent runs the checks, the eligibility rules and the amount.",
-  5: "The officer opens the new case. One plain sentence says where it stands, then the total and what needs attention. The checks are fixed rules in the scheme file, not the model, and each shows its result and version. Each field shows how sure the reading was. The amount is worked out in steps: area, value and multiplier, then solatium and the additional amount.",
-  6: "On LA-18, a tenant entry on the record of rights is flagged, citing the Goa tenancy and mundkar Acts. The model writes the explanation, but every figure in it comes from the tools. On LA-06, where a document has expired, the officer previews a notice to the citizen in English and Hindi. Back on LA-18, the officer confirms each money field, records the resolution, and approves. A clerk sees no decision controls. Only an officer decides.",
-  7: "An administrator sees four headline numbers, read from the system, then one chart, and more detail only when asked. The case list is for officers and clerks. The rule simulator changes one parameter on the synthetic cases and shows which would change. It never edits the rules.",
-  8: "Every action goes into a hash-chained audit log, and it checks out intact. Duplicate claims and open mutations go to review, never rejection. Four schemes, one engine, each defined in a rules file.",
-  9: "These results come from our own tests on synthetic data. Legal values stay placeholders until the offices confirm. A scripted walkthrough of the live prototype.",
+  1: "GovFlow is one AI agent for government case processing. Today, files are retyped, checked from memory, and citizens cannot track their application.",
+  2: "A citizen can check a document before applying. Here is a synthetic ownership record, clearly scanned. Each required field is found or marked unreadable, and nothing is saved: the file is checked in memory only. Then a blurred phone photo of the record. It is partly readable, and the page says plainly what to do next.",
+  3: "A citizen tracks an application with a reference and a code. This approved case shows the amount and the basis of each item. A waiting case lists what is missing.",
+  4: "A clerk opens a new land case. First come the officer inputs the rules need: the market value per square metre, the value of assets, the rural multiplier and the key dates. Then the documents, all synthetic: one ownership record image and four short printed records. The language model reads each one and returns every field with a confidence score, and each upload is listed with the fields it read. Waiting time is sped up on screen, and marked. The model only reads; it decides nothing. Then the agent runs the checks, the eligibility rules and the amount.",
+  5: "The officer opens the case. One plain sentence says where it stands, then the total and what needs attention. The checks are fixed rules from the scheme file, not the model, each with its version. Each field shows how sure the reading was. The amount is worked out in steps, up to solatium and the additional amount.",
+  6: "On LA-18, a tenant entry on the record of rights is flagged, citing the Goa tenancy and mundkar Acts. The model writes the explanation, but every figure in it comes from the tools. To approve, the officer confirms each money field and records how the tenant entry was resolved. Then a clerk opens a case and sees no decision controls. Only an officer decides.",
+  7: "An administrator sees four headline numbers read from the system, one chart, and more detail when asked. Admins see aggregates, not cases: the case list is for officers and clerks.",
+  8: "The audit log is hash-chained and checks out intact. Duplicate claims go to review, never rejection, as does an open mutation on RM-02: four schemes on one engine.",
+  9: "These results come from our own tests on synthetic data only. Legal values stay placeholders until the Goa offices confirm them.",
 };
 
 // --- throwaway environment ------------------------------------------------------------------------------------------
@@ -194,12 +258,16 @@ const CURSOR = () => {
 // Eased page scroll over SCROLL_MS, driven by requestAnimationFrame so every captured frame moves a little.
 // Runs in the page as el.evaluate(SMOOTH_SCROLL, { ms, top }): with top, scroll to the top; otherwise bring the element
 // into view (centred; a tall element is aligned near the top). Resolves true if it scrolled.
+// Margins are in screen pixels (the page is zoomed 1.5x). The sticky decision bar covers the bottom of the case page,
+// so the space to fit into ends at the bar's top edge when the target is not inside the bar.
 const SMOOTH_SCROLL = (target, { ms, top }) => new Promise((resolve) => {
   let goal = 0;
   if (!top) {
     const r = target.getBoundingClientRect();
-    if (r.top >= 60 && r.bottom <= innerHeight - 60) { resolve(false); return; }   // already on screen
-    goal = scrollY + (r.height > innerHeight - 160 ? r.top - 80 : r.top + r.height / 2 - innerHeight / 2);
+    const bar = document.querySelector(".decision-bar");
+    const bottom = bar && !bar.contains(target) ? Math.min(innerHeight, bar.getBoundingClientRect().top) : innerHeight;
+    if (r.top >= 90 && r.bottom <= bottom - 30) { resolve(false); return; }   // already fully on screen
+    goal = scrollY + (r.height > bottom - 240 ? r.top - 120 : r.top + r.height / 2 - bottom / 2);
   }
   goal = Math.max(0, Math.min(goal, document.documentElement.scrollHeight - innerHeight));
   const from = scrollY, dist = goal - from;
@@ -228,6 +296,7 @@ class Director {
     if (words > CAP_WORDS) throw new Error(`caption over ${CAP_WORDS} words: ${text}`);
     this.marks.push({ type: "cap", beat: this.beat, t: this.now(), text });
   }
+  uncap() { this.marks.push({ type: "uncap", beat: this.beat, t: this.now() }); }
   async pause(ms = 1000) { await sleep(ms * HOLD); }
   async slow(label, fn) {                                   // a wait on the app; time-lapsed if long
     const a = this.now();
@@ -238,10 +307,10 @@ class Director {
     return r;
   }
   // The cursor glides: at least 20 eased steps, paced on the monotonic clock (220-500 ms by distance).
-  async moveTo(x, y) {
+  async moveTo(x, y, slow = 0) {
     const a = this.pos, dist = Math.hypot(x - a.x, y - a.y);
     if (dist < 1) return;
-    const ms = Math.min(500, Math.max(220, 180 + dist * 0.3));
+    const ms = slow || Math.min(500, Math.max(220, 180 + dist * 0.2)); // screen pixels, page zoomed 1.5x
     const steps = Math.max(20, Math.round(ms / 15));
     const t0 = performance.now(), from = this.now();
     for (let i = 1; i <= steps; i++) {
@@ -261,8 +330,8 @@ class Director {
   }
   // Bring the element into view (eased scroll), then glide the cursor onto it. Returns the element and the point
   // (relative to the element) the cursor rests on, so a click lands exactly there and the cursor never jumps.
-  // inset: how far in from the left edge to rest (a typed field uses 20 px: a date input's day segment).
-  async point(locator, { cursor = true, inset = 60 } = {}) {
+  // inset: how far in from the left edge to rest, in screen pixels (a typed field uses 30: a date input's day segment).
+  async point(locator, { cursor = true, inset = 90 } = {}) {
     const el = locator.first();
     await el.waitFor({ state: "visible", timeout: 60000 });
     if (await this.scrollTo(el)) await sleep(60);
@@ -275,7 +344,7 @@ class Director {
   }
   async click(locator, after = 700) { const { el, at } = await this.point(locator); await el.click({ position: at }); await sleep(after * HOLD); }
   async type(locator, text, after = 300) {
-    const { el, at } = await this.point(locator, { inset: 20 });
+    const { el, at } = await this.point(locator, { inset: 30 });
     await el.click({ position: at });
     await el.fill("");
     await el.pressSequentially(String(text), { delay: 18 });
@@ -283,6 +352,14 @@ class Director {
   }
   async select(locator, value, after = 500) { const { el } = await this.point(locator); await el.selectOption(value); await sleep(after * HOLD); }
   async upload(locator, file, after = 300) { const { el } = await this.point(locator); await el.setInputFiles(file); await sleep(after * HOLD); }
+  // A pointer pass: bring the element into view, rest the cursor at its left, then glide across it over ms. Motion,
+  // not a freeze, while its caption is read.
+  async trace(locator, ms = 1200) {
+    const { el } = await this.point(locator, { inset: 30 });
+    const box = await el.boundingBox();
+    await this.moveTo(box.x + Math.max(60, box.width - 60), this.pos.y, ms);
+    await sleep(150);
+  }
   async show(locator, ms = 1100) { await this.point(locator, { cursor: false }); await sleep(ms * HOLD); }
   async scrollTop(ms = 600) {
     const from = this.now();
@@ -290,9 +367,13 @@ class Director {
       this.motion.push({ kind: "scroll", a: from, b: this.now() });
     await sleep(Math.max(0, ms - SCROLL_MS));
   }
-  async hash(h, waitFor) {
+  // Navigate within the app. Leaving the page ends the caption on screen; the new page's caption (if given) is set as
+  // soon as its named element is up, so no caption is ever shown over a page it does not describe.
+  async hash(h, waitFor, caption) {
+    this.uncap();
     await this.page.evaluate((x) => { location.hash = x; }, h);
     if (waitFor) await this.page.locator(waitFor).first().waitFor({ timeout: 60000 });
+    if (caption) this.cap(caption);
     await sleep(700);
   }
   async clean(what) {                                        // nothing on screen looks like a failure
@@ -304,25 +385,30 @@ class Director {
 
 async function signIn(d, role, user) {
   const page = d.page;
+  d.uncap();                                                 // the sign-in page is not what the last caption described
   const switcher = page.getByRole("button", { name: "Switch user" });
   if (await switcher.count()) await d.click(switcher, 600);
   await page.getByRole("heading", { name: "Demo sign-in" }).waitFor();
   await d.select(page.getByLabel("Role"), role, 400);
   await d.type(page.getByLabel("User id"), user, 300);
-  await d.click(page.getByRole("button", { name: "Continue" }), 900);
+  await d.click(page.getByRole("button", { name: "Continue" }), 0);
+  await page.getByRole("heading", { name: "Demo sign-in" }).waitFor({ state: "detached" });
+  await sleep(900 * HOLD);
 }
 
-const openRow = (d, title) => d.click(d.page.locator("details.more > summary").filter({ hasText: title }), 1100);
+const openRow = (d, title, after = 1100) =>
+  d.click(d.page.locator("details.more > summary").filter({ hasText: title }), after);
 
 async function record(secrets) {
   const browser = await chromium.launch({ channel: "chrome" });
-  // 1280 x 648 CSS pixels at 1.5x: frames are 1920 x 972 with large, sharp text; the 108 px band below holds the
-  // captions, so a caption never covers the app (the case page's decision bar sits at the bottom of the window).
-  // Playwright's recordVideo at 30 fps (its own ffmpeg, `npx playwright-core install ffmpeg`), 1920 x 972: the app's
-  // area of the 1080-line frame; the caption band is added when it is re-encoded.
+  // 1920 x 972 at deviceScaleFactor 1, the body zoomed 1.5x (PAGE_ZOOM): a 1280 x 648 CSS layout filling the frame
+  // with full-size text; the 108 px band below holds the captions, so a caption never covers the app (the case page's
+  // decision bar sits at the bottom of the window). Playwright's recordVideo at 30 fps (its own ffmpeg,
+  // `npx playwright-core install ffmpeg`), 1920 x 972; the caption band is added when it is re-encoded.
   const videoDir = join(RUN, "video");
-  const context = await browser.newContext({ viewport: { width: 1280, height: APP_H / 1.5 }, deviceScaleFactor: 1.5,
+  const context = await browser.newContext({ viewport: { width: 1920, height: APP_H }, deviceScaleFactor: 1,
     recordVideo: { dir: videoDir, size: { width: 1920, height: APP_H }, fps: 30 } });
+  await context.addInitScript(PAGE_ZOOM, ZOOM);
   await context.addInitScript(CURSOR);
   const vite = await createServer({ configFile: false, root: WEB, logLevel: "silent",
     server: { port: 0, host: "127.0.0.1", proxy: { "/api": { target: `http://127.0.0.1:${API_PORT}`, changeOrigin: true,
@@ -347,16 +433,19 @@ async function record(secrets) {
     await page.mouse.move(d.pos.x, d.pos.y);
     d.startBeat(1);
     d.cap("Today: files retyped, checked from memory, status invisible to citizens.");
-    await d.pause(4500);
-    await d.show(page.locator("a.entry").first(), 1500);
+    await d.trace(page.locator(".big-brand"), 900);
+    await d.trace(page.locator("a.entry").first(), 1400);
+    await d.trace(page.locator("a.entry").nth(1), 1400);
     await d.clean("landing");
 
     // 2. Citizen pre-check --------------------------------------------------------------------------------------------
     d.startBeat(2);
-    d.cap("A citizen checks a document before applying.");
     await d.click(page.locator("a.entry").first(), 700);
     await d.click(page.locator('main a[href="#/citizen/check"]'), 700);
-    await d.click(page.getByRole("button", { name: "Check a document" }), 600);
+    await d.click(page.getByRole("button", { name: "Check a document" }), 0);
+    await page.locator("section.precheck").waitFor();
+    d.cap("A citizen checks a document before applying.");
+    await d.pause(600);
     await d.select(page.getByLabel("Scheme for document check"), "land_acquisition");
     await d.select(page.getByLabel("Document type"), "ownership_record");
     await d.upload(page.locator("section.precheck input[type=file]"), img("ownership_record_clean.png"));
@@ -369,14 +458,15 @@ async function record(secrets) {
     await d.show(result, 1800);
     await d.show(page.locator(".precheck-result ul").first(), 3200);
     const cleanText = await result.innerText();
-    d.cap("Blurred phone photo: partly readable, with plain next steps.");
     await d.upload(page.locator("section.precheck input[type=file]"), img("ownership_record_hard.jpg"));
     await d.click(page.getByRole("button", { name: "Check document" }), 200);
     await d.slow("pre-check phone photo", () => page.waitForFunction(() => {
       const s = document.querySelector(".precheck-result .line.status");
       return s && !document.querySelector(".precheck-live")?.textContent.includes("Checking");
     }, null, { timeout: 90000 }));
-    await d.show(result, 1800);
+    await d.show(result, 0);
+    d.cap("Blurred phone photo: partly readable, with plain next steps.");
+    await d.pause(1800);
     await d.show(page.locator(".precheck-result ul").first(), 2000);
     await d.show(page.locator(".precheck-result h4").last(), 3000);
     const hardText = await result.innerText();
@@ -385,24 +475,31 @@ async function record(secrets) {
 
     // 3. Citizen tracking ----------------------------------------------------------------------------------------------
     d.startBeat(3);
+    await d.click(page.getByRole("link", { name: "Track an application" }), 0);
+    await page.getByLabel("Application reference").waitFor();
     d.cap("Tracking with a reference and code from this throwaway demo.");
-    await d.click(page.getByRole("link", { name: "Track an application" }), 600);
+    await d.pause(600);
     await d.type(page.getByLabel("Application reference"), "LA-01", 200);
     await d.type(page.getByLabel("Verification code"), citizenCode("LA-01", secrets.citizen), 200);
     await d.click(page.getByRole("button", { name: "Check status" }), 900);
     await page.locator(".citizen-view .line.status").waitFor();
     await page.getByLabel("Verification code").fill("");
+    await d.click(page.locator(".citizen-view details.why summary").first(), 0);
     d.cap("Approved: the amount, and the basis of each item.");
-    await d.click(page.locator(".citizen-view details.why summary").first(), 1000);
-    await d.select(page.locator(".lang select"), "hi", 2000);
+    await d.pause(1000);
+    await d.select(page.locator(".lang select"), "hi", 0);
+    await sleep(300);
     d.cap("The same page in Hindi, from fixed templates.");
-    await d.select(page.locator(".lang select"), "en", 500);
+    await d.pause(2000);
+    await d.select(page.locator(".lang select"), "en", 0);
+    d.uncap();
+    await d.pause(500);
     await d.type(page.getByLabel("Application reference"), "LA-05", 150);
     await d.type(page.getByLabel("Verification code"), citizenCode("LA-05", secrets.citizen), 150);
     await d.click(page.getByRole("button", { name: "Check status" }), 600);
     await page.getByLabel("Verification code").fill("");
-    d.cap("Waiting for documents: the page says exactly what is needed.");
     await page.locator(".citizen-view .line.status").waitFor();
+    d.cap("Waiting for documents: the page says exactly what is needed.");
     // A stored deficiency notice prints as a letter; the seed has none, so LA-05 shows its missing documents as lines.
     const letter = page.locator("article.letter.notice");
     await d.show((await letter.count()) ? letter : page.locator(".citizen-view h2").last(), 1600);
@@ -410,10 +507,12 @@ async function record(secrets) {
 
     // 4. Clerk intake ------------------------------------------------------------------------------------------------
     d.startBeat(4);
-    d.cap("A clerk opens a new land case with synthetic documents.");
     await d.hash("#/officer");
     await signIn(d, "clerk", "C-1");
-    await d.click(page.getByRole("link", { name: "Intake", exact: true }), 600);
+    await d.click(page.getByRole("link", { name: "Intake", exact: true }), 0);
+    await page.getByLabel("Case id").waitFor();
+    d.cap("A clerk opens a new land case with synthetic documents.");
+    await d.pause(600);
     await d.type(page.getByLabel("Case id"), "LA-50", 200);
     await d.select(page.getByLabel("Scheme"), "land_acquisition", 300);
     const inputs = { market_value_per_sqm: "2500", assets_total: "30000", multiplier: "1.5",
@@ -446,50 +545,50 @@ async function record(secrets) {
 
     // 5. The new case as the officer -----------------------------------------------------------------------------------
     d.startBeat(5);
-    d.cap("Officer view: plain summary, total, and what needs attention.");
     await signIn(d, "officer", "O-1");
-    await d.hash("#/officer/cases/LA-50", ".case-head");
-    await d.show(page.locator(".headline"), 1800);
-    await d.show(page.locator(".summary-strip"), 1500);
-    if (await page.locator(".attention").count()) await d.show(page.locator(".attention"), 2000);
+    await d.hash("#/officer/cases/LA-50", ".case-head", "Officer view: plain summary, total, and what needs attention.");
+    await d.trace(page.locator(".headline"), 1400);
+    await d.trace(page.locator(".summary-strip"), 1400);
+    if (await page.locator(".attention").count()) await d.trace(page.locator(".attention"), 1200);
+    await openRow(d, "Checks", 0);
     d.cap("Checks are fixed rules, each with its result and version.");
-    await openRow(d, "Checks");
-    await d.show(page.locator(".rules-table"), 2200);
+    await d.trace(page.locator(".rules-table tbody tr").first(), 1200);
+    await openRow(d, "Documents and what was read", 0);
     d.cap("Each field read, with its confidence and source.");
-    await openRow(d, "Documents and what was read");
-    await d.show(page.locator("details.more[open] table").last(), 2400);
+    await d.trace(page.locator("details.more[open] table").last().locator("tbody tr").first(), 1200);
+    await openRow(d, "How the amount was worked out", 0);
     d.cap("Amount steps: area × value × multiplier, solatium, additional amount.");
-    await openRow(d, "How the amount was worked out");
-    await d.show(page.locator(".steps-table"), 3500);
+    await d.trace(page.locator(".steps-table tbody tr").first(), 1200);
+    await d.trace(page.locator(".steps-table tbody tr").last(), 1000);
     const explained = await page.locator("details.more .more-hint").first().innerText();
     log("  LA-50 explanation:", explained);
     await d.clean("LA-50 officer");
 
     // 6. Officer decision on LA-18 ---------------------------------------------------------------------------------
     d.startBeat(6);
-    await d.hash("#/officer/cases/LA-18", ".case-head");
-    d.cap("LA-18: tenant entry flagged, citing the Goa tenancy and mundkar Acts.");
+    await d.hash("#/officer/cases/LA-18", ".case-head", "LA-18: tenant entry flagged, citing the Goa tenancy and mundkar Acts.");
     await d.show(page.locator(".attention .flag-item").first(), 2200);
     await d.click(page.getByRole("button", { name: "Run agent" }), 100);
     await d.slow("agent run on LA-18", () => page.waitForFunction(() =>
       [...document.querySelectorAll("details.more .more-hint")].some((h) => h.textContent.includes("written by the agent")), null, { timeout: 180000 }));
     const by = await page.locator("details.more .more-hint").first().innerText();
     if (!by.includes("written by the agent")) throw new Error("LA-18 explanation fell back to the deterministic summary; not recording it");
+    await openRow(d, "Why the system recommends this", 0);
     d.cap("Explanation written by the model; every figure comes from tools.");
-    await openRow(d, "Why the system recommends this");
     await d.show(page.locator(".explanation"), 2600);
     // A tenant entry is not something the citizen can fix, so LA-18's notice would be empty ("Nothing on this case is
     // for the citizen to fix"). The notice is shown on LA-06 (an expired document), previewed only, never sent.
-    d.cap("LA-06 has an expired document: notice previewed in English, Hindi.");
-    await d.hash("#/officer/cases/LA-06", ".case-head");
+    await d.hash("#/officer/cases/LA-06", ".case-head", "LA-06 has an expired document: notice previewed in English, Hindi.");
     await openRow(d, "Ask the citizen for documents");
     await d.click(page.getByRole("button", { name: "Preview notice" }), 700);
     await page.locator(".notice-preview").waitFor({ timeout: 30000 });
     await d.select(page.getByLabel(/Language of the notice/), "hi", 200);
     await d.click(page.getByRole("button", { name: "Preview notice" }), 1300);
     await d.hash("#/officer/cases/LA-18", ".case-head");
+    await d.click(page.getByLabel("Approve"), 0);
+    await page.locator("section.decision-bar .confirm-item").first().waitFor();
     d.cap("Approval: confirm every money field and record the resolution.");
-    await d.click(page.getByLabel("Approve"), 500);
+    await d.pause(500);
     const boxes = page.locator("section.decision-bar .confirm-item input");
     for (let i = 0; i < await boxes.count(); i++) await d.click(boxes.nth(i), 250);
     if (await page.getByLabel("Resolution reference").count()) {
@@ -499,26 +598,27 @@ async function record(secrets) {
     await d.click(page.getByRole("button", { name: "Record decision" }), 200);
     await page.locator(".summary-strip.strip-approved").waitFor({ timeout: 30000 });
     await d.scrollTop(900);
-    d.cap("A clerk opens a case: no decision controls. Only officers decide.");
     await signIn(d, "clerk", "C-1");
-    await d.hash("#/officer/cases/LA-12", ".case-head");
-    await d.pause(1800);
+    await d.hash("#/officer/cases/LA-12", ".case-head", "A clerk opens a case: no decision controls. Only officers decide.");
+    await d.trace(page.locator(".summary-strip"), 1300);
     log(`  clerk decision controls on LA-12: ${await page.locator("section.decision-bar").count() ? "SHOWN" : "absent"}`);
     await d.clean("LA-18 decision");
 
     // 7. Admin and monitoring --------------------------------------------------------------------------------------
     d.startBeat(7);
-    d.cap("Admin: headline numbers read straight from the system.");
     await signIn(d, "admin", "A-1");
-    await d.hash("#/officer/analytics", ".headline-tiles");
-    await d.show(page.locator(".headline-tiles"), 1600);
+    await d.hash("#/officer/analytics", ".headline-tiles", "Admin: headline numbers read straight from the system.");
+    await d.trace(page.locator(".headline-tiles"), 1500);
     await d.show(page.locator(".grid.top-row"), 1200);
+    await openRow(d, "More detail", 0);
+    await d.show(page.locator(".stage-table"), 0);
     d.cap("More detail: every scheme by stage, and the liability table.");
-    await openRow(d, "More detail");
-    await d.show(page.locator(".stage-table"), 1500);
+    await d.trace(page.locator(".stage-table tbody tr").first(), 1200);
     await d.show(page.locator(".card", { hasText: "Committed and pending liability" }).locator("table"), 1300);
+    await d.click(page.getByRole("link", { name: "Simulator", exact: true }), 0);
+    await page.getByLabel("Value to change").waitFor();
     d.cap("Rule simulator: change one parameter, see which cases change.");
-    await d.click(page.getByRole("link", { name: "Simulator", exact: true }), 600);
+    await d.pause(600);
     await d.select(page.getByLabel("Scheme"), "land_acquisition", 400);
     const knob = page.getByLabel("Value to change");
     const option = await knob.locator("option").evaluateAll((os) => (os.find((o) => o.value === "interest_rate") || os[0]).value);
@@ -531,20 +631,18 @@ async function record(secrets) {
 
     // 8. Trust --------------------------------------------------------------------------------------------------------
     d.startBeat(8);
-    d.cap("Every action is in a hash-chained audit log.");
     await signIn(d, "officer", "O-1");
-    await d.hash("#/officer/cases/LA-18/audit", "table");
+    await d.hash("#/officer/cases/LA-18/audit", "table", "Every action is in a hash-chained audit log.");
     await d.click(page.getByRole("button", { name: "Verify log integrity" }), 100);
     await page.getByText(/Log intact/).waitFor({ timeout: 30000 });
-    await d.show(page.getByText(/Log intact/), 1500);
-    d.cap("Duplicate claims and open mutations go to review, never rejection.");
-    await d.hash("#/officer/cases/LA-12", ".attention");
-    await d.show(page.locator(".attention"), 1800);
-    await d.hash("#/officer/cases/RM-02", ".attention");
-    await d.show(page.locator(".attention"), 1700);
-    d.cap("Four schemes on one engine, each defined in a YAML file.");
-    await d.hash("#/officer/cases/SW-01", ".case-head");
-    await d.show(page.locator(".summary-strip"), 1500);
+    await d.trace(page.getByText(/Log intact/), 1200);
+    await d.hash("#/officer/cases/LA-12", ".attention", "Duplicate claims and open mutations go to review, never rejection.");
+    await d.trace(page.locator(".attention"), 1200);
+    await d.hash("#/officer/cases/RM-02", ".attention", "Duplicate claims and open mutations go to review, never rejection.");
+    await d.trace(page.locator(".attention"), 1100);
+    await d.hash("#/officer/cases/SW-01", ".case-head", "Four schemes on one engine, each defined in a YAML file.");
+    await d.trace(page.locator(".case-head"), 1100);
+    await d.trace(page.locator(".summary-strip"), 1300);
     await d.clean("trust");
     d.marks.push({ type: "end", t: d.now() });
     await sleep(500);
@@ -583,7 +681,7 @@ async function record(secrets) {
   const motion = d.motion.map((w) => ({ ...w, a: shift(w.a), b: shift(w.b) }));
   const sync = { start_offset: +(v0 - syncAt).toFixed(3), end_offset: +(v1 - endSyncAt).toFixed(3), rate: +rate.toFixed(6) };
   log(`raw.mp4: ${probeSeconds(join(OUT, "raw.mp4")).toFixed(1)} s; sync ${JSON.stringify(sync)}`);
-  return { marks, waits, motion, warnings: d.warnings, sync };
+  return { marks, waits, motion, warnings: d.warnings, sync, hold: HOLD };
 }
 
 // Time (s) of the first mostly-blue frame of a sync flash at or after `from`, from 8 x 8 thumbnails of 10 s.
@@ -620,8 +718,16 @@ function compose(rec) {
   mkdirSync(dir);
   const beats = marks.filter((m) => m.type === "beat");
   const end = marks.find((m) => m.type === "end").t;
-  // Natural length of each beat after time-lapse, then pad short beats to their target (holding the last frame).
-  const plan = beats.map((b, i) => {
+  // Each beat: the recording, waits time-lapsed, minus the dropped segments and blank frames (everywhere), with static
+  // stretches held to HOLD_TARGET (outside the time-lapses) and every caption on screen at least CAP_MIN.
+  const gray = grayFrames();
+  const blanks = blankFrames(gray);
+  const drops = dropsFrom(rec, blanks);
+  const inDrop = (t) => drops.some((x) => t >= x.a && t < x.b);
+  const stretches = staticStretches();
+  const k = HOLD_TARGET / (rec.hold ?? 0.65);                // recordings before 2026-11-21 did not store it: 0.65
+  const { holds, cuts: stillCutsRaw } = holdPlan(stretches, k);
+  const basePieces = beats.map((b, i) => {
     const to = i + 1 < beats.length ? beats[i + 1].t : end;
     const fast = waits.filter((w) => w.a >= b.t && w.b <= to);
     const pieces = [];
@@ -632,48 +738,99 @@ function compose(rec) {
       t = w.b;
     }
     if (to > t) pieces.push({ a: t, b: to, speed: 1 });
-    const natural = pieces.reduce((s, p) => s + (p.b - p.a) / p.speed, 0);
-    return { beat: b.beat, pieces, natural, pad: Math.max(0, TARGET[b.beat] - natural) };
+    return { beat: b.beat, pieces: pieces.flatMap((p) => subtract(p, p.fast ? [...drops, ...blanks] :
+      [...drops, ...blanks, ...stillCutsRaw])) };
   });
-  let total = TITLE_S + CLOSING_S + plan.reduce((s, p) => s + p.natural + p.pad, 0);
-  if (total > PLAN_CAP) {                                     // first give back padding, never content
-    const padding = plan.reduce((s, p) => s + p.pad, 0);
-    const cut = Math.min(padding, total - PLAN_CAP);
-    for (const p of plan) p.pad -= padding ? (p.pad / padding) * cut : 0;
-    total = TITLE_S + CLOSING_S + plan.reduce((s, p) => s + p.natural + p.pad, 0);
+  // Split the pieces at the holds; the piece ending at a hold holds its last frame for the extra seconds.
+  const layout = (holdList) => {
+    let at = TITLE_S;
+    const map = [], segments = [{ beat: 1, from: 0, to: TITLE_S, card: true }];
+    const plan = basePieces.map(({ beat, pieces }) => {
+      const beatAt = at, out = [];
+      for (const p of pieces) {
+        let a = p.a;
+        const inside = p.fast ? [] : holdList.filter((h) => h.t > p.a + 1 / 30 && h.t <= p.b + 0.001).sort((x, y) => x.t - y.t);
+        for (const h of inside) { out.push({ ...p, a, b: Math.min(h.t, p.b), pad: h.extra }); a = Math.min(h.t, p.b); }
+        if (p.b - a >= 1 / 30) out.push({ ...p, a, pad: 0 });
+      }
+      for (const p of out) { map.push({ beat, a: p.a, b: p.b, speed: p.speed, at, fast: p.fast }); at += (p.b - p.a) / p.speed + p.pad; }
+      segments.push({ beat, from: beatAt, to: at });
+      return { beat, pieces: out, natural: at - beatAt };
+    });
+    segments.push({ beat: 9, from: at, to: at + CLOSING_S, card: true });
+    // Raw time -> final time, through the pieces of the given beat (a beat's first mark sits exactly on the previous
+    // beat's last raw instant). A time inside a cut moves on to the next kept frame of that beat.
+    const toFinal = (t, beat) => {
+      const own = map.filter((x) => beat === undefined || x.beat === beat);
+      const m = own.find((x) => t >= x.a - 0.001 && t <= x.b + 0.001);
+      if (m) return m.at + (t - m.a) / m.speed;
+      const after = own.find((x) => x.a > t);
+      return after ? after.at : null;
+    };
+    return { plan, map, segments, toFinal, total: at + CLOSING_S };
+  };
+  // Captions, one at a time: each from its mark (RENDER_LAG later: marks are when the page was ready) until CAP_GAP
+  // before the next caption, an uncap (its screen has gone), the start of a dropped segment, or its beat's end.
+  // Captions inside a dropped segment go with it.
+  const capMarks = marks.filter((m) => m.type === "cap" && !inDrop(m.t + RENDER_LAG));
+  const enders = [...marks.filter((m) => m.type === "uncap" && !inDrop(m.t)).map((m) => ({ t: m.t + RENDER_LAG, beat: m.beat })),
+    ...drops.map((x) => ({ t: x.a, beat: (beats.filter((b) => b.t <= x.a).at(-1) || beats[0]).beat }))];
+  const captionWindows = (L) => capMarks.map((c, i) => {
+    const from = L.toFinal(c.t + RENDER_LAG, c.beat);
+    const nextCap = capMarks[i + 1], next = nextCap ? L.toFinal(nextCap.t + RENDER_LAG, nextCap.beat) - CAP_GAP : Infinity;
+    const gone = Math.min(Infinity, ...enders.map((e) => L.toFinal(e.t, e.beat)).filter((t) => t !== null && t > from + 0.01));
+    const seg = L.segments.find((s) => s.beat === c.beat && !s.card);
+    const rawEnd = Math.min(nextCap ? nextCap.t + RENDER_LAG : Infinity,
+      ...enders.filter((e) => e.t > c.t + RENDER_LAG + 0.01).map((e) => e.t), (beats.find((b) => b.t > c.t) || { t: end }).t);
+    return { beat: c.beat, text: c.text, from, to: Math.min(next, gone, seg.to - CAP_GAP), rawFrom: c.t + RENDER_LAG, rawEnd };
+  });
+  // A caption under CAP_MIN: hold the longest static stretch inside it (or, if it has none, its first frame) longer.
+  const allHolds = [...holds];
+  for (const w of captionWindows(layout(allHolds))) {
+    const short = CAP_MIN - (w.to - w.from);
+    if (short <= 0) continue;
+    const inside = stretches.filter((s) => s.a >= w.rawFrom - 0.05 && s.b <= w.rawEnd && !inDrop(s.a))
+      .sort((x, y) => (y.b - y.a) - (x.b - x.a))[0];
+    const t = inside ? inside.b : w.rawFrom;
+    const h = allHolds.find((x) => Math.abs(x.t - t) < 0.001);
+    if (h) h.extra += short + 0.02; else allHolds.push({ t, extra: short + 0.02 });
   }
-  if (total > PLAN_CAP + 0.01) {
-    const over = plan.filter((p) => p.natural > TARGET[p.beat]).map((p) => `beat ${p.beat} ${p.natural.toFixed(1)}s > ${TARGET[p.beat]}s`);
-    const real = waits.reduce((s, w) => s + w.b - w.a, 0);
-    throw new Error(`video would be ${total.toFixed(1)} s (cap ${CAP_TOTAL}); time-lapse ${(real / FAST_SPEED).toFixed(1)} s ` +
-      `from ${real.toFixed(1)} s of waits (re-run if the model was slow); shorten pauses in: ${over.join(", ")}`);
-  }
+  const L = layout(allHolds);
+  const { plan, segments, toFinal } = L;
+  const cutSeconds = (list) => +list.reduce((s, c) => s + Math.max(0, c.b - c.a), 0).toFixed(2);
+  log(`drops: ${drops.map((x) => `${x.what} ${x.a.toFixed(2)}-${x.b.toFixed(2)} (${(x.b - x.a).toFixed(1)} s)`).join("; ")}`);
+  log(`holds at ${HOLD_TARGET} (x${k.toFixed(3)}, max ${STILL_CAP} s): ${allHolds.length} holds, +${allHolds.reduce((s, h) => s + h.extra, 0).toFixed(2)} s; ` +
+    `${blanks.length} blank stretches (${cutSeconds(blanks)} s) and ${stillCutsRaw.length} stills over ${STILL_CAP} s (${cutSeconds(stillCutsRaw)} s) cut`);
+  if (L.total > PLAN_CAP + 0.01) throw new Error(`video would be ${L.total.toFixed(1)} s (cap ${CAP_TOTAL})`);
   const files = [card("title", TITLE_S, [
     { text: "GovFlow", size: 120, y: 360, bold: true },
     { text: "One AI agent for government case processing", size: 52, y: 530 },
     { text: "An officer always makes the decision", size: 40, y: 620, color: "0xbcd3f0" }])];
-  let at = TITLE_S;
-  const map = [];                                            // raw interval -> final start time
-  const segments = [{ beat: 1, from: 0, to: TITLE_S, card: true }];
+  // Each rendered piece is a whole number of frames, so it can run up to a frame longer than planned; over ~100 pieces
+  // that drifted the captions up to 1 s early by the end (2026-11-22). The timeline is therefore rebuilt from the
+  // measured length of every rendered piece: L.map, L.segments and so every caption, label and beat time follow it.
+  let at = probeSeconds(join(OUT, files[0])), j = 0;
   const fastWindows = [];
   for (const p of plan) {
-    const beatAt = at;
+    const seg = L.segments.find((s) => s.beat === p.beat && !s.card);
+    seg.from = at;
     p.pieces.forEach((piece, i) => {
-      const last = i === p.pieces.length - 1;
-      const len = (piece.b - piece.a) / piece.speed;
       const vf = [`setpts=(PTS-STARTPTS)/${piece.speed.toFixed(4)}`, "fps=30", "format=yuv420p"];
-      if (last && p.pad > 0.02) vf.push(`tpad=stop_mode=clone:stop_duration=${p.pad.toFixed(3)}`);
+      if (piece.pad > 0.01) vf.push(`tpad=stop_mode=clone:stop_duration=${piece.pad.toFixed(3)}`);
       const name = `parts/b${p.beat}-${i}.mp4`;
       // -ss and -t before -i: read exactly this stretch of the recording (after -i, -t would cap the sped-up output
       // instead, and ffmpeg would keep reading far past the stretch).
       ff(["-ss", piece.a.toFixed(3), "-t", (piece.b - piece.a).toFixed(3), "-i", "raw.mp4", "-vf", vf.join(","), ...ENC, name]);
       files.push(name);
-      map.push({ beat: p.beat, a: piece.a, b: piece.b, speed: piece.speed, at });
+      const len = probeSeconds(join(OUT, name));
+      L.map[j++].at = at;
       if (piece.fast) fastWindows.push({ from: at, to: at + len });
-      at += len + (last ? p.pad : 0);
+      at += len;
     });
-    segments.push({ beat: p.beat, from: beatAt, to: at });
+    seg.to = at;
   }
+  const closing = L.segments.find((s) => s.beat === 9);
+  closing.from = at; closing.to = at + CLOSING_S;
   files.push(card("closing", CLOSING_S, [
     { text: "Measured on synthetic test documents (docs/EVAL_RESULTS.md, docs/BENCHMARK.md)", size: 36, y: 170, color: "0xbcd3f0" },
     { text: "Gemini reading: relief 35/35 on every image set", size: 50, y: 270 },
@@ -681,35 +838,13 @@ function compose(rec) {
     { text: "Checks, rules and amounts: median 3.2 ms per land case (software time only)", size: 44, y: 440 },
     { text: "Synthetic data. Values are placeholders until the offices confirm.", size: 46, y: 600, bold: true },
     { text: "Scripted walkthrough of the live prototype", size: 52, y: 760, bold: true }]));
-  segments.push({ beat: 9, from: at, to: at + CLOSING_S, card: true });
+  log(`rendered body ${(at - TITLE_S).toFixed(2)} s, planned ${(L.total - CLOSING_S - TITLE_S).toFixed(2)} s (frame rounding)`);
   writeFileSync(join(dir, "list.txt"), files.map((f) => `file '${f.replace("parts/", "")}'`).join("\n"));
   ff(["-f", "concat", "-safe", "0", "-i", "parts/list.txt", "-c", "copy", "body.mp4"]);
 
-  // Captions on the final timeline: each shows until the next caption of its beat, or the beat's end.
-  const toFinal = (t) => { const m = map.find((x) => t >= x.a - 0.001 && t <= x.b + 0.001); return m ? m.at + (t - m.a) / m.speed : null; };
-  // A caption maps through its own beat's pieces: a beat's first caption sits exactly on the previous beat's last
-  // raw instant, and mapping it there put it before that beat's end padding, over the previous caption.
-  const toFinalIn = (t, beat) => {
-    const m = map.find((x) => x.beat === beat && t >= x.a - 0.001 && t <= x.b + 0.001);
-    return m ? m.at + (t - m.a) / m.speed : null;
-  };
-  const gray = grayFrames(), byMin = {};
-  const changesOver = (min) => (byMin[min] ??= screenChanges(gray, min));
-  const caps = marks.filter((m) => m.type === "cap").map((c) => {
-    const rule = CAPTION_SCREEN[c.text];
-    if (!rule) return { ...c, at: toFinalIn(c.t, c.beat) };
-    const { after = 0, before = 0, until = 0, min = 1.5 } = typeof rule === "number" ? { after: rule } : rule;
-    const changes = changesOver(min);
-    const from = after ? changes.filter((x) => x.b > c.t)[after - 1] : changes.filter((x) => x.a < c.t).at(-before);
-    const end = until ? changes.filter((x) => x.a > c.t)[until - 1] : null;
-    if (!from || (until && !end)) throw new Error(`screen change not found for caption: ${c.text}`);
-    return { ...c, at: toFinalIn(after ? from.b : from.a, c.beat), end: end ? toFinalIn(end.a, c.beat) : null };
-  }).filter((c) => c.at !== null);
-  const windows = caps.map((c, i) => {
-    const seg = segments.find((s) => s.beat === c.beat && !s.card);
-    const next = caps[i + 1] && caps[i + 1].beat === c.beat ? caps[i + 1].at : seg.to;
-    return { beat: c.beat, text: c.text, from: c.at, to: Math.min(next, seg.to, c.end ?? Infinity) };
-  });
+  const windows = captionWindows(L).map(({ rawFrom, rawEnd, ...w }) => w);
+  const short = windows.filter((w) => w.to - w.from < CAP_MIN - 0.01);
+  if (short.length) throw new Error(`captions under ${CAP_MIN} s: ${short.map((w) => `${(w.to - w.from).toFixed(2)} s "${w.text}"`).join("; ")}`);
   const filters = windows.map((w, i) => {
     writeFileSync(join(dir, `cap-${i}.txt`), w.text);
     return `drawtext=fontfile='${FONT}':textfile='parts/cap-${i}.txt':fontsize=42:fontcolor=white:x=(w-text_w)/2:y=${APP_H}+(${1080 - APP_H}-text_h)/2:enable='between(t,${w.from.toFixed(2)},${w.to.toFixed(2)})'`;
@@ -731,7 +866,7 @@ function compose(rec) {
 const stamp = (s) => `${Math.floor(s / 60)}:${(s % 60).toFixed(1).padStart(4, "0")}`;
 
 function writeNarration(segments) {
-  const lines = ["GovFlow demo: narration, one line per beat (about 140 words a minute).",
+  const lines = ["GovFlow demo: narration, one line per beat (120-135 words a minute).",
     "Timestamps are the beats of docs/video/govflow_demo_captioned.mp4, written by scripts/make_demo_video.mjs.", ""];
   for (const n of Object.keys(NARRATION).map(Number)) {
     const segs = segments.filter((s) => s.beat === n);
@@ -781,18 +916,19 @@ const shots = frames(composed.segments, "govflow_demo_captioned.mp4");
 // scripted motion windows alone (cursor glides and scrolls).
 const measureWith = (windows, name) => {
   writeFileSync(join(RUN, name), JSON.stringify(windows));
+  writeFileSync(join(RUN, "fast.json"), JSON.stringify(composed.fastWindows));
   const r = spawnSync(process.execPath, [join(ROOT, "scripts", "measure_video.mjs"), "govflow_demo_captioned.mp4",
     "--from", String(TITLE_S), "--to", (duration - CLOSING_S).toFixed(2), "--crop", `1920:${APP_H}:0:0`,
-    "--windows", join(RUN, name)], { cwd: OUT, encoding: "utf8" });
+    "--windows", join(RUN, name), "--fast", join(RUN, "fast.json")], { cwd: OUT, encoding: "utf8" });
   return JSON.parse(r.stdout);
 };
 const smooth = measureWith(composed.motion, "motion.json");
 const asSent = measureWith(composed.motionAsSent, "motion_as_sent.json");
 smooth.in_motion_as_sent = { distinct_fps: asSent.distinct_fps_in_motion, gaps_over_0_1: asSent.gaps_over_0_1_in_motion };
-log(`smoothness: ${JSON.stringify(smooth)}`);
+log(`smoothness: ${JSON.stringify({ ...smooth, stills: undefined })}`);
 writeFileSync(join(OUT, "timeline.json"), JSON.stringify({ duration, smooth, warnings: rec.warnings, waits: rec.waits,
   motion: composed.motion,
   segments: composed.segments, captions: composed.windows, fast: composed.fastWindows,
-  beats: composed.plan.map((p) => ({ beat: p.beat, natural: p.natural, pad: p.pad })), frames: shots }, null, 2));
+  beats: composed.plan.map((p) => ({ beat: p.beat, seconds: +p.natural.toFixed(2) })), frames: shots }, null, 2));
 log(`final duration ${duration.toFixed(2)} s; warnings: ${rec.warnings.length}; time-lapsed waits: ${rec.waits.length}`);
 if (duration > CAP_TOTAL + 0.05) { log("OVER THE CAP"); process.exit(3); }

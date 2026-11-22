@@ -1,5 +1,5 @@
 // Motion smoothness of a video, measured with ffmpeg's mpdecimate (default thresholds).
-//   node scripts/measure_video.mjs <video> [--from S] [--to S] [--crop W:H:X:Y] [--windows motion.json]
+//   node scripts/measure_video.mjs <video> [--from S] [--to S] [--crop W:H:X:Y] [--windows motion.json] [--fast timelapse.json]
 // mpdecimate drops every frame that is a near-duplicate of the last kept one; the kept frames are the distinct ones.
 // Printed (JSON):
 //   distinct_fps         kept frames / measured seconds
@@ -7,6 +7,8 @@
 //                        stutters_0_1_to_0_5 (motion that skipped) and holds_over_0_5 (static: nothing changed)
 //   distinct_fps_moving  kept frames / seconds, counting only intervals of 0.5 s or less (a gap over 0.5 s is a
 //                        static pause and is left out)
+//   stills_over_1_5      intervals between distinct frames longer than 1.5 s (a frozen screen), listed in stills;
+//                        with --fast timelapse.json ([{from, to}]) also how many of them touch a time-lapse
 import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 
@@ -36,6 +38,15 @@ const out = {
   holds_over_0_5: gaps.filter((g) => g > 0.5).length,
   moving_seconds: +movingSeconds.toFixed(2), distinct_fps_moving: +(moving.length / movingSeconds).toFixed(2),
 };
+const stills = ts.slice(1).map((t, i) => ({ from: +(ts[i] + start).toFixed(2), seconds: +(t - ts[i]).toFixed(2) }))
+  .filter((x) => x.seconds > 1.5);
+out.stills_over_1_5 = stills.length;
+const fastFile = opt("--fast");
+if (fastFile) {
+  const fast = JSON.parse(readFileSync(fastFile, "utf8"));
+  out.stills_over_1_5_in_timelapse = stills.filter((x) => fast.some((w) => x.from < w.to && x.from + x.seconds > w.from)).length;
+}
+out.stills = stills;
 // --windows file.json: [{from, to}] in the video's own time. Distinct frames inside them, and gaps over 0.1 s between
 // distinct frames that both fall inside the same window (motion that skipped).
 const winFile = opt("--windows");

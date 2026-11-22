@@ -19,3 +19,6 @@ uploads/
 # Demo video build output (scripts/make_demo_video.mjs); only the narration is kept
 docs/video/*
 !docs/video/narration.txt
+
+# Submission screenshots (copies of docs/screenshots/simplify/after), kept local
+docs/submission/
