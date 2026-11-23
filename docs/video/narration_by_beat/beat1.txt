@@ -1,0 +1,6 @@
+Beat 1
+Start: 0:00.0
+End: 0:10.2
+Words: 22 (129.8 words a minute)
+
+GovFlow is one AI agent for government case processing. Today, files are retyped, checked from memory, and citizens cannot track their application.

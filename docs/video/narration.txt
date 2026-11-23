@@ -1,29 +1,29 @@
-GovFlow demo: narration, one line per beat (120-135 words a minute).
-Timestamps are the beats of docs/video/govflow_demo_captioned.mp4, written by scripts/make_demo_video.mjs.
+GovFlow demo: narration, one line per beat (126-134 words a minute).
+Timestamps are the beats of docs/video/govflow_demo_final.mp4 (v4), written by scripts/make_demo_video.mjs.
 
 [0:00.0 - 0:10.2] Beat 1 (22 words, 129.8 words a minute)
 GovFlow is one AI agent for government case processing. Today, files are retyped, checked from memory, and citizens cannot track their application.
 
-[0:10.2 - 0:36.2] Beat 2 (56 words, 129.1 words a minute)
+[0:10.2 - 0:35.7] Beat 2 (56 words, 131.8 words a minute)
 A citizen can check a document before applying. Here is a synthetic ownership record, clearly scanned. Each required field is found or marked unreadable, and nothing is saved: the file is checked in memory only. Then a blurred phone photo of the record. It is partly readable, and the page says plainly what to do next.
 
-[0:36.2 - 0:50.0] Beat 3 (30 words, 130.1 words a minute)
-A citizen tracks an application with a reference and a code. This approved case shows the amount and the basis of each item. A waiting case lists what is missing.
+[0:35.7 - 0:50.0] Beat 3 (31 words, 130.1 words a minute)
+A citizen tracks an application with a reference and a code. This approved case shows the amount and the basis of each item. A waiting case lists exactly what is missing.
 
-[0:50.0 - 1:36.8] Beat 4 (98 words, 125.8 words a minute)
-A clerk opens a new land case. First come the officer inputs the rules need: the market value per square metre, the value of assets, the rural multiplier and the key dates. Then the documents, all synthetic: one ownership record image and four short printed records. The language model reads each one and returns every field with a confidence score, and each upload is listed with the fields it read. Waiting time is sped up on screen, and marked. The model only reads; it decides nothing. Then the agent runs the checks, the eligibility rules and the amount.
+[0:50.0 - 1:33.5] Beat 4 (95 words, 130.9 words a minute)
+A clerk opens a new land case. First, the officer inputs the rules need: the market value per square metre, the value of assets, the rural multiplier and the key dates. Then the documents, all synthetic: one ownership record image and four short printed records. The language model reads each one and returns every field with a confidence score, and each upload is listed with the fields it read. Waiting time is sped up, and marked. The model only reads; it decides nothing. Then the agent runs the checks, the eligibility rules and the amount.
 
-[1:36.8 - 2:02.4] Beat 5 (57 words, 133.4 words a minute)
-The officer opens the case. One plain sentence says where it stands, then the total and what needs attention. The checks are fixed rules from the scheme file, not the model, each with its version. Each field shows how sure the reading was. The amount is worked out in steps, up to solatium and the additional amount.
+[1:33.5 - 1:58.2] Beat 5 (54 words, 131.3 words a minute)
+The officer opens the case. One plain sentence says where it stands, then the total and what needs attention. The checks are fixed rules from the scheme file, not the model, each versioned. Each field shows how sure the reading was. The amount is worked out in steps, including solatium and the additional amount.
 
-[2:02.4 - 2:32.1] Beat 6 (64 words, 129.3 words a minute)
-On LA-18, a tenant entry on the record of rights is flagged, citing the Goa tenancy and mundkar Acts. The model writes the explanation, but every figure in it comes from the tools. To approve, the officer confirms each money field and records how the tenant entry was resolved. Then a clerk opens a case and sees no decision controls. Only an officer decides.
+[1:58.2 - 2:29.0] Beat 6 (66 words, 128.7 words a minute)
+On LA-18, a tenant entry on the record of rights is flagged, citing the Goa tenancy and mundkar Acts. The model writes the explanation, but every figure in it comes from the tools. To approve, the officer confirms each money field and records how and when the tenant entry was resolved. Then a clerk opens a case and sees no decision controls. Only an officer decides.
 
-[2:32.1 - 2:46.0] Beat 7 (30 words, 129.2 words a minute)
+[2:29.0 - 2:42.8] Beat 7 (30 words, 130.5 words a minute)
 An administrator sees four headline numbers read from the system, one chart, and more detail when asked. Admins see aggregates, not cases: the case list is for officers and clerks.
 
-[2:46.0 - 2:59.5] Beat 8 (28 words, 125.1 words a minute)
-The audit log is hash-chained and checks out intact. Duplicate claims go to review, never rejection, as does an open mutation on RM-02: four schemes on one engine.
+[2:42.8 - 2:57.5] Beat 8 (32 words, 130.6 words a minute)
+The simulator decides nothing. The audit log is hash-chained and checks out intact. Duplicate claims go to review, never rejection, as does an open mutation on RM-02: four schemes on one engine.
 
-[2:59.5 - 3:09.5] Beat 9 (21 words, 126.0 words a minute)
+[2:57.5 - 3:07.5] Beat 9 (21 words, 126.0 words a minute)
 These results come from our own tests on synthetic data only. Legal values stay placeholders until the Goa offices confirm them.

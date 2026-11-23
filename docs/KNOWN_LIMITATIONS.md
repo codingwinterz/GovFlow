@@ -91,9 +91,10 @@ None of these may be used for a real decision until checked against official sou
   never run live. Any model set through `GEMINI_MODEL` other than the default is unverified (VERIFY).
 - **Extraction accuracy is measured on a tiny synthetic set only** (17 Nov 2026): 7 land documents (27 fields)
   and 7 relief documents (35 fields), each as clean, degraded and "hard" generated images (stamp, one
-  handwriting-style field, simulated phone photo). Gemini: relief 35/35 on all three; land 24/27, 25/27, 21/27,
-  with 2 to 3 wrong values per set passing the confidence gate. No real handwriting, Devanagari or real Goa
-  documents; one run, and two reads of the same image already differed on 2 fields.
+  handwriting-style field, simulated phone photo). Gemini (run 2, after the fix round): relief 35/35 on all three;
+  land 25/27, 25/27, 21/27, with 1, 0 and 2 wrong values passing the confidence gate, each caught later by a
+  deterministic check. No real handwriting, Devanagari or real Goa documents; two runs on one day, and two reads
+  of the same image already differed on 2 fields.
 - **Model confidence is not a reliable signal.** In run 1 Gemini read an ambiguous "01/10/2026" month-first at
   confidence 1.0; dates are now copied as printed and parsed day first in code. After the fix round the remaining
   wrong readings were still at 0.90 to 0.95. A reading at or below 0.85 now goes to review, but the officer's

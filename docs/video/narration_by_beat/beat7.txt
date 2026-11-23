@@ -1,0 +1,6 @@
+Beat 7
+Start: 2:29.0
+End: 2:42.8
+Words: 30 (130.5 words a minute)
+
+An administrator sees four headline numbers read from the system, one chart, and more detail when asked. Admins see aggregates, not cases: the case list is for officers and clerks.

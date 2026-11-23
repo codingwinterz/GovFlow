@@ -1,0 +1,6 @@
+Beat 9
+Start: 2:57.5
+End: 3:07.5
+Words: 21 (126.0 words a minute)
+
+These results come from our own tests on synthetic data only. Legal values stay placeholders until the Goa offices confirm them.

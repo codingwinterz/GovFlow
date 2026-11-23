@@ -1,0 +1,6 @@
+Beat 4
+Start: 0:50.0
+End: 1:33.5
+Words: 95 (130.9 words a minute)
+
+A clerk opens a new land case. First, the officer inputs the rules need: the market value per square metre, the value of assets, the rural multiplier and the key dates. Then the documents, all synthetic: one ownership record image and four short printed records. The language model reads each one and returns every field with a confidence score, and each upload is listed with the fields it read. Waiting time is sped up, and marked. The model only reads; it decides nothing. Then the agent runs the checks, the eligibility rules and the amount.

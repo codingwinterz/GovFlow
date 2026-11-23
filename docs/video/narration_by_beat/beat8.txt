@@ -1,0 +1,6 @@
+Beat 8
+Start: 2:42.8
+End: 2:57.5
+Words: 32 (130.6 words a minute)
+
+The simulator decides nothing. The audit log is hash-chained and checks out intact. Duplicate claims go to review, never rejection, as does an open mutation on RM-02: four schemes on one engine.

@@ -176,12 +176,12 @@ const citizenCode = (ref, secret) =>
 const NARRATION = {
   1: "GovFlow is one AI agent for government case processing. Today, files are retyped, checked from memory, and citizens cannot track their application.",
   2: "A citizen can check a document before applying. Here is a synthetic ownership record, clearly scanned. Each required field is found or marked unreadable, and nothing is saved: the file is checked in memory only. Then a blurred phone photo of the record. It is partly readable, and the page says plainly what to do next.",
-  3: "A citizen tracks an application with a reference and a code. This approved case shows the amount and the basis of each item. A waiting case lists what is missing.",
-  4: "A clerk opens a new land case. First come the officer inputs the rules need: the market value per square metre, the value of assets, the rural multiplier and the key dates. Then the documents, all synthetic: one ownership record image and four short printed records. The language model reads each one and returns every field with a confidence score, and each upload is listed with the fields it read. Waiting time is sped up on screen, and marked. The model only reads; it decides nothing. Then the agent runs the checks, the eligibility rules and the amount.",
-  5: "The officer opens the case. One plain sentence says where it stands, then the total and what needs attention. The checks are fixed rules from the scheme file, not the model, each with its version. Each field shows how sure the reading was. The amount is worked out in steps, up to solatium and the additional amount.",
-  6: "On LA-18, a tenant entry on the record of rights is flagged, citing the Goa tenancy and mundkar Acts. The model writes the explanation, but every figure in it comes from the tools. To approve, the officer confirms each money field and records how the tenant entry was resolved. Then a clerk opens a case and sees no decision controls. Only an officer decides.",
+  3: "A citizen tracks an application with a reference and a code. This approved case shows the amount and the basis of each item. A waiting case lists exactly what is missing.",
+  4: "A clerk opens a new land case. First, the officer inputs the rules need: the market value per square metre, the value of assets, the rural multiplier and the key dates. Then the documents, all synthetic: one ownership record image and four short printed records. The language model reads each one and returns every field with a confidence score, and each upload is listed with the fields it read. Waiting time is sped up, and marked. The model only reads; it decides nothing. Then the agent runs the checks, the eligibility rules and the amount.",
+  5: "The officer opens the case. One plain sentence says where it stands, then the total and what needs attention. The checks are fixed rules from the scheme file, not the model, each versioned. Each field shows how sure the reading was. The amount is worked out in steps, including solatium and the additional amount.",
+  6: "On LA-18, a tenant entry on the record of rights is flagged, citing the Goa tenancy and mundkar Acts. The model writes the explanation, but every figure in it comes from the tools. To approve, the officer confirms each money field and records how and when the tenant entry was resolved. Then a clerk opens a case and sees no decision controls. Only an officer decides.",
   7: "An administrator sees four headline numbers read from the system, one chart, and more detail when asked. Admins see aggregates, not cases: the case list is for officers and clerks.",
-  8: "The audit log is hash-chained and checks out intact. Duplicate claims go to review, never rejection, as does an open mutation on RM-02: four schemes on one engine.",
+  8: "The simulator decides nothing. The audit log is hash-chained and checks out intact. Duplicate claims go to review, never rejection, as does an open mutation on RM-02: four schemes on one engine.",
   9: "These results come from our own tests on synthetic data only. Legal values stay placeholders until the Goa offices confirm them.",
 };
 
@@ -785,15 +785,19 @@ function compose(rec) {
     return { beat: c.beat, text: c.text, from, to: Math.min(next, gone, seg.to - CAP_GAP), rawFrom: c.t + RENDER_LAG, rawEnd };
   });
   // A caption under CAP_MIN: hold the longest static stretch inside it (or, if it has none, its first frame) longer.
+  // Up to three passes: a hold can land on frames a still cut removes (2026-11-23: 2.04 s left), so a caption still
+  // short on a later pass holds its own first frame, which is always kept.
   const allHolds = [...holds];
-  for (const w of captionWindows(layout(allHolds))) {
-    const short = CAP_MIN - (w.to - w.from);
-    if (short <= 0) continue;
-    const inside = stretches.filter((s) => s.a >= w.rawFrom - 0.05 && s.b <= w.rawEnd && !inDrop(s.a))
-      .sort((x, y) => (y.b - y.a) - (x.b - x.a))[0];
-    const t = inside ? inside.b : w.rawFrom;
-    const h = allHolds.find((x) => Math.abs(x.t - t) < 0.001);
-    if (h) h.extra += short + 0.02; else allHolds.push({ t, extra: short + 0.02 });
+  for (let pass = 0; pass < 3; pass++) {
+    for (const w of captionWindows(layout(allHolds))) {
+      const short = CAP_MIN - (w.to - w.from);
+      if (short <= 0) continue;
+      const inside = pass ? null : stretches.filter((s) => s.a >= w.rawFrom - 0.05 && s.b <= w.rawEnd && !inDrop(s.a))
+        .sort((x, y) => (y.b - y.a) - (x.b - x.a))[0];
+      const t = inside ? inside.b : w.rawFrom;
+      const h = allHolds.find((x) => Math.abs(x.t - t) < 0.001);
+      if (h) h.extra += short + 0.02; else allHolds.push({ t, extra: short + 0.02 });
+    }
   }
   const L = layout(allHolds);
   const { plan, segments, toFinal } = L;
@@ -832,10 +836,12 @@ function compose(rec) {
   const closing = L.segments.find((s) => s.beat === 9);
   closing.from = at; closing.to = at + CLOSING_S;
   files.push(card("closing", CLOSING_S, [
-    { text: "Measured on synthetic test documents (docs/EVAL_RESULTS.md, docs/BENCHMARK.md)", size: 36, y: 170, color: "0xbcd3f0" },
-    { text: "Gemini reading: relief 35/35 on every image set", size: 50, y: 270 },
-    { text: "Land 25/27 clean, 21/27 hard; 84 reads, 0 provider errors", size: 50, y: 350 },
-    { text: "Checks, rules and amounts: median 3.2 ms per land case (software time only)", size: 44, y: 440 },
+    // Every figure as in docs/EVAL_RESULTS.md (Gemini, 17 Nov) and docs/BENCHMARK.md (Tesseract-only run, 19 Nov).
+    { text: "Measured on synthetic test documents only (docs/EVAL_RESULTS.md, docs/BENCHMARK.md)", size: 36, y: 150, color: "0xbcd3f0" },
+    { text: "Gemini reading (17 Nov): relief 35/35 on every image set", size: 50, y: 240 },
+    { text: "Land 25/27 clean, 21/27 hard; 84 reads per run, 0 provider errors", size: 46, y: 315 },
+    { text: "Speed benchmark with OCR (Tesseract) reading, 19 Nov (Gemini timed out):", size: 40, y: 415, color: "0xbcd3f0" },
+    { text: "median 3.2 ms total software time per land case", size: 46, y: 475 },
     { text: "Synthetic data. Values are placeholders until the offices confirm.", size: 46, y: 600, bold: true },
     { text: "Scripted walkthrough of the live prototype", size: 52, y: 760, bold: true }]));
   log(`rendered body ${(at - TITLE_S).toFixed(2)} s, planned ${(L.total - CLOSING_S - TITLE_S).toFixed(2)} s (frame rounding)`);
@@ -866,7 +872,7 @@ function compose(rec) {
 const stamp = (s) => `${Math.floor(s / 60)}:${(s % 60).toFixed(1).padStart(4, "0")}`;
 
 function writeNarration(segments) {
-  const lines = ["GovFlow demo: narration, one line per beat (120-135 words a minute).",
+  const lines = ["GovFlow demo: narration, one line per beat (126-134 words a minute).",
     "Timestamps are the beats of docs/video/govflow_demo_captioned.mp4, written by scripts/make_demo_video.mjs.", ""];
   for (const n of Object.keys(NARRATION).map(Number)) {
     const segs = segments.filter((s) => s.beat === n);
